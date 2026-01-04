@@ -75,14 +75,36 @@
 
 <div id="modal-help" class="modal-overlay">
     <div class="modal-content">
-        <h2 data-t="howToPlay">COMO JOGAR</h2>
-        <ul style="text-align: left; padding-left: 20px;">
-            <li data-t="tut1">Você tem 10 tentativas.</li>
-            <li data-t="tut2">Verde: Exato. Amarelo: Parcial.</li>
-            <li data-t="tut3">Setas indicam se o valor é maior ou menor.</li>
-            <li data-t="tut4">Tente adivinhar o animal do dia!</li>
-        </ul>
-        <button class="modal-btn" onclick="closeModal('modal-help')" data-t="start">COMEÇAR</button>
+        <h2 style="color: var(--accent-color); margin-bottom: 10px;">BEM-VINDO(A) AO ORKA ZOO!</h2>
+        <p style="font-size: 0.95rem; margin-bottom: 20px;">
+            Seu objetivo é descobrir qual é o <strong>Animal Secreto</strong> do dia.
+        </p>
+        
+        <div style="text-align: left; background: #1a1a1a; padding: 15px; border-radius: 8px; font-size: 0.9rem;">
+            <p style="margin: 5px 0;"><strong>Como jogar:</strong></p>
+            <ul style="margin-top: 5px; padding-left: 20px; color: #ccc;">
+                <li style="margin-bottom: 5px;">Você tem <strong>10 tentativas</strong> para acertar.</li>
+                <li style="margin-bottom: 5px;">A cada chute, comparamos os atributos do seu animal com o animal secreto.</li>
+            </ul>
+
+            <p style="margin: 10px 0 5px 0;"><strong>Entenda as cores:</strong></p>
+            <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                <span style="background:var(--correct); color:white; padding:2px 6px; border-radius:4px; font-size:0.8rem;">VERDE</span>
+                <span style="color:#ccc">Atributo exato.</span>
+            </div>
+            <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                <span style="background:var(--partial); color:black; padding:2px 6px; border-radius:4px; font-size:0.8rem;">AMARELO</span>
+                <span style="color:#ccc">Parcial (ex: compartilha um habitat).</span>
+            </div>
+            
+            <p style="margin: 10px 0 5px 0;"><strong>O que são as setas?</strong></p>
+            <ul style="margin-top: 0; padding-left: 20px; color: #ccc;">
+                <li><strong style="color:white">↑</strong> O valor correto é <strong>maior</strong> (o animal é mais pesado ou tem mais população).</li>
+                <li><strong style="color:white">↓</strong> O valor correto é <strong>menor</strong>.</li>
+            </ul>
+        </div>
+
+        <button class="modal-btn" onclick="closeModal('modal-help')" style="width: 100%; margin-top: 20px;">COMEÇAR DESAFIO</button>
     </div>
 </div>
 
