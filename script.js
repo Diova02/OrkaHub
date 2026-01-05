@@ -54,7 +54,11 @@ const enMap = {
     "Africa": "Africa", "Asia": "Asia", "Europa": "Europe", "America": "Americas", "Oceania": "Oceania", "Antartida": "Antarctica",
     "Extinto": "Extinct",
     "Anelideo": "Annelid",
-    "Detritivoro": "Detritivore"
+    "Detritivoro": "Detritivore", "Filtrador":"Filter Feeder", "Hematofago":"Hematophagous",
+    "Porifero":"Porifera",
+    "Tardigrado":"Tardigrade",
+    "Cnidario":"Cnidaria",
+    "Equinodermo":"Echinodermata"
 };
 
 // Mapa para correção PORTUGUÊS (Acentos e Maiúsculas)
@@ -63,7 +67,7 @@ const ptCorrections = {
     "America": "América", "Africa": "África", "Asia": "Ásia", "Antartida": "Antártida", "Oceania": "Oceania", "Europa": "Europa",
     "Mamifero": "Mamífero", "Reptil": "Réptil", "Anfibio": "Anfíbio", "Aracnideo": "Aracnídeo", "Crustaceo": "Crustáceo",
     "Carnivoro": "Carnívoro", "Herbivoro": "Herbívoro", "Onivoro": "Onívoro", "Insetivoro": "Insetívoro", "Piscivoro": "Piscívoro", 
-    "Nectarivoro": "Nectarívoro", "Hematofago": "Hematófago",
+    "Nectarivoro": "Nectarívoro", "Hematofago": "Hematófago", "Filtrador":"Filtrador",
     "Extinto": "Extinto", // Garante capitalização
     "Anelideo": "Anelídeo", // Nova classe adicionada
     "Detritivoro": "Detritívoro" // Nova dieta adicionada
@@ -564,7 +568,7 @@ function endGame(win) {
     document.getElementById('reveal-name').textContent = currentLang === 'pt' ? gameState.targetAnimal.nome.pt : gameState.targetAnimal.nome.en;
     
     const baseName = normalizeStr(gameState.targetAnimal.nome.pt).replace(/\s+/g, "");
-    tryLoadImage(revealImg, baseName, ['png', 'jpg', 'webp'], 0);//Carrega a respectiva imagem, se houver
+    tryLoadImage(revealImg, baseName, ['png', 'jpg', 'jpeg', 'webp'], 0);//Carrega a respectiva imagem, se houver
     let timeStr = "";
 
     if (startTime && endTime) {
