@@ -20,6 +20,19 @@
     <div class="header-content">
         <div class="left-group">
             <img src="orka-logo.png" alt="Orka Studio" class="orka-logo">
+            <button id="tip-btn" title="Curiosidade do Dia">?</button>
+        </div>
+
+        <div id="modal-tip" class="modal-overlay">
+            <div class="modal-content">
+                <h2 style="color: var(--accent-color); margin-bottom: 10px;" data-t="tipTitle">CURIOSIDADE DO DIA</h2>
+                
+                <img id="tip-img" class="animal-reveal-img" src="" alt="" style="display:none; max-height: 200px;">
+                
+                <p id="tip-text" style="font-size: 1rem; line-height: 1.5; color: #ddd; margin: 20px 0;"></p>
+                
+                <button class="modal-btn" onclick="closeModal('modal-tip')" data-t="tipBtn">LEGAL</button>
+            </div>
         </div>
 
         <div class="title-group">

@@ -10,6 +10,8 @@
     --win-color: #2e8b57;
     --lose-color: #b22222;
     --playing-color: #d4a017; /* Amarelo escuro para legibilidade */
+    --mobile-scale-font: 0.7rem; /* ~30% menor que o desktop (que é aprox 1rem) */
+    --mobile-padding: 3px;
 }
 
 * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -216,6 +218,50 @@ button:disabled { background: #333; opacity: 0.5; }
 }
 .share-btn:hover { background: #128C7E; }
 
+@media (max-width: 480px) {
+    /* Reduz tamanho da fonte e espaçamento nos cards */
+    .cell {
+        font-size: var(--mobile-scale-font); /* Usa a variável configurável */
+        padding: var(--mobile-padding) 2px;
+        min-height: 35px; /* Altura menor */
+    }
+    
+    /* Cabeçalho da tabela também diminui */
+    .header-cell {
+        font-size: 0.6rem;
+        padding-bottom: 2px;
+    }
+
+    /* As setas precisam diminuir proporcionalmente */
+    .arrow {
+        font-size: 1.3em; 
+    }
+
+    /* Ajuste da Logo e Título para telas finas */
+    .orka-logo { height: 28px; }
+    h1 { font-size: 0.9rem; }
+    
+    /* Ajuste do botão de dica no mobile */
+    #tip-btn { width: 24px; height: 24px; font-size: 0.8rem; }
+
+    :root {
+        --mobile-grid-width: 650px; /* <--- EDITE AQUI A LARGURA TOTAL DA TABELA NO MOBILE */
+        --mobile-scale-font: 0.75rem;
+    }
+
+    .grid-header, .guess-row {
+        /* Usa a variável para definir a largura mínima scrollável */
+        min-width: var(--mobile-grid-width); 
+        gap: 2px;
+    }
+
+    .cell {
+        font-size: var(--mobile-scale-font);
+        padding: 4px 2px;
+        min-height: 30px;
+    }
+}
+
 /* Mensagem de Estado Vazio */
 #empty-state {
     text-align: center;
@@ -237,4 +283,28 @@ button:disabled { background: #333; opacity: 0.5; }
 .guess-row.revealed .cell.partial {
     background-color: #3a0000 !important;
     border-color: var(--wrong) !important;
+}
+
+/* BOTÃO DE CURIOSIDADE (Estilo Unificado) */
+#tip-btn {
+    background: transparent; /* Fundo preto/transparente */
+    border: 1px solid #333;  /* Borda sutil cinza */
+    color: white;            /* Texto branco por padrão */
+    width: 36px; 
+    height: 36px; 
+    border-radius: 50%; 
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1rem;
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    transition: all 0.2s;
+    margin-left: 10px;
+}
+
+/* Hover: Azul com borda azul */
+#tip-btn:hover {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
 }

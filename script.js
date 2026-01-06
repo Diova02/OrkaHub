@@ -1,4 +1,5 @@
 import animalsDB from './animais.js';
+import curiositiesDB from './curiosidades.js';
 
 // ==========================================
 // CONFIGURAÇÃO
@@ -26,6 +27,9 @@ const translations = {
         startMsg: "Tudo começa com um chute...",
         startSub: "Digite um animal para começar!",
         time: "Tempo",
+        tipTitle: "CURIOSIDADE DO DIA",
+        tipBtn: "LEGAL",
+        didYouKnow: "Você sabia? " // Espaço no final intencional
     },
     en: {
         attempts: "Attempts", guess: "Guess", animal: "Animal", weight: "Weight", diet: "Diet", habitat: "Habitat", continent: "Continent", class: "Class", pop: "Pop.",
@@ -43,6 +47,9 @@ const translations = {
         startMsg: "It all starts with a guess...",
         startSub: "Type an animal to start!",
         time: "Time",
+        tipTitle: "CURIOSITY OF THE DAY",
+        tipBtn: "COOL",
+        didYouKnow: "Did you know? " // Espaço no final intencional
     }
 };
 
@@ -89,6 +96,44 @@ const attemptDisplay = document.getElementById("attempt-count");
 const dateDisplay = document.getElementById("date-display");
 const langBtn = document.getElementById("lang-btn");
 const summaryBox = document.getElementById("page-end-summary");
+const tipBtn = document.getElementById("tip-btn");
+
+// ==========================================
+// LÓGICA DA CURIOSIDADE DO DIA
+// ==========================================
+function getDailyTip() {
+    const today = new Date();
+
+    const diffTime = Math.abs(today - START_DATE);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    // Usa o curiositiesDB
+    if(diffDays < 0) return curiositiesDB[0];
+    const index = diffDays % curiositiesDB.length;
+    return curiositiesDB[index];
+}
+
+// Evento de Clique no Botão (?)
+tipBtn.addEventListener("click", () => {
+    const tip = getDailyTip();
+    const modal = document.getElementById("modal-tip");
+    const tipText = document.getElementById("tip-text");
+    const tipImg = document.getElementById("tip-img");
+
+    // 1. Inserir Texto (a depender da língua)
+    const prefix = t("didYouKnow");
+    const content = currentLang === 'pt' ? tip.dica.pt : tip.dica.en;
+
+    tipText.innerHTML = `<strong style="color:var(--accent-color)">${prefix}</strong>${content}`;
+
+    // 2. Carregar Imagem (Reaproveitando a lógica normalizadora)
+    // Normaliza o nome da imagem vindo do dicas.js (ex: "Água Viva" -> "aguaviva")
+    const normalizedImgName = normalizeStr(tip.img).replace(/\s+/g, "");
+    
+    // Tenta carregar usando a função que já existe
+    tryLoadImage(tipImg, normalizedImgName, ['png', 'jpg', 'jpeg', 'webp', 'svg'], 0);
+
+    modal.classList.add("active");
+});
 
 // ==========================================
 // INICIALIZAÇÃO
