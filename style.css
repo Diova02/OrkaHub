@@ -82,7 +82,7 @@ button:disabled { background: #333; opacity: 0.5; }
 .results-container { width: 95%; max-width: 850px; overflow-x: auto; padding-bottom: 20px; flex-grow: 1; }
 .grid-header, .guess-row {
     display: grid; 
-    grid-template-columns: 2fr 1fr 1.2fr 1.5fr 1.5fr 1.2fr 1fr; 
+    grid-template-columns: 2fr 1fr 1.2fr 1.5fr 1.5fr 1.2fr 1fr 1fr 1.2fr; 
     gap: 4px; min-width: 700px; margin-bottom: 4px;
 }
 .header-cell { font-size: 0.7rem; text-transform: uppercase; color: #888; text-align: center; }

@@ -30,7 +30,9 @@ const translations = {
         time: "Tempo",
         tipTitle: "CURIOSIDADE DO DIA",
         tipBtn: "LEGAL",
-        didYouKnow: "Você sabia? " // Espaço no final intencional
+        didYouKnow: "Você sabia? ", // Espaço intencional
+        lifespan: "Vida", cycle: "Ciclo", 
+        yrs: "anos"
     },
     en: {
         attempts: "Attempts", guess: "Guess", animal: "Animal", weight: "Weight", diet: "Diet", habitat: "Habitat", continent: "Continent", class: "Class", pop: "Pop.",
@@ -50,7 +52,9 @@ const translations = {
         time: "Time",
         tipTitle: "CURIOSITY OF THE DAY",
         tipBtn: "COOL",
-        didYouKnow: "Did you know? " // Espaço no final intencional
+        didYouKnow: "Did you know? ", // Espaço intencional
+        lifespan: "Life", cycle: "Cycle",
+        yrs: "yrs"
     }
 };
 
@@ -66,7 +70,11 @@ const enMap = {
     "Porifero":"Porifera",
     "Tardigrado":"Tardigrade",
     "Cnidario":"Cnidaria",
-    "Equinodermo":"Echinodermata"
+    "Equinodermo":"Echinodermata",
+    "Diurno": "Diurnal",
+    "Noturno": "Nocturnal",
+    "Crepuscular": "Crepuscular",
+    "Catemeral": "Cathemeral"
 };
 
 // Mapa para correção PORTUGUÊS (Acentos e Maiúsculas)
@@ -78,7 +86,12 @@ const ptCorrections = {
     "Nectarivoro": "Nectarívoro", "Hematofago": "Hematófago", "Filtrador":"Filtrador",
     "Extinto": "Extinto", // Garante capitalização
     "Anelideo": "Anelídeo", // Nova classe adicionada
-    "Detritivoro": "Detritívoro" // Nova dieta adicionada
+    "Detritivoro": "Detritívoro", // Nova dieta adicionada
+    // CICLO CIRCADIANO (Português - caso precise de correção/capitalização)
+    "Diurno": "Diurno",
+    "Noturno": "Noturno",
+    "Crepuscular": "Crepuscular",
+    "Catemeral": "Catemeral"
 };
 
 let currentLang = localStorage.getItem('orkaZooLang') || 'pt';
@@ -444,6 +457,17 @@ function renderRow(guess, isReveal = false) {
     if (gIdx === tIdx) pClass = "correct";
     else pArrow = gIdx < tIdx ? "↑" : "↓";
     createCell(row, `${guess.populacao} <div class='arrow'>${pArrow}</div>`, pClass);
+
+    // Expectativa de Vida
+    let vClass = "wrong", vArrow = "";
+    // Tolerância de igualdade (opcional, aqui estou usando exato)
+    if (guess.vida === target.vida) vClass = "correct";
+    else vArrow = guess.vida < target.vida ? "↑" : "↓";
+    createCell(row, `${guess.vida} <span style="font-size:0.7em">${t('yrs')}</span> <div class='arrow'>${vArrow}</div>`, vClass);
+
+    // Ciclo Circadiano
+    // Lógica: Verde/Vermelho
+    createCell(row, formatTerm(guess.ciclo), guess.ciclo === target.ciclo ? "correct" : "wrong");
 
     if (isReveal) {
         gridBody.appendChild(row); // Na derrota, adiciona no FINAL
