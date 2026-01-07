@@ -240,3 +240,25 @@ button:disabled { background: #333; opacity: 0.5; }
     border-color: var(--orka-accent);
     color: var(--orka-accent);
 }
+
+.imagem-canto-esquerda, .imagem-canto-direita {
+    position: fixed; /* Fixa a imagem em relação à janela de visualização */
+    bottom: -23px;    /* 20 pixels do fundo */
+    left: -50px;     /* 20 pixels da esquerda */
+    width: 400px;    /* Define a largura da imagem */
+    height: auto;    /* Mantém a proporção original */
+    z-index: 0;   /* Garante que a imagem fique acima de outros elementos */
+    opacity: 10%;
+}
+
+.imagem-canto-direita {
+    left:auto;
+    right: -50px;     /* 20 pixels da esquerda */
+    transform: scaleX(-1);
+}
+
+@media (max-width: 480px) {
+.imagem-canto-esquerda, .imagem-canto-direita {
+        width: 0px;
+    }   
+}
