@@ -58,6 +58,25 @@ export const OrkaDate = {
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
         if(diffDays < 0) return 0;
         return diffDays % dbSize;
+    },
+
+    getDailyCategories: (startDate, categoriesKeys) => {
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const start = new Date(startDate);
+        const diffTime = Math.abs(today - start);
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        
+        // Lógica: Pula de 3 em 3
+        const baseIndex = diffDays * 3;
+        
+        let selected = [];
+        // Pega 4 grupos (1 sobrepõe o dia seguinte)
+        for(let i = 0; i < 4; i++) {
+            const index = (baseIndex + i) % categoriesKeys.length;
+            selected.push(categoriesKeys[index]);
+        }
+        return selected;
     }
 };
 
