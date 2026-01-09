@@ -2,14 +2,97 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orka Studio | Hub</title>
+    
     <link rel="stylesheet" href="core/styles/orka-base.css">
-    <title>Orka Studio</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
-    <h1>Orka Studio Hub</h1>
-    <nav>
-        <a href="games/orkazoo/index.html" class="orka-btn">Jogar Orka Zoo</a>
-        <a href="#" class="orka-btn" disabled>Listit (Em breve)</a>
-    </nav>
+
+    <header>
+        <div class="header-content">
+            <div class="left-group">
+                <a href="/" class="home-link" title="Voltar para o início">
+                    <img src="assets/icons/orka-logo.png" alt="Orka Studio" class="orka-logo">
+                </a>
+            </div>
+            <div class="title-group">
+                <h1>ORKA STUDIO</h1>
+            </div>
+            <div class="right-group">
+                <a href="#" class="orka-btn" style="font-size: 0.7rem; padding: 5px 15px;">Sobre</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+
+        <section class="hub-section">
+            <h2>Jogos Diários</h2>
+            <div class="game-list">
+                
+                <a href="games/orkazoo/" class="game-card-horizontal">
+                    <img src="assets/prints/print-zoo.png" alt="Orka Zoo Gameplay" class="card-print" onerror="this.src='assets/icons/orka-logo.png'"> <div class="card-content">
+                        <img src="assets/icons/zoo-logo.png" class="card-icon" alt="Z" onerror="this.style.background='#333'">
+                        
+                        <div class="card-text">
+                            <h3>ORKA ZOO</h3>
+                            <p>Descubra o animal secreto do dia.</p>
+                        </div>
+                    </div>
+
+                    <div class="card-action">
+                        <span class="material-icons">play_arrow</span>
+                    </div>
+                </a>
+
+            </div>
+        </section>
+
+        <section class="hub-section">
+            <h2>Jogos Web</h2>
+            <div class="game-list">
+                <div class="empty-msg">Nada aqui ainda!</div>
+            </div>
+        </section>
+
+        <section class="hub-section">
+            <h2>Jogos PnP</h2>
+            <div class="game-list">
+                <div class="empty-msg">Nada aqui ainda!</div>
+            </div>
+        </section>
+
+        <section class="hub-section">
+            <h2>Em Breve</h2>
+            <div class="game-list">
+                
+                <div class="game-card-horizontal" style="opacity: 0.5; cursor: default; border-style: dashed;">
+                    <div class="card-print" style="display:flex; align-items:center; justify-content:center; color:#444;">🚧</div>
+                    
+                    <div class="card-content">
+                        <div class="card-icon" style="background:#222;"></div>
+                        
+                        <div class="card-text">
+                            <h3>LISTIT</h3>
+                            <p>Organize o caos.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="card-action">
+                        <span style="font-size:0.7rem; font-weight:bold; border:1px solid #555; padding:2px 6px; border-radius:4px;">EM BREVE</span>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <footer style="text-align: center; color: #444; padding: 40px; font-size: 0.8rem;">
+        &copy; 2026 Orka Studio. Todos os direitos reservados.
+    </footer>
+
 </body>
 </html>

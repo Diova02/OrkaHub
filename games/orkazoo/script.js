@@ -1,6 +1,6 @@
 import animalsDB from './animais.js';
 import curiositiesDB from './curiosidades.js';
-import { OrkaFX, OrkaDate, OrkaStorage, Utils } from './core/orka-lib.js';
+import { OrkaFX, OrkaDate, OrkaStorage, Utils } from '../../core/scripts/orka-lib.js';
 
 // ==========================================
 // CONFIGURAÇÃO
@@ -29,7 +29,7 @@ const translations = {
         startSub: "Digite um animal para começar!",
         time: "Tempo",
         tipTitle: "CURIOSIDADE DO DIA",
-        tipBtn: "LEGAL",
+        tipBtn: "LEGAL!",
         didYouKnow: "Você sabia? ", // Espaço intencional
         lifespan: "Vida", cycle: "Ciclo", 
         yrs: "anos"
@@ -165,7 +165,7 @@ tipBtn.addEventListener("click", () => {
 
     // 2. Carregar Imagem (Reaproveitando a lógica normalizadora)
     // Normaliza o nome da imagem vindo do dicas.js (ex: "Água Viva" -> "aguaviva")
-    const normalizedImgName = normalizeStr(tip.img).replace(/\s+/g, "");
+    const normalizedImgName = Utils.normalize(tip.img).replace(/\s+/g, "");
     
     // Tenta carregar usando a função que já existe
     tryLoadImage(tipImg, normalizedImgName, ['png', 'jpg', 'jpeg', 'webp', 'svg'], 0);
@@ -300,14 +300,14 @@ function updateDateDisplay() {
 // INPUT E LÓGICA
 // ==========================================
 input.addEventListener("input", function() {
-    const val = normalizeStr(this.value);
+    const val = Utils.normalize(this.value);
     closeAllLists();
     if (!val) return;
     currentFocus = -1;
 
     let matches = animalsDB.filter(a => {
-        const ptName = normalizeStr(a.nome.pt);
-        const enName = normalizeStr(a.nome.en);
+        const ptName = Utils.normalize(a.nome.pt);
+        const enName = Utils.normalize(a.nome.en);
         return ptName.includes(val) || enName.includes(val);
     });
 
@@ -382,8 +382,8 @@ function processGuess() {
     }
 
     const guessObj = animalsDB.find(a => 
-        normalizeStr(a.nome.pt) === normalizeStr(guessName) || 
-        normalizeStr(a.nome.en) === normalizeStr(guessName)
+        Utils.normalize(a.nome.pt) === Utils.normalize(guessName) || 
+        Utils.normalize(a.nome.en) === Utils.normalize(guessName)
     );
     
     if (!guessObj) { OrkaFX.toast(t("toastErrList"), "error"); OrkaFX.shake(); return; }
@@ -693,7 +693,7 @@ function endGame(win) {
     document.getElementById('end-msg').textContent = win ? t('winMsg') : t('loseMsg');
     document.getElementById('reveal-name').textContent = currentLang === 'pt' ? gameState.targetAnimal.nome.pt : gameState.targetAnimal.nome.en;
     
-    const baseName = normalizeStr(gameState.targetAnimal.nome.pt).replace(/\s+/g, "");
+    const baseName = Utils.normalize(gameState.targetAnimal.nome.pt).replace(/\s+/g, "");
     tryLoadImage(revealImg, baseName, ['png', 'jpg', 'jpeg', 'webp'], 0);//Carrega a respectiva imagem, se houver
     let timeStr = "";
 
@@ -744,12 +744,11 @@ function showPageSummary(win) {
 
 function tryLoadImage(img, name, formats, idx) {
     if (idx >= formats.length) { img.style.display = 'none'; return; }
-    img.src = `assets/${name}.${formats[idx]}`;
+    img.src = `../../assets/imagens/${name}.${formats[idx]}`;
     img.onload = () => img.style.display = 'block';
     img.onerror = () => tryLoadImage(img, name, formats, idx+1);
 }
 
-function normalizeStr(str) { return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
 function formatWeight(kg) { return kg < 1 ? (kg * 1000) + "g" : (kg >= 1000 ? (kg / 1000) + "t" : kg + "kg"); }
 function getArrayStatus(g, t) {
     const intersect = g.filter(x => t.includes(x));
