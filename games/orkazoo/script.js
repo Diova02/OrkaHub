@@ -1,6 +1,7 @@
 import animalsDB from './animais.js';
 import curiositiesDB from './curiosidades.js';
 import { OrkaFX, OrkaDate, OrkaStorage, Utils } from '../../core/scripts/orka-lib.js';
+import { OrkaCloud } from '../../core/scripts/orka-cloud.js';
 
 // ==========================================
 // CONFIGURAÇÃO
@@ -100,6 +101,8 @@ let currentFocus = -1;
 let calendarMonth = new Date();
 let startTime = null;
 let endTime = null;
+let orkaSessionId = null;
+
 
 // DOM Elements
 const input = document.getElementById("guess-input");
@@ -176,7 +179,7 @@ tipBtn.addEventListener("click", () => {
 // ==========================================
 // INICIALIZAÇÃO
 // ==========================================
-function initGame(dateInput = new Date()) {
+async function initGame(dateInput = new Date()) {
     langBtn.textContent = currentLang.toUpperCase();
     applyTranslation(); 
     input.placeholder = currentLang === 'pt' ? "Digite um animal..." : "Type an animal...";
@@ -193,6 +196,11 @@ function initGame(dateInput = new Date()) {
     if (!localStorage.getItem('orkaZooTutorialV3')) {
         document.getElementById('modal-help').classList.add('active');
         localStorage.setItem('orkaZooTutorialV3', 'true');
+    }
+
+    //Salvar na nuvem
+    if (!orkaSessionId) {
+        orkaSessionId = await OrkaCloud.startSession('orka_zoo');
     }
 }
 
@@ -756,6 +764,13 @@ function getArrayStatus(g, t) {
     if (intersect.length > 0) return "partial";
     return "wrong";
 }
+
+window.addEventListener('beforeunload', () => {
+    if (orkaSessionId) {
+        OrkaCloud.endSession(orkaSessionId);
+        orkaSessionId = null;
+    }
+});
 
 window.closeModal = (id) => document.getElementById(id).classList.remove('active');
 
