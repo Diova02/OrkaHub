@@ -27,74 +27,95 @@
     <main id="game-app">
         
         <section id="scene-lobby" class="lobby-container">
-            <div style="width:100%; max-width:300px; text-align:center;">
-                <label style="color:#666; font-size:0.8rem; text-transform:uppercase; letter-spacing:1px;">Idioma da Sala</label>
-                <div class="lang-selector" style="display:flex; gap:10px; margin-bottom:30px; margin-top:10px;">
+            
+            <div class="lobby-card">
+                <div class="lobby-title">Configurar Partida</div>
+                
+                <div class="lang-selector" style="display:flex; gap:10px; margin-bottom:10px;">
                     <button id="btn-lang-pt" class="orka-btn orka-btn-primary" style="flex:1;">PT-BR</button>
                     <button id="btn-lang-en" class="orka-btn" style="flex:1; background:#222; color:#888;">EN-US</button>
                 </div>
 
-                <button id="btn-create" class="orka-btn orka-btn-primary" style="width:100%; margin-bottom:15px; padding:15px;">CRIAR SALA</button>
+                <button id="btn-create" class="orka-btn orka-btn-primary" style="padding:15px; font-size:1rem;">
+                    CRIAR NOVA SALA
+                </button>
                 
-                <div style="display:flex; gap:5px;">
-                    <input type="text" id="input-room-code" placeholder="CÓDIGO" class="orka-input" style="flex:1; text-align:center; text-transform:uppercase; font-weight:bold;" maxlength="4">
+                <div style="display:flex; align-items:center; gap:10px; margin:10px 0;">
+                    <div style="height:1px; background:#333; flex:1;"></div>
+                    <span style="color:#444; font-size:0.8rem;">OU</span>
+                    <div style="height:1px; background:#333; flex:1;"></div>
+                </div>
+
+                <div class="input-group">
+                    <input type="text" id="input-room-code" placeholder="CÓDIGO" class="orka-input" style="flex:1; text-align:center; text-transform:uppercase; font-weight:bold; font-size:1.1rem;" maxlength="4">
                     <button id="btn-join" class="orka-btn">ENTRAR</button>
                 </div>
             </div>
+
         </section>
 
         <section id="scene-waiting" class="lobby-container" style="display:none;">
-            <p style="font-size:0.9rem; color:#888; text-transform:uppercase;">Compartilhe este código</p>
-            <div id="display-code" class="room-code-display">----</div>
             
-            <div id="waiting-list" style="margin:30px 0; width:100%; text-align:center;">
+            <div class="lobby-card" style="text-align:center;">
+                <p style="font-size:0.8rem; color:#888; text-transform:uppercase; margin:0;">Código da Sala</p>
+                <div id="display-code" class="room-code-display" style="margin:10px 0 20px 0;">----</div>
+                
+                <div style="background:#0a0a0a; border-radius:8px; padding:15px; margin-bottom:20px; min-height:100px;">
+                    <div id="waiting-list" style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center;">
+                        </div>
                 </div>
 
-            <p style="font-size:0.8rem; color:#666; margin-bottom:20px;">Aguardando jogadores...</p>
-            <button id="btn-start" class="orka-btn orka-btn-primary" disabled>COMEÇAR JOGO</button>
+                <button id="btn-start" class="orka-btn orka-btn-primary" style="width:100%; margin-bottom:10px;" disabled>
+                    COMEÇAR JOGO
+                </button>
+
+                <button id="btn-leave" class="btn-secondary" style="width:100%;">
+                    Sair da Sala
+                </button>
+            </div>
+
         </section>
 
         <section id="scene-game" style="display:none; height:100%; flex-direction:column;">
-            
             <div class="game-status">
                 <span id="status-text">SINCRONIA MENTAL</span>
                 <div id="round-counter" style="font-size:0.75rem; color:var(--orka-accent); margin-top:5px;">RODADA 1</div>
             </div>
 
-            <div id="players-grid" class="players-grid">
-                </div>
+            <div id="players-grid" class="players-grid"></div>
 
             <div class="game-footer-fixed">
                 <div id="suggestions-box" class="suggestions-list" style="display:none;"></div>
-                
                 <div class="input-wrapper">
                     <input type="text" id="word-input" placeholder="DIGITE UMA PALAVRA..." autocomplete="off">
                     <button id="btn-send-word" class="icon-btn" style="background:var(--orka-accent); border:none;"><span class="material-icons">send</span></button>
                 </div>
             </div>
-
         </section>
-
-        <div id="modal-victory" class="modal-overlay" style="display:none;">
-            <div class="modal-content victory-content">
-                <div class="victory-icon">✨</div>
-                <h2 class="victory-title">JINX!</h2>
-                <p class="victory-subtitle">Sincronia alcançada na rodada <span id="final-round">?</span>.</p>
-                
-                <div class="winning-word-box">
-                    <span id="winning-word">PALAVRA</span>
-                </div>
-
-                <div class="victory-actions">
-                    <button onclick="window.location.href='../../index.html'" class="orka-btn orka-btn-primary">
-                        Voltar ao Hub
-                    </button>
-                </div>
-            </div>
-        </div>
 
     </main>
 
+    <div id="modal-victory" class="modal-overlay" style="display:none;">
+        <div class="modal-content victory-content">
+            <div class="victory-icon">✨</div>
+            <h2 class="victory-title">JINX!</h2>
+            <p class="victory-subtitle">Sincronia na rodada <span id="final-round">?</span>.</p>
+            
+            <div class="winning-word-box">
+                <span id="winning-word">PALAVRA</span>
+            </div>
+
+            <div class="victory-actions" style="display:flex; flex-direction:column; gap:10px;">
+                <button id="btn-play-again" class="orka-btn orka-btn-primary" style="width:100%;">
+                    Jogar Novamente
+                </button>
+                <button id="btn-back-hub" class="btn-secondary" onclick="window.location.href='../../index.html'">
+                    Sair para o Hub
+                </button>
+            </div>
+        </div>
+    </div>
+    
     <script type="module" src="game.js"></script>
 
 </body>

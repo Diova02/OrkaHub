@@ -1,5 +1,5 @@
 import { OrkaCloud, supabase } from '../../core/scripts/orka-cloud.js';
-import { OrkaFX } from '../../core/scripts/orka-lib.js'; // Importando a Lib Visual
+import { OrkaFX } from '../../core/scripts/orka-lib.js';
 import { palavrasPT, palavrasEN } from './palavras.js';
 
 // --- ESTADO LOCAL ---
@@ -13,7 +13,11 @@ let state = {
     dictionary: palavrasPT,
     round: 1,
     players: [],
-    usedWords: [] // Lista de palavras já usadas na sala
+    usedWords: [],
+    
+    // Controle de Teclado
+    suggestionIndex: -1,
+    currentSuggestions: []
 };
 
 // --- DOM ELEMENTS ---
@@ -30,6 +34,7 @@ const inputs = {
 
 const suggestionsBox = document.getElementById('suggestions-box');
 const modalVictory = document.getElementById('modal-victory');
+const btnPlayAgain = document.getElementById('btn-play-again');
 
 // --- INICIALIZAÇÃO ---
 async function init() {
@@ -39,81 +44,145 @@ async function init() {
     if (code) { inputs.roomCode.value = code; joinRoom(code); }
 }
 
-// --- AUTOCOMPLETE INTELIGENTE ---
+// --- UX: AUTOCOMPLETE & TECLADO ---
+
+// 1. Input Texto
 inputs.word.addEventListener('input', () => {
     const val = inputs.word.value.trim().toUpperCase();
-    if (val.length < 1) { suggestionsBox.style.display = 'none'; return; }
+    state.suggestionIndex = -1; // Reseta seleção
 
-    // FILTRO: Começa com o texto digitado E NÃO está na lista de usadas
-    const matches = state.dictionary
+    if (val.length < 1) { 
+        suggestionsBox.style.display = 'none'; 
+        return; 
+    }
+
+    // Filtra e guarda no estado
+    state.currentSuggestions = state.dictionary
         .filter(w => w.startsWith(val) && !state.usedWords.includes(w)) 
         .slice(0, 5); 
 
-    renderSuggestions(matches);
+    renderSuggestions(state.currentSuggestions);
+});
+
+// 2. Navegação por Teclado (Keydown)
+inputs.word.addEventListener('keydown', (e) => {
+    if (suggestionsBox.style.display === 'none') return;
+
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        state.suggestionIndex++;
+        if (state.suggestionIndex >= state.currentSuggestions.length) state.suggestionIndex = 0; // Loop
+        updateSuggestionHighlight();
+    } 
+    else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        state.suggestionIndex--;
+        if (state.suggestionIndex < 0) state.suggestionIndex = state.currentSuggestions.length - 1; // Loop
+        updateSuggestionHighlight();
+    } 
+    else if (e.key === 'Enter') {
+        // Se tiver algo selecionado na lista, usa ele
+        if (state.suggestionIndex > -1 && state.currentSuggestions[state.suggestionIndex]) {
+            e.preventDefault();
+            selectSuggestion(state.currentSuggestions[state.suggestionIndex]);
+        }
+        // Se não, o evento 'keypress' padrão cuida do envio
+    }
 });
 
 function renderSuggestions(matches) {
     if (matches.length === 0) { suggestionsBox.style.display = 'none'; return; }
+    
     suggestionsBox.innerHTML = '';
-    matches.forEach(word => {
+    matches.forEach((word, index) => {
         const div = document.createElement('div');
         div.className = 'suggestion-item';
         div.textContent = word;
-        div.onclick = () => {
-            inputs.word.value = word;
-            suggestionsBox.style.display = 'none';
-            inputs.word.focus();
-        };
+        div.dataset.index = index; // Para referência
+        
+        div.onclick = () => selectSuggestion(word);
         suggestionsBox.appendChild(div);
     });
     suggestionsBox.style.display = 'block';
 }
 
-// Fechar sugestões ao clicar fora
+function updateSuggestionHighlight() {
+    const items = suggestionsBox.querySelectorAll('.suggestion-item');
+    items.forEach((item, idx) => {
+        if (idx === state.suggestionIndex) {
+            item.classList.add('selected');
+            // Scroll suave se necessário
+            item.scrollIntoView({ block: 'nearest' });
+        } else {
+            item.classList.remove('selected');
+        }
+    });
+}
+
+function selectSuggestion(word) {
+    inputs.word.value = word;
+    suggestionsBox.style.display = 'none';
+    state.suggestionIndex = -1;
+    inputs.word.focus();
+    // Opcional: Enviar direto ao selecionar? Melhor deixar o usuário dar Enter final.
+}
+
+// Fechar ao clicar fora
 document.addEventListener('click', (e) => {
     if (!e.target.closest('#suggestions-box') && !e.target.closest('#word-input')) {
         suggestionsBox.style.display = 'none';
     }
 });
 
+
 // --- LÓGICA DE SALA ---
+
 document.getElementById('btn-create').addEventListener('click', async () => {
     const code = Math.random().toString(36).substring(2, 6).toUpperCase();
-    // Cria a sala já com array vazio de palavras usadas
     const { data, error } = await supabase.from('jinx_rooms')
         .insert({ code, language: state.language, status: 'waiting', used_words: [] })
         .select().single();
     
-    if (error) return alert('Erro ao criar sala.');
+    if (error) return OrkaFX.toast('Erro ao criar sala', 'error');
+    
     state.isHost = true;
     enterRoom(data);
 });
 
 document.getElementById('btn-join').addEventListener('click', () => {
     const code = inputs.roomCode.value.toUpperCase();
-    if (code.length < 4) return;
+    if (code.length < 4) return OrkaFX.toast('Código inválido', 'error');
     joinRoom(code);
+});
+
+document.getElementById('btn-leave').addEventListener('click', async () => {
+    if(confirm("Sair da sala?")) {
+        await supabase.from('jinx_room_players').delete().eq('player_id', state.playerId);
+        window.location.reload();
+    }
 });
 
 async function joinRoom(code) {
     const { data, error } = await supabase.from('jinx_rooms').select('*').eq('code', code).single();
-    if (error || !data) return alert('Sala não encontrada.');
+    if (error || !data) return OrkaFX.toast('Sala não encontrada', 'error');
     enterRoom(data);
 }
 
 async function enterRoom(roomData) {
     state.roomId = roomData.id;
     state.roomCode = roomData.code;
-    state.usedWords = roomData.used_words || []; // Carrega histórico de palavras
+    state.usedWords = roomData.used_words || [];
     setLang(roomData.language);
     
-    // Entra na sala (Upsert evita erro de duplicação se já tiver a constraint no banco)
     await supabase.from('jinx_room_players').upsert({
         room_id: state.roomId, player_id: state.playerId, nickname: state.nickname
     }, { onConflict: 'player_id, room_id' });
 
     document.getElementById('display-code').innerText = state.roomCode;
-    showScreen(roomData.status === 'playing' ? 'game' : 'waiting');
+    
+    // Decide qual tela mostrar
+    handleRoomStatus(roomData.status);
+    
     subscribeToRoom();
 }
 
@@ -139,75 +208,86 @@ function handlePlayerChange(payload) {
         if (index !== -1) state.players[index] = payload.new;
     } else if (payload.eventType === 'DELETE') {
         state.players = state.players.filter(p => p.id !== payload.old.id);
+        // Se eu fui kickado (ex: sala deletada manualmente)
+        if(payload.old.player_id === state.playerId) window.location.reload();
     }
     renderPlayers();
     checkMyStatus();
-    checkGameLogic(); // Host verifica se todos jogaram
+    checkGameLogic(); 
 }
 
 function handleRoomChange(payload) {
-    if (payload.new.status === 'playing') showScreen('game');
-    
-    // Sincroniza palavras usadas (importante para quem entra depois ou perde sync)
-    if (payload.new.used_words) {
-        state.usedWords = payload.new.used_words;
-    }
+    // Atualiza palavras usadas
+    if (payload.new.used_words) state.usedWords = payload.new.used_words;
 
-    if (payload.new.status === 'finished') {
-        // Se não for host, mostra a tela de vitória quando o status muda
+    // Gerencia estados globais da sala
+    handleRoomStatus(payload.new.status);
+}
+
+function handleRoomStatus(status) {
+    if (status === 'waiting') {
+        modalVictory.classList.remove('active'); // Fecha modal se estiver aberto
+        modalVictory.style.display = 'none';
+        state.round = 1;
+        document.getElementById('round-counter').innerText = `RODADA 1`;
+        showScreen('waiting');
+    }
+    else if (status === 'playing') {
+        modalVictory.classList.remove('active');
+        modalVictory.style.display = 'none';
+        showScreen('game');
+    }
+    else if (status === 'finished') {
         if (!state.isHost) endGameUI(); 
     }
 }
 
-// --- GAMEPLAY LOCAL ---
+
+// --- GAMEPLAY ---
+
+// Verifica estado local (destrava input se resetar rodada)
 function checkMyStatus() {
     const myPlayer = state.players.find(p => p.player_id === state.playerId);
     if (myPlayer) {
-        // Se eu não estou pronto (is_ready=false) e meu input está travado -> DESTRAVA
         if (!myPlayer.is_ready && inputs.word.disabled && !modalVictory.classList.contains('active')) {
             inputs.word.disabled = false;
             inputs.word.value = '';
             inputs.word.focus();
             
-            // Feedback visual sutil de nova rodada
-            const statusText = document.getElementById('status-text');
-            if(statusText) {
-                const originalText = statusText.innerText;
-                statusText.innerText = "NOVA TENTATIVA...";
-                setTimeout(() => statusText.innerText = "SINCRONIA MENTAL", 1500);
-            }
+            const st = document.getElementById('status-text');
+            st.innerText = "NOVA TENTATIVA...";
+            setTimeout(() => st.innerText = "SINCRONIA MENTAL", 1500);
         } else if (myPlayer.is_ready) {
             inputs.word.disabled = true;
         }
     }
 }
 
-// --- LÓGICA DO HOST (SERVIDOR) ---
+// Lógica Host
 async function checkGameLogic() {
     if (!state.isHost || state.players.length === 0) return;
     const allReady = state.players.every(p => p.is_ready);
     
     if (allReady) {
         setTimeout(async () => {
-            // Re-busca para garantir dados frescos
             const { data: currentPlayers } = await supabase.from('jinx_room_players').select('*').eq('room_id', state.roomId);
             const words = currentPlayers.map(p => p.current_word);
-            
-            // Verifica se todos são iguais ao primeiro
             const allMatch = words.every(w => w === words[0]);
 
             if (allMatch) {
-                // VITÓRIA!
+                // VITÓRIA
                 state.usedWords.push(words[0]); 
                 await finishGame(words[0]);
             } else {
-                // FALHA -> Queima as palavras e reseta
-                // Filtra para adicionar apenas novas ao array de usadas
+                // ERRO
                 const newWords = words.filter(w => !state.usedWords.includes(w));
                 state.usedWords.push(...newWords); 
+                
+                // Feedback visual de erro para todos (via status update poderia ser melhor, mas vamos no simples)
+                // O resetRound já vai limpar tudo.
                 await resetRound();
             }
-        }, 3000); // 3s de suspense
+        }, 3000);
     }
 }
 
@@ -215,29 +295,24 @@ async function resetRound() {
     state.round++;
     document.getElementById('round-counter').innerText = `RODADA ${state.round}`;
     
-    // 1. Atualiza lista de proibidas na Sala
     await supabase.from('jinx_rooms').update({ used_words: state.usedWords }).eq('id', state.roomId);
-    
-    // 2. Reseta status dos jogadores (isso dispara o checkMyStatus nos clientes)
     await supabase.from('jinx_room_players').update({ is_ready: false, current_word: '' }).eq('room_id', state.roomId);
 }
 
-// --- ENVIO DA PALAVRA ---
+// --- ENVIO ---
 async function sendWord() {
     const word = inputs.word.value.trim().toUpperCase();
     
-    // Validação 1: Existe no Dicionário?
     if (!state.dictionary.includes(word)) {
         flashError(); return;
     }
-    // Validação 2: Já foi usada?
     if (state.usedWords.includes(word)) {
-        alert('Essa palavra já foi usada!'); 
+        OrkaFX.toast('Palavra já utilizada!', 'error');
         flashError(); return;
     }
 
     inputs.word.disabled = true;
-    if(suggestionsBox) suggestionsBox.style.display = 'none';
+    suggestionsBox.style.display = 'none';
 
     await supabase.from('jinx_room_players')
         .update({ is_ready: true, current_word: word })
@@ -246,84 +321,105 @@ async function sendWord() {
 
 function flashError() {
     inputs.word.style.borderColor = 'var(--status-wrong)';
-    OrkaFX.shake('word-input'); // Usa o shake da lib se quiser, ou CSS
+    OrkaFX.shake('word-input'); 
     setTimeout(() => inputs.word.style.borderColor = '#333', 500);
 }
 
-// --- FIM DE JOGO ---
+
+// --- FIM DE JOGO & REPLAY ---
+
 async function finishGame(winningWord) {
-    // 1. Salva histórico
+    // 1. Histórico
     await supabase.from('jinx_room_history').insert({
-        code: state.roomCode, 
-        player_names: state.players.map(p => p.nickname),
-        rounds_count: state.round, 
-        result: 'win'
+        code: state.roomCode, player_names: state.players.map(p => p.nickname),
+        rounds_count: state.round, result: 'win'
     });
 
-    // 2. Marca sala como finalizada e salva última palavra
+    // 2. Status Finished
     await supabase.from('jinx_rooms')
         .update({ status: 'finished', used_words: state.usedWords })
         .eq('id', state.roomId);
     
-    // 3. Mostra vitória para o Host imediatamente
+    // 3. UI Host
     endGameUI(winningWord);
 
-    // 4. Agenda autodestruição da sala
-    setTimeout(async () => {
-        await supabase.from('jinx_rooms').delete().eq('id', state.roomId);
-    }, 10000); 
+    // REMOVIDO: Auto-delete. A sala persiste para replay.
 }
 
 function endGameUI(word) {
     let finalWord = word;
-    // Se o cliente não recebeu a palavra (não é host), tenta pegar do estado local
-    if (!finalWord && state.players.length > 0) {
-        finalWord = state.players[0].current_word;
-    }
+    if (!finalWord && state.players.length > 0) finalWord = state.players[0].current_word;
 
     document.getElementById('final-round').innerText = state.round;
     document.getElementById('winning-word').innerText = finalWord || "JINX!";
     
-    modalVictory.style.display = 'flex';
-    modalVictory.classList.add('active');
+    // Configura botões do Modal
+    if (state.isHost) {
+        btnPlayAgain.textContent = "Jogar Novamente";
+        btnPlayAgain.disabled = false;
+        btnPlayAgain.onclick = resetGameRoom; // Função de reset
+    } else {
+        btnPlayAgain.textContent = "Aguardando Host...";
+        btnPlayAgain.disabled = true;
+    }
 
-    // --- AQUI ESTÁ A INTEGRAÇÃO COM A LIB ---
+    modalVictory.style.display = 'flex';
+    setTimeout(() => modalVictory.classList.add('active'), 10);
     OrkaFX.confetti(); 
 }
 
-// --- RENDERIZAÇÃO E UTILITÁRIOS ---
+// --- FUNÇÃO DE RESET (REPLAY) ---
+async function resetGameRoom() {
+    // Reseta sala para 'waiting', limpa palavras usadas (novo jogo = tudo limpo?)
+    // Geralmente num "Play Again" queremos zerar as palavras usadas.
+    
+    await supabase.from('jinx_rooms')
+        .update({ status: 'waiting', used_words: [] }) // Zera palavras
+        .eq('id', state.roomId);
+        
+    // Limpa status dos jogadores
+    await supabase.from('jinx_room_players')
+        .update({ is_ready: false, current_word: '' })
+        .eq('room_id', state.roomId);
+}
+
+
+// --- RENDERIZAÇÃO ---
 function renderPlayers() {
     const grid = document.getElementById('players-grid');
     if (!grid) return;
     grid.innerHTML = '';
     const allReady = state.players.length > 0 && state.players.every(pl => pl.is_ready);
 
-    // Lista de Espera
     const waitingList = document.getElementById('waiting-list');
     if (waitingList) {
-        waitingList.innerHTML = state.players.map(p => `<div style="background:#111; padding:10px; border-radius:4px; display:inline-block; margin:5px;">${p.nickname}</div>`).join('');
+        waitingList.innerHTML = state.players.map(p => `
+            <div style="background:#222; padding:8px 15px; border-radius:20px; font-size:0.9rem; border:1px solid #333;">
+                ${p.nickname}
+            </div>
+        `).join('');
+        
         const btnStart = document.getElementById('btn-start');
         if (btnStart) {
-            if (state.isHost && state.players.length >= 2) btnStart.disabled = false;
-            else btnStart.disabled = true;
+            if (state.isHost) {
+                btnStart.style.display = 'block';
+                btnStart.disabled = state.players.length < 2;
+                if(state.players.length < 2) btnStart.textContent = "Aguardando Jogadores...";
+                else btnStart.textContent = "COMEÇAR JOGO";
+            } else {
+                btnStart.style.display = 'none'; // Esconde se não for host
+            }
         }
     }
 
-    // Grid Principal
     state.players.forEach(p => {
         const isMe = p.player_id === state.playerId;
         const isReady = p.is_ready;
         let displayWord = '...';
         let cardClass = 'player-card';
 
-        if (isReady) {
-            cardClass += ' ready';
-            if (!allReady) displayWord = 'PRONTO';
-        }
-        if (allReady) {
-            displayWord = p.current_word || '';
-            cardClass += ' revealed';
-        }
+        if (isReady) { cardClass += ' ready'; if (!allReady) displayWord = 'PRONTO'; }
+        if (allReady) { displayWord = p.current_word || ''; cardClass += ' revealed'; }
 
         grid.innerHTML += `
             <div class="${cardClass}">
@@ -363,15 +459,13 @@ function setLang(lang) {
     }
 }
 
-// --- EVENTOS FINAIS ---
+// Event Listeners
 if (inputs.word) {
     inputs.word.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendWord(); });
 }
-const btnSend = document.getElementById('btn-send-word');
-if (btnSend) btnSend.addEventListener('click', sendWord);
+document.getElementById('btn-send-word').addEventListener('click', sendWord);
+document.getElementById('btn-start').addEventListener('click', async () => 
+    await supabase.from('jinx_rooms').update({ status: 'playing' }).eq('id', state.roomId)
+);
 
-const btnStart = document.getElementById('btn-start');
-if (btnStart) btnStart.addEventListener('click', async () => await supabase.from('jinx_rooms').update({ status: 'playing' }).eq('id', state.roomId));
-
-// Iniciar
 init();
