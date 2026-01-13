@@ -1,5 +1,6 @@
 import { OrkaCloud, supabase } from '../../core/scripts/orka-cloud.js';
 import { palavrasPT, palavrasEN } from './palavras.js';
+import { OrkaFX } from '../../core/scripts/orka-lib.js';
 
 // --- ESTADO LOCAL ---
 let state = {
@@ -386,13 +387,23 @@ async function finishGame() {
     }, 5000);
 }
 
-function endGame(win) {
-    document.getElementById('status-text').innerText = "SINCRONIA PERFEITA!";
-    document.getElementById('status-text').style.color = "var(--status-correct)";
-    setTimeout(() => {
-        alert("Vitória! Jinx!");
-        window.location.href = '../../index.html';
-    }, 2000);
+function endGameUI(word) {
+    // ... (lógica de decidir a palavra final mantém-se igual)
+    let finalWord = word;
+    if (!finalWord && state.players.length > 0) {
+        finalWord = state.players[0].current_word;
+    }
+
+    // Preenche Modal
+    document.getElementById('final-round').innerText = state.round;
+    document.getElementById('winning-word').innerText = finalWord || "JINX!";
+    
+    // Mostra Modal
+    modalVictory.style.display = 'flex';
+    modalVictory.classList.add('active');
+
+    // USANDO A LIB AGORA:
+    OrkaFX.confetti(); 
 }
 
 init();
