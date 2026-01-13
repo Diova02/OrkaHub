@@ -8,8 +8,8 @@ let state = {
     roomCode: null,
     playerId: OrkaCloud.getPlayerId(),
     nickname: OrkaCloud.getNickname() || 'Anonimo',
-    isHost: false, // Será definido dinamicamente
-    hostId: null,  // ID do jogador que é o host atual
+    isHost: false,
+    hostId: null,
     language: 'pt-BR',
     dictionary: palavrasPT,
     round: 1,
@@ -46,6 +46,7 @@ async function init() {
 }
 
 // --- UX: INPUT E TECLADO ---
+// (Lógica de autocomplete mantida igual, apenas garantindo funcionamento)
 inputs.word.addEventListener('input', () => {
     const val = inputs.word.value.trim().toUpperCase();
     state.suggestionIndex = -1;
@@ -56,17 +57,9 @@ inputs.word.addEventListener('input', () => {
 
 inputs.word.addEventListener('keydown', (e) => {
     if (suggestionsBox.style.display === 'none') return;
-    if (e.key === 'ArrowDown') {
-        e.preventDefault(); state.suggestionIndex++;
-        if (state.suggestionIndex >= state.currentSuggestions.length) state.suggestionIndex = 0;
-        updateSuggestionHighlight();
-    } else if (e.key === 'ArrowUp') {
-        e.preventDefault(); state.suggestionIndex--;
-        if (state.suggestionIndex < 0) state.suggestionIndex = state.currentSuggestions.length - 1;
-        updateSuggestionHighlight();
-    } else if (e.key === 'Enter' && state.suggestionIndex > -1) {
-        e.preventDefault(); selectSuggestion(state.currentSuggestions[state.suggestionIndex]);
-    }
+    if (e.key === 'ArrowDown') { e.preventDefault(); state.suggestionIndex++; if (state.suggestionIndex >= state.currentSuggestions.length) state.suggestionIndex = 0; updateSuggestionHighlight(); } 
+    else if (e.key === 'ArrowUp') { e.preventDefault(); state.suggestionIndex--; if (state.suggestionIndex < 0) state.suggestionIndex = state.currentSuggestions.length - 1; updateSuggestionHighlight(); } 
+    else if (e.key === 'Enter' && state.suggestionIndex > -1) { e.preventDefault(); selectSuggestion(state.currentSuggestions[state.suggestionIndex]); }
 });
 
 function renderSuggestions(matches) {
@@ -74,9 +67,7 @@ function renderSuggestions(matches) {
     suggestionsBox.innerHTML = '';
     matches.forEach((word, index) => {
         const div = document.createElement('div');
-        div.className = 'suggestion-item';
-        div.textContent = word;
-        div.dataset.index = index;
+        div.className = 'suggestion-item'; div.textContent = word; div.dataset.index = index;
         div.onclick = () => selectSuggestion(word);
         suggestionsBox.appendChild(div);
     });
@@ -92,10 +83,7 @@ function updateSuggestionHighlight() {
 }
 
 function selectSuggestion(word) {
-    inputs.word.value = word;
-    suggestionsBox.style.display = 'none';
-    state.suggestionIndex = -1;
-    inputs.word.focus();
+    inputs.word.value = word; suggestionsBox.style.display = 'none'; state.suggestionIndex = -1; inputs.word.focus();
 }
 
 document.addEventListener('click', (e) => {
@@ -120,9 +108,9 @@ document.getElementById('btn-join').addEventListener('click', () => {
     joinRoom(code);
 });
 
-// Botão "Sair da Sala"
+// Botão Sair (Regras Item 7 e Base Rules)
 document.getElementById('btn-leave').addEventListener('click', async () => {
-    if(confirm("Sair da sala?")) {
+    if(confirm("Sair da sala?")) { // (Será substituído na próxima etapa)
         await leaveRoomLogic();
     }
 });
@@ -139,7 +127,6 @@ async function enterRoom(roomData) {
     state.usedWords = roomData.used_words || [];
     setLang(roomData.language);
     
-    // Entra na sala (Zera last_word ao entrar)
     await supabase.from('jinx_room_players').upsert({
         room_id: state.roomId, player_id: state.playerId, nickname: state.nickname, last_word: ''
     }, { onConflict: 'player_id, room_id' });
@@ -149,23 +136,27 @@ async function enterRoom(roomData) {
     subscribeToRoom();
 }
 
+// LOGICA CENTRAL DE SAÍDA E LIMPEZA
 async function leaveRoomLogic() {
-    // Se eu sou o Host, eu apago a sala (todos saem)
+    if (!state.roomId) return;
+
     if (state.isHost) {
+        // Se HOST sai, APAGA A SALA (Cascade apaga players)
         await supabase.from('jinx_rooms').delete().eq('id', state.roomId);
     } else {
-        // Se sou guest, só saio
+        // Se GUEST sai, apaga só ele
         await supabase.from('jinx_room_players').delete().eq('player_id', state.playerId);
     }
-    window.location.href = '../../index.html'; // Volta pro Hub
+    
+    // Redireciona para Hub
+    window.location.href = '../../index.html'; 
 }
 
 // Cleanup ao fechar aba
 window.onbeforeunload = () => {
     if (state.roomId) {
-        // Tenta enviar o delete (Fire and Forget)
         if (state.isHost) {
-            const { error } = supabase.from('jinx_rooms').delete().eq('id', state.roomId).then();
+            supabase.from('jinx_rooms').delete().eq('id', state.roomId).then();
         } else {
             supabase.from('jinx_room_players').delete().eq('player_id', state.playerId).then();
         }
@@ -178,16 +169,15 @@ function subscribeToRoom() {
     
     channel
         .on('postgres_changes', { event: '*', schema: 'public', table: 'jinx_room_players', filter: `room_id=eq.${state.roomId}` }, handlePlayerChange)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'jinx_rooms', filter: `id=eq.${state.roomId}` }, handleRoomChange) // Escuta DELETE também
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'jinx_rooms', filter: `id=eq.${state.roomId}` }, handleRoomChange) 
         .subscribe((status) => { if (status === 'SUBSCRIBED') fetchPlayers(); });
 }
 
 async function fetchPlayers() {
-    // Ordena por data de entrada para garantir que o Host seja sempre o primeiro [0]
     const { data } = await supabase.from('jinx_room_players')
         .select('*')
         .eq('room_id', state.roomId)
-        .order('joined_at', { ascending: true }); // Importante para definir o host consistente
+        .order('joined_at', { ascending: true }); // Host é sempre o mais antigo
         
     state.players = data || [];
     determineHost();
@@ -197,7 +187,6 @@ async function fetchPlayers() {
 
 function determineHost() {
     if (state.players.length > 0) {
-        // O primeiro jogador da lista (mais antigo) é o Host
         state.hostId = state.players[0].player_id;
         state.isHost = (state.hostId === state.playerId);
     }
@@ -205,7 +194,6 @@ function determineHost() {
 
 function handlePlayerChange(payload) {
     if (payload.eventType === 'INSERT') {
-        // Evita duplicação visual se o fetch já pegou
         if (!state.players.find(p => p.id === payload.new.id)) {
             state.players.push(payload.new);
             OrkaFX.toast(`${payload.new.nickname} entrou!`, 'info');
@@ -214,19 +202,15 @@ function handlePlayerChange(payload) {
         const index = state.players.findIndex(p => p.id === payload.new.id);
         if (index !== -1) state.players[index] = payload.new;
     } else if (payload.eventType === 'DELETE') {
+        // Remove da lista local (Atualiza tela dos demais - Regra Item 7)
         state.players = state.players.filter(p => p.id !== payload.old.id);
         
-        // Se eu fui deletado (kickado), recarrego
+        // Se FUI EU quem fui deletado (ex: kick ou erro), volto pro hub
         if(payload.old.player_id === state.playerId) {
-            alert('Você saiu da sala.');
             window.location.href = '../../index.html';
         }
     }
     
-    // Re-ordena (se necessário) e recalcula host caso o antigo tenha saído
-    // Nota: Como o array local pode ficar desordenado com push/filter, 
-    // ideal seria ordenar state.players por joined_at, mas vamos confiar no reload do fetchPlayers se algo drástico mudar
-    // ou apenas assumir que quem sobrou no topo é o novo host.
     determineHost(); 
     renderPlayers();
     checkMyStatus();
@@ -234,9 +218,9 @@ function handlePlayerChange(payload) {
 }
 
 function handleRoomChange(payload) {
+    // REGRAS BASE: Se a sala for deletada (Host saiu), todos saem
     if (payload.eventType === 'DELETE') {
-        // A SALA FOI EXCLUÍDA (Host saiu ou acabou)
-        alert('A sala foi encerrada pelo anfitrião.');
+        alert('A sala foi encerrada.'); // (Alert temporário, toast na proxima etapa)
         window.location.href = '../../index.html';
         return;
     }
@@ -252,14 +236,11 @@ function handleRoomUpdate(roomData) {
         if(roundCounter) roundCounter.innerText = `RODADA ${state.round}`;
     }
 
-    // Gerenciamento de Telas
     if (roomData.status === 'waiting') {
-        modalVictory.classList.remove('active');
-        modalVictory.style.display = 'none';
+        modalVictory.classList.remove('active'); modalVictory.style.display = 'none';
         showScreen('waiting');
     } else if (roomData.status === 'playing') {
-        modalVictory.classList.remove('active');
-        modalVictory.style.display = 'none';
+        modalVictory.classList.remove('active'); modalVictory.style.display = 'none';
         showScreen('game');
     } else if (roomData.status === 'finished') {
         if (!state.isHost) endGameUI(); 
@@ -272,9 +253,7 @@ function checkMyStatus() {
     const myPlayer = state.players.find(p => p.player_id === state.playerId);
     if (myPlayer) {
         if (!myPlayer.is_ready && inputs.word.disabled && !modalVictory.classList.contains('active')) {
-            inputs.word.disabled = false;
-            inputs.word.value = '';
-            inputs.word.focus();
+            inputs.word.disabled = false; inputs.word.value = ''; inputs.word.focus();
         } else if (myPlayer.is_ready) {
             inputs.word.disabled = true;
         }
@@ -286,32 +265,40 @@ async function checkGameLogic() {
     const allReady = state.players.every(p => p.is_ready);
     
     if (allReady) {
-        setTimeout(async () => {
-            const { data: currentPlayers } = await supabase.from('jinx_room_players').select('*').eq('room_id', state.roomId);
-            const words = currentPlayers.map(p => p.current_word);
-            const allMatch = words.every(w => w === words[0]);
+        // Item 5: Verifica match IMEDIATAMENTE para soltar confete
+        const { data: currentPlayers } = await supabase.from('jinx_room_players').select('*').eq('room_id', state.roomId);
+        if(!currentPlayers) return; // Segurança
 
-            if (allMatch) {
+        const words = currentPlayers.map(p => p.current_word);
+        const allMatch = words.every(w => w === words[0]);
+
+        if (allMatch) {
+            // CONFETE IMEDIATO (Item 5)
+            OrkaFX.confetti(); 
+            
+            // Pequeno delay apenas para leitura rápida
+            setTimeout(async () => {
                 state.usedWords.push(words[0]); 
                 await finishGame(words[0]);
-            } else {
+            }, 800); // Reduzido de 1500 para 800ms
+        } else {
+            // Mismatch
+            setTimeout(async () => {
                 const newWords = words.filter(w => !state.usedWords.includes(w));
                 state.usedWords.push(...newWords); 
                 await resetRound();
-            }
-        }, 1500); 
+            }, 1500);
+        }
     }
 }
 
 async function resetRound() {
     const nextRound = state.round + 1;
-    
-    // Atualiza jogadores (Move current -> last)
-    const updatePromises = state.players.map(p => {
-        return supabase.from('jinx_room_players')
+    const updatePromises = state.players.map(p => 
+        supabase.from('jinx_room_players')
             .update({ is_ready: false, last_word: p.current_word || '', current_word: '' })
-            .eq('id', p.id);
-    });
+            .eq('id', p.id)
+    );
     await Promise.all(updatePromises);
 
     await supabase.from('jinx_rooms')
@@ -323,10 +310,7 @@ async function resetRound() {
 async function sendWord() {
     const word = inputs.word.value.trim().toUpperCase();
     if (!state.dictionary.includes(word)) return flashError();
-    if (state.usedWords.includes(word)) {
-        OrkaFX.toast('Palavra já utilizada!', 'error');
-        return flashError();
-    }
+    if (state.usedWords.includes(word)) { OrkaFX.toast('Palavra já utilizada!', 'error'); return flashError(); }
 
     inputs.word.disabled = true;
     suggestionsBox.style.display = 'none';
@@ -337,8 +321,7 @@ async function sendWord() {
 }
 
 function flashError() {
-    inputs.word.style.borderColor = 'var(--status-wrong)';
-    OrkaFX.shake('word-input'); 
+    inputs.word.style.borderColor = 'var(--status-wrong)'; OrkaFX.shake('word-input'); 
     setTimeout(() => inputs.word.style.borderColor = '#222', 500);
 }
 
@@ -361,19 +344,22 @@ function endGameUI(word) {
     if (!finalWord && state.players.length > 0) finalWord = state.players[0].current_word;
 
     document.getElementById('final-round').innerText = state.round;
+    
+    // Item 4: Formatação no Modal (Usando winning-word-box do CSS)
     document.getElementById('winning-word').innerText = finalWord || "JINX!";
     
     if (state.isHost) {
-        btnPlayAgain.textContent = "Jogar Novamente";
+        btnPlayAgain.textContent = "JOGAR NOVAMENTE";
         btnPlayAgain.disabled = false;
         btnPlayAgain.onclick = resetGameRoom;
     } else {
-        btnPlayAgain.textContent = "Aguardando Host...";
+        btnPlayAgain.textContent = "AGUARDANDO HOST...";
         btnPlayAgain.disabled = true;
     }
 
     modalVictory.style.display = 'flex';
     setTimeout(() => modalVictory.classList.add('active'), 10);
+    // Confete reforço (caso o imediato tenha passado)
     OrkaFX.confetti(); 
 }
 
@@ -393,8 +379,7 @@ async function resetGameRoom() {
 // --- RENDERIZAÇÃO ---
 function renderPlayers() {
     const grid = document.getElementById('players-grid');
-    if (!grid) return;
-    grid.innerHTML = '';
+    if (!grid) return; grid.innerHTML = '';
     
     const allReady = state.players.length > 0 && state.players.every(pl => pl.is_ready);
     let isWin = false;
@@ -414,7 +399,6 @@ function renderPlayers() {
         
         const btnStart = document.getElementById('btn-start');
         if (btnStart) {
-            // Só mostra o botão se for Host
             if (state.isHost) {
                 btnStart.style.display = 'block';
                 btnStart.disabled = state.players.length < 2;
@@ -425,23 +409,16 @@ function renderPlayers() {
         }
     }
 
-    // Grid Principal do Jogo
+    // Grid Principal
     state.players.forEach(p => {
         const isMe = p.player_id === state.playerId;
-        const isHostPlayer = p.player_id === state.hostId; // Verifica se é o host
+        const isHostPlayer = p.player_id === state.hostId;
         const isReady = p.is_ready;
         let displayWord = '...';
         let cardClass = 'player-card';
 
-        if (isReady) { 
-            cardClass += ' ready'; 
-            if (!allReady) displayWord = 'PRONTO'; 
-        }
-        if (allReady) { 
-            displayWord = p.current_word || ''; 
-            cardClass += ' revealed';
-            if (isWin) cardClass += ' winner';
-        }
+        if (isReady) { cardClass += ' ready'; if (!allReady) displayWord = 'PRONTO'; }
+        if (allReady) { displayWord = p.current_word || ''; cardClass += ' revealed'; if (isWin) cardClass += ' winner'; }
 
         const ghostWord = p.last_word || '';
 
@@ -449,12 +426,9 @@ function renderPlayers() {
             <div class="${cardClass}">
                 <div class="player-avatar">
                     ${isHostPlayer ? '<div class="host-crown">👑</div>' : ''}
-                    
                     <span class="material-icons" style="color:#666; font-size:32px;">${isReady ? 'check_circle' : 'person'}</span>
                 </div>
-                <div class="player-nick" style="color:${isMe ? 'var(--orka-accent)' : '#888'}">
-                    ${p.nickname}
-                </div>
+                <div class="player-nick" style="color:${isMe ? 'var(--orka-accent)' : '#888'}">${p.nickname}</div>
                 <div class="player-word-display">${displayWord}</div>
                 <div class="last-word-display">${ghostWord}</div>
             </div>`;
@@ -479,17 +453,15 @@ function setLang(lang) {
     const btnPt = document.getElementById('btn-lang-pt');
     const btnEn = document.getElementById('btn-lang-en');
     if (btnPt && btnEn) {
-        const active = 'background:var(--orka-accent); color:white;';
-        const inactive = 'background:#222; color:#888;';
+        const active = 'background:var(--orka-accent); color:white; border-color:var(--orka-accent);';
+        const inactive = 'background:#111; color:#666; border-color:#333;';
         btnPt.style.cssText = lang === 'pt-BR' ? active : inactive;
         btnEn.style.cssText = lang === 'en-US' ? active : inactive;
     }
 }
 
 // Eventos
-if (inputs.word) {
-    inputs.word.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendWord(); });
-}
+if (inputs.word) inputs.word.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendWord(); });
 document.getElementById('btn-send-word').addEventListener('click', sendWord);
 document.getElementById('btn-start').addEventListener('click', async () => 
     await supabase.from('jinx_rooms').update({ status: 'playing' }).eq('id', state.roomId)

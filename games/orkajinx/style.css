@@ -1,238 +1,190 @@
 @import '../../core/styles/orka-base.css';
 
-/* --- AJUSTES GERAIS DE LAYOUT --- */
-body {
-    overflow: hidden; /* Evita scroll indesejado */
-}
+/* --- AJUSTES GERAIS --- */
+body { overflow: hidden; }
 
 #game-app {
     height: calc(100vh - 80px);
     display: flex;
     flex-direction: column;
     max-width: 100%;
-    margin: 0;
-    padding: 0;
+    margin: 0; padding: 0;
 }
 
-/* --- LOBBY & CARDS --- */
+/* --- LOBBY --- */
 .lobby-card {
     background: #111;
     border: 1px solid #333;
-    padding: 40px; /* Mais espaçamento */
-    border-radius: 24px; /* Bordas mais arredondadas (suave) */
-    width: 100%;
-    max-width: 400px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+    padding: 30px;
+    border-radius: 20px;
+    width: 100%; max-width: 400px;
+    display: flex; flex-direction: column; gap: 20px;
     box-shadow: 0 20px 50px rgba(0,0,0,0.6);
     animation: slideUp 0.5s ease-out;
 }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-@keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+.lobby-title { color: #666; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 3px; text-align: center; margin-bottom: 5px; }
+
+/* SELETORES DE LÍNGUA (Item 2 - Fixando tamanho) */
+.lang-selector button {
+    flex: 1;
+    height: 45px; /* Altura fixa para não pular */
+    border: 1px solid #333;
+    transition: all 0.2s ease;
 }
 
-.lobby-title {
-    color: #666;
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 3px;
-    text-align: center;
-    margin-bottom: 10px;
-}
-
-/* --- INPUTS E BOTÕES (POLIMENTO) --- */
-.input-group {
-    display: flex;
-    gap: 15px;
-    justify-content: center;
-}
-
+/* INPUT DO CÓDIGO (Item 1 - Cor do Texto) */
 #input-room-code {
+    color: white !important; /* Forçando cor */
+    font-size: 1.5rem; letter-spacing: 4px; text-align: center;
+    background: #0a0a0a; border: 2px solid #333; border-radius: 12px;
     flex: 0 1 140px;
-    font-size: 1.5rem; /* Código maior e mais legível */
-    letter-spacing: 4px;
-    text-align: center;
-    border-radius: 12px;
-    border: 2px solid #333;
-    background: #0a0a0a;
-    transition: 0.3s;
 }
 #input-room-code:focus { border-color: var(--orka-accent); }
 
-/* Botão Host - Alto e Imponente */
+/* --- BOTÕES --- */
 #btn-start {
-    width: 100%;
-    padding: 20px;
-    font-size: 1.1rem;
-    font-weight: bold;
-    letter-spacing: 1px;
-    margin-top: 10px;
-    border-radius: 12px;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-#btn-start:not(:disabled):hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(0, 85, 255, 0.3);
+    width: 100%; padding: 18px;
+    font-size: 1.1rem; font-weight: bold; letter-spacing: 1px;
+    border-radius: 12px; margin-top: 10px;
+    transition: 0.2s;
 }
 
-/* Botões Secundários mais discretos */
+/* Item 8: Botões Desativados (Visualmente apagados) */
+button:disabled, .orka-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    filter: grayscale(100%);
+    transform: none !important;
+    box-shadow: none !important;
+}
+
 .btn-secondary {
-    background: transparent;
-    border: 1px solid transparent;
-    color: #666;
-    font-size: 0.9rem;
-    padding: 10px;
-    cursor: pointer;
-    transition: 0.2s;
+    background: transparent; border: 1px solid transparent;
+    color: #666; font-size: 0.9rem; padding: 10px;
+    cursor: pointer; transition: 0.2s;
 }
 .btn-secondary:hover { color: #fff; text-decoration: underline; }
 
-/* --- GRID DE JOGADORES (SEM FILTRO CINZA) --- */
+/* --- GRID JOGADORES --- */
 .players-grid {
-    flex: 1;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 30px;
-    padding: 40px;
-    overflow-y: auto;
-    align-content: center;
-    justify-items: center;
-    max-width: 1000px;
-    margin: 0 auto;
-    padding-bottom: 120px;
+    flex: 1; display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 20px; padding: 20px 40px 120px 40px; /* Padding bottom extra p/ input */
+    overflow-y: auto; align-content: center; justify-items: center;
+    max-width: 1000px; margin: 0 auto;
 }
 
 .player-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    position: relative;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    /* REMOVIDO: opacity: 0.5 */
+    display: flex; flex-direction: column; align-items: center;
+    position: relative; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-/* Avatar Base */
 .player-avatar {
-    width: 90px;
-    height: 90px;
-    border-radius: 50%;
-    background: #1a1a1a;
-    border: 3px solid #333;
+    width: 80px; height: 80px; border-radius: 50%;
+    background: #1a1a1a; border: 3px solid #333;
     display: flex; align-items: center; justify-content: center;
-    margin-bottom: 15px;
-    position: relative;
-    transition: 0.3s;
+    margin-bottom: 10px; position: relative; transition: 0.3s;
     box-shadow: 0 5px 15px rgba(0,0,0,0.3);
 }
 
-.player-nick {
-    font-size: 1rem;
-    font-weight: bold;
-    color: #aaa;
-    margin-bottom: 5px;
-}
+.player-nick { font-size: 1rem; font-weight: bold; color: #aaa; margin-bottom: 5px; }
 
-/* --- ESTADOS (PRONTO / VENCEDOR) --- */
-
-/* Pronto: Borda Dourada/Amarela e Ícone Check */
+/* ESTADOS */
 .player-card.ready .player-avatar {
-    border-color: var(--status-partial); /* Amarelo/Laranja */
-    background: #2a2a1a;
-    box-shadow: 0 0 20px rgba(255, 200, 0, 0.3);
-    transform: scale(1.05);
+    border-color: var(--status-partial); background: #2a2a1a;
+    box-shadow: 0 0 20px rgba(255, 200, 0, 0.3); transform: scale(1.05);
 }
 .player-card.ready .player-nick { color: #fff; }
 
-/* Vencedor: Verde */
 .player-card.winner .player-avatar {
-    border-color: var(--status-correct);
-    box-shadow: 0 0 30px rgba(46, 139, 87, 0.6);
+    border-color: var(--status-correct); box-shadow: 0 0 30px rgba(46, 139, 87, 0.6);
 }
 .player-card.winner .player-word-display {
-    color: var(--status-correct);
-    font-size: 1.4rem;
+    color: var(--status-correct); font-size: 1.3rem;
     text-shadow: 0 0 10px rgba(46, 139, 87, 0.5);
 }
 
-/* Revelado (Mostrando palavra) */
-.player-card.revealed .player-avatar {
-    border-color: var(--orka-accent);
-}
-
-/* --- ÍCONE DE COROA (HOST) --- */
-.host-crown {
-    position: absolute;
-    top: -15px;
-    left: 50%;
-    transform: translateX(-50%) rotate(-10deg);
-    font-size: 1.8rem;
-    filter: drop-shadow(0 2px 5px rgba(0,0,0,0.8));
-    animation: floatCrown 3s ease-in-out infinite;
-    z-index: 10;
-}
-
-@keyframes floatCrown {
-    0%, 100% { transform: translateX(-50%) rotate(-10deg) translateY(0); }
-    50% { transform: translateX(-50%) rotate(-10deg) translateY(-5px); }
-}
-
-/* --- TEXTOS --- */
 .player-word-display {
-    min-height: 24px;
-    font-size: 1.1rem;
-    font-weight: bold;
-    color: #fff;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    min-height: 24px; font-size: 1.1rem; font-weight: bold;
+    color: #fff; text-transform: uppercase; letter-spacing: 1px;
 }
-
 .last-word-display {
-    font-size: 0.8rem;
-    color: #444;
-    margin-top: 5px;
-    font-style: italic;
-    min-height: 1rem;
+    font-size: 0.8rem; color: #444; margin-top: 5px; font-style: italic; min-height: 1rem;
 }
 
-/* --- FOOTER FIXO (INPUT) --- */
+.host-crown {
+    position: absolute; top: -18px; left: 50%; transform: translateX(-50%) rotate(-10deg);
+    font-size: 1.8rem; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.8));
+    animation: floatCrown 3s ease-in-out infinite; z-index: 10;
+}
+@keyframes floatCrown { 0%, 100% { top: -18px; } 50% { top: -22px; } }
+
+
+/* --- BARRA DE INPUT (Item 1 e 3 - Full Width & Cor) --- */
 .game-footer-fixed {
     position: fixed; bottom: 0; left: 0; width: 100%;
-    background: rgba(10, 10, 10, 0.95); /* Leve transparência */
-    backdrop-filter: blur(10px);
-    border-top: 1px solid #222;
-    padding: 20px;
-    z-index: 100;
-    box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+    background: #050505; border-top: 1px solid #222;
+    padding: 15px 20px; z-index: 100;
+    display: flex; gap: 10px; align-items: center;
+    box-shadow: 0 -10px 30px rgba(0,0,0,0.8);
+}
+
+.input-wrapper {
+    flex: 1; /* Ocupa todo espaço */
+    position: relative;
+    display: flex; gap: 10px;
 }
 
 #word-input {
-    background: #050505;
-    border: 2px solid #222;
-    border-radius: 50px; /* Pílula */
-    padding: 15px 25px;
-    font-size: 1.1rem;
-    text-align: center;
-    transition: 0.3s;
+    width: 100%;
+    background: #111; border: 1px solid #333; border-radius: 8px;
+    padding: 15px 20px; font-size: 1.1rem;
+    color: white !important; /* Item 1: Visibilidade */
+    text-transform: uppercase;
 }
-#word-input:focus { border-color: var(--orka-accent); box-shadow: 0 0 15px rgba(0, 85, 255, 0.2); }
+#word-input:focus { border-color: var(--orka-accent); outline: none; }
 
-/* --- SUGGESTIONS --- */
+/* Botão Enviar ao lado */
+#btn-send-word {
+    width: 54px; border-radius: 8px; border: none;
+    background: var(--orka-accent); color: white;
+    cursor: pointer; transition: 0.2s;
+    display: flex; align-items: center; justify-content: center;
+}
+#btn-send-word:hover { filter: brightness(1.2); }
+
+/* SUGESTÕES */
 .suggestions-list {
-    bottom: 90px;
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid #333;
+    position: absolute; bottom: 70px; left: 0; width: 100%;
+    background: #161616; border: 1px solid #333; border-radius: 8px;
+    overflow: hidden; z-index: 101;
 }
-.suggestion-item {
-    padding: 15px 20px;
-    background: #111;
-    border-bottom: 1px solid #222;
+.suggestion-item { padding: 12px 20px; color: #ccc; border-bottom: 1px solid #222; cursor: pointer; }
+.suggestion-item:hover, .suggestion-item.selected { background: var(--orka-accent); color: white; }
+
+
+/* --- MODAL VITÓRIA (Item 4 e 6) --- */
+.victory-content {
+    background: linear-gradient(180deg, #1a1a1a 0%, #000 100%);
+    border: 2px solid var(--orka-accent); padding: 40px;
+    width: 90%; max-width: 450px; text-align: center;
 }
-.suggestion-item:hover, .suggestion-item.selected {
-    background: var(--orka-accent);
-    color: white;
-    padding-left: 25px;
+
+/* Item 4: Palavra Vencedora Grande */
+.winning-word-box {
+    background: #fff; color: #000;
+    font-size: 2.5rem; font-weight: 900; letter-spacing: 2px;
+    padding: 20px; margin: 20px 0;
+    transform: rotate(-2deg);
+    box-shadow: 0 10px 30px rgba(255,255,255,0.1);
+}
+
+/* Item 6: Botão Jogar Novamente (Alto e menos largo) */
+#btn-play-again {
+    width: 200px; /* Menos largo */
+    padding: 20px; /* Mais alto */
+    margin: 0 auto; display: block;
+    font-size: 1.1rem; font-weight: bold;
 }
