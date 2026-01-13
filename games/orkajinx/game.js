@@ -8,10 +8,11 @@ let state = {
     roomCode: null,
     playerId: OrkaCloud.getPlayerId(),
     nickname: OrkaCloud.getNickname() || 'Anonimo',
-    isHost: false,
+    isHost: false, // Será definido dinamicamente
+    hostId: null,  // ID do jogador que é o host atual
     language: 'pt-BR',
     dictionary: palavrasPT,
-    round: 1, // Agora sincronizado via DB
+    round: 1,
     players: [],
     usedWords: [],
     
@@ -44,8 +45,7 @@ async function init() {
     if (code) { inputs.roomCode.value = code; joinRoom(code); }
 }
 
-// --- UX: AUTOCOMPLETE & TECLADO ---
-// (Mantido igual à versão anterior, resumido aqui para economizar espaço visual)
+// --- UX: INPUT E TECLADO ---
 inputs.word.addEventListener('input', () => {
     const val = inputs.word.value.trim().toUpperCase();
     state.suggestionIndex = -1;
@@ -97,6 +97,7 @@ function selectSuggestion(word) {
     state.suggestionIndex = -1;
     inputs.word.focus();
 }
+
 document.addEventListener('click', (e) => {
     if (!e.target.closest('#suggestions-box') && !e.target.closest('#word-input')) suggestionsBox.style.display = 'none';
 });
@@ -110,7 +111,6 @@ document.getElementById('btn-create').addEventListener('click', async () => {
         .select().single();
     
     if (error) return OrkaFX.toast('Erro ao criar sala', 'error');
-    state.isHost = true;
     enterRoom(data);
 });
 
@@ -120,10 +120,10 @@ document.getElementById('btn-join').addEventListener('click', () => {
     joinRoom(code);
 });
 
+// Botão "Sair da Sala"
 document.getElementById('btn-leave').addEventListener('click', async () => {
     if(confirm("Sair da sala?")) {
-        await supabase.from('jinx_room_players').delete().eq('player_id', state.playerId);
-        window.location.reload();
+        await leaveRoomLogic();
     }
 });
 
@@ -139,62 +139,120 @@ async function enterRoom(roomData) {
     state.usedWords = roomData.used_words || [];
     setLang(roomData.language);
     
-    // Zera last_word ao entrar
+    // Entra na sala (Zera last_word ao entrar)
     await supabase.from('jinx_room_players').upsert({
         room_id: state.roomId, player_id: state.playerId, nickname: state.nickname, last_word: ''
     }, { onConflict: 'player_id, room_id' });
 
     document.getElementById('display-code').innerText = state.roomCode;
-    handleRoomUpdate(roomData); // Sincroniza estado inicial
+    handleRoomUpdate(roomData); 
     subscribeToRoom();
 }
 
+async function leaveRoomLogic() {
+    // Se eu sou o Host, eu apago a sala (todos saem)
+    if (state.isHost) {
+        await supabase.from('jinx_rooms').delete().eq('id', state.roomId);
+    } else {
+        // Se sou guest, só saio
+        await supabase.from('jinx_room_players').delete().eq('player_id', state.playerId);
+    }
+    window.location.href = '../../index.html'; // Volta pro Hub
+}
+
+// Cleanup ao fechar aba
+window.onbeforeunload = () => {
+    if (state.roomId) {
+        // Tenta enviar o delete (Fire and Forget)
+        if (state.isHost) {
+            const { error } = supabase.from('jinx_rooms').delete().eq('id', state.roomId).then();
+        } else {
+            supabase.from('jinx_room_players').delete().eq('player_id', state.playerId).then();
+        }
+    }
+};
+
 // --- REALTIME ---
 function subscribeToRoom() {
-    supabase.channel(`room:${state.roomId}`)
+    const channel = supabase.channel(`room:${state.roomId}`);
+    
+    channel
         .on('postgres_changes', { event: '*', schema: 'public', table: 'jinx_room_players', filter: `room_id=eq.${state.roomId}` }, handlePlayerChange)
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'jinx_rooms', filter: `id=eq.${state.roomId}` }, handleRoomChange)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'jinx_rooms', filter: `id=eq.${state.roomId}` }, handleRoomChange) // Escuta DELETE também
         .subscribe((status) => { if (status === 'SUBSCRIBED') fetchPlayers(); });
 }
 
 async function fetchPlayers() {
-    const { data } = await supabase.from('jinx_room_players').select('*').eq('room_id', state.roomId);
+    // Ordena por data de entrada para garantir que o Host seja sempre o primeiro [0]
+    const { data } = await supabase.from('jinx_room_players')
+        .select('*')
+        .eq('room_id', state.roomId)
+        .order('joined_at', { ascending: true }); // Importante para definir o host consistente
+        
     state.players = data || [];
+    determineHost();
     renderPlayers();
     checkMyStatus();
 }
 
-// PEDIDO 5: Atualizar lista imediatamente ao sair
+function determineHost() {
+    if (state.players.length > 0) {
+        // O primeiro jogador da lista (mais antigo) é o Host
+        state.hostId = state.players[0].player_id;
+        state.isHost = (state.hostId === state.playerId);
+    }
+}
+
 function handlePlayerChange(payload) {
     if (payload.eventType === 'INSERT') {
-        state.players.push(payload.new);
-        OrkaFX.toast(`${payload.new.nickname} entrou!`, 'info');
+        // Evita duplicação visual se o fetch já pegou
+        if (!state.players.find(p => p.id === payload.new.id)) {
+            state.players.push(payload.new);
+            OrkaFX.toast(`${payload.new.nickname} entrou!`, 'info');
+        }
     } else if (payload.eventType === 'UPDATE') {
         const index = state.players.findIndex(p => p.id === payload.new.id);
         if (index !== -1) state.players[index] = payload.new;
     } else if (payload.eventType === 'DELETE') {
         state.players = state.players.filter(p => p.id !== payload.old.id);
-        if(payload.old.player_id === state.playerId) window.location.reload();
+        
+        // Se eu fui deletado (kickado), recarrego
+        if(payload.old.player_id === state.playerId) {
+            alert('Você saiu da sala.');
+            window.location.href = '../../index.html';
+        }
     }
+    
+    // Re-ordena (se necessário) e recalcula host caso o antigo tenha saído
+    // Nota: Como o array local pode ficar desordenado com push/filter, 
+    // ideal seria ordenar state.players por joined_at, mas vamos confiar no reload do fetchPlayers se algo drástico mudar
+    // ou apenas assumir que quem sobrou no topo é o novo host.
+    determineHost(); 
     renderPlayers();
     checkMyStatus();
     checkGameLogic(); 
 }
 
 function handleRoomChange(payload) {
+    if (payload.eventType === 'DELETE') {
+        // A SALA FOI EXCLUÍDA (Host saiu ou acabou)
+        alert('A sala foi encerrada pelo anfitrião.');
+        window.location.href = '../../index.html';
+        return;
+    }
     handleRoomUpdate(payload.new);
 }
 
 function handleRoomUpdate(roomData) {
+    if (!roomData) return;
     if (roomData.used_words) state.usedWords = roomData.used_words;
-    
-    // PEDIDO 6: Sincronia de Rodadas
     if (roomData.current_round) {
         state.round = roomData.current_round;
         const roundCounter = document.getElementById('round-counter');
         if(roundCounter) roundCounter.innerText = `RODADA ${state.round}`;
     }
 
+    // Gerenciamento de Telas
     if (roomData.status === 'waiting') {
         modalVictory.classList.remove('active');
         modalVictory.style.display = 'none';
@@ -214,12 +272,9 @@ function checkMyStatus() {
     const myPlayer = state.players.find(p => p.player_id === state.playerId);
     if (myPlayer) {
         if (!myPlayer.is_ready && inputs.word.disabled && !modalVictory.classList.contains('active')) {
-            // Destrava input para nova rodada
             inputs.word.disabled = false;
             inputs.word.value = '';
             inputs.word.focus();
-            
-            // PEDIDO 2: Animação suave (feita via CSS, aqui limpamos classes se precisar)
         } else if (myPlayer.is_ready) {
             inputs.word.disabled = true;
         }
@@ -231,9 +286,7 @@ async function checkGameLogic() {
     const allReady = state.players.every(p => p.is_ready);
     
     if (allReady) {
-        // PEDIDO 1: Timeouts reduzidos (3s -> 1.5s)
         setTimeout(async () => {
-            // Re-fetch para garantir integridade
             const { data: currentPlayers } = await supabase.from('jinx_room_players').select('*').eq('room_id', state.roomId);
             const words = currentPlayers.map(p => p.current_word);
             const allMatch = words.every(w => w === words[0]);
@@ -251,24 +304,16 @@ async function checkGameLogic() {
 }
 
 async function resetRound() {
-    // 1. Host calcula nova rodada
     const nextRound = state.round + 1;
     
-    // 2. Atualiza jogadores: Move current_word -> last_word e limpa status
-    // Usamos Promise.all para atualizar todos em paralelo (mais seguro que upsert parcial)
+    // Atualiza jogadores (Move current -> last)
     const updatePromises = state.players.map(p => {
         return supabase.from('jinx_room_players')
-            .update({
-                is_ready: false,
-                last_word: p.current_word || '', // Salva a palavra atual como antiga
-                current_word: ''                 // Limpa a atual
-            })
-            .eq('id', p.id); // Usa o ID único da linha
+            .update({ is_ready: false, last_word: p.current_word || '', current_word: '' })
+            .eq('id', p.id);
     });
-
     await Promise.all(updatePromises);
 
-    // 3. Atualiza Sala (Rodada + Palavras Usadas)
     await supabase.from('jinx_rooms')
         .update({ used_words: state.usedWords, current_round: nextRound })
         .eq('id', state.roomId);
@@ -277,7 +322,6 @@ async function resetRound() {
 // --- ENVIO ---
 async function sendWord() {
     const word = inputs.word.value.trim().toUpperCase();
-    
     if (!state.dictionary.includes(word)) return flashError();
     if (state.usedWords.includes(word)) {
         OrkaFX.toast('Palavra já utilizada!', 'error');
@@ -295,7 +339,7 @@ async function sendWord() {
 function flashError() {
     inputs.word.style.borderColor = 'var(--status-wrong)';
     OrkaFX.shake('word-input'); 
-    setTimeout(() => inputs.word.style.borderColor = '#333', 500);
+    setTimeout(() => inputs.word.style.borderColor = '#222', 500);
 }
 
 // --- FIM DE JOGO ---
@@ -334,16 +378,17 @@ function endGameUI(word) {
 }
 
 async function resetGameRoom() {
-    // Reset Total: Limpa palavras usadas, reseta rodada para 1
     await supabase.from('jinx_rooms')
         .update({ status: 'waiting', used_words: [], current_round: 1 }) 
         .eq('id', state.roomId);
         
-    await supabase.from('jinx_room_players')
-        .update({ is_ready: false, current_word: '', last_word: '' }) // Limpa ghost words também
-        .eq('room_id', state.roomId);
+    const updatePromises = state.players.map(p => 
+        supabase.from('jinx_room_players')
+            .update({ is_ready: false, current_word: '', last_word: '' })
+            .eq('id', p.id)
+    );
+    await Promise.all(updatePromises);
 }
-
 
 // --- RENDERIZAÇÃO ---
 function renderPlayers() {
@@ -352,7 +397,6 @@ function renderPlayers() {
     grid.innerHTML = '';
     
     const allReady = state.players.length > 0 && state.players.every(pl => pl.is_ready);
-    // Verifica vitória localmente para pintar de verde (Pedido 2)
     let isWin = false;
     if(allReady) {
         const words = state.players.map(p => p.current_word);
@@ -363,27 +407,32 @@ function renderPlayers() {
     const waitingList = document.getElementById('waiting-list');
     if (waitingList) {
         waitingList.innerHTML = state.players.map(p => `
-            <div style="background:#222; padding:8px 15px; border-radius:20px; font-size:0.9rem; border:1px solid #333;">
-                ${p.nickname}
+            <div style="background:#222; padding:8px 15px; border-radius:20px; font-size:0.9rem; border:1px solid #333; display:flex; align-items:center; gap:5px;">
+                ${p.player_id === state.hostId ? '👑' : ''} ${p.nickname}
             </div>
         `).join('');
         
         const btnStart = document.getElementById('btn-start');
-        if (btnStart && state.isHost) {
-            btnStart.style.display = 'block';
-            btnStart.disabled = state.players.length < 2;
-            btnStart.textContent = state.players.length < 2 ? "Aguardando Jogadores..." : "COMEÇAR JOGO";
+        if (btnStart) {
+            // Só mostra o botão se for Host
+            if (state.isHost) {
+                btnStart.style.display = 'block';
+                btnStart.disabled = state.players.length < 2;
+                btnStart.textContent = state.players.length < 2 ? "Aguardando Jogadores..." : "COMEÇAR JOGO";
+            } else {
+                btnStart.style.display = 'none';
+            }
         }
     }
 
-    // Grid de Jogo
+    // Grid Principal do Jogo
     state.players.forEach(p => {
         const isMe = p.player_id === state.playerId;
+        const isHostPlayer = p.player_id === state.hostId; // Verifica se é o host
         const isReady = p.is_ready;
         let displayWord = '...';
         let cardClass = 'player-card';
 
-        // Lógica de Classes e Display
         if (isReady) { 
             cardClass += ' ready'; 
             if (!allReady) displayWord = 'PRONTO'; 
@@ -391,15 +440,16 @@ function renderPlayers() {
         if (allReady) { 
             displayWord = p.current_word || ''; 
             cardClass += ' revealed';
-            if (isWin) cardClass += ' winner'; // Pinta de verde
+            if (isWin) cardClass += ' winner';
         }
 
-        // PEDIDO 7: Ghost Word
         const ghostWord = p.last_word || '';
 
         grid.innerHTML += `
             <div class="${cardClass}">
                 <div class="player-avatar">
+                    ${isHostPlayer ? '<div class="host-crown">👑</div>' : ''}
+                    
                     <span class="material-icons" style="color:#666; font-size:32px;">${isReady ? 'check_circle' : 'person'}</span>
                 </div>
                 <div class="player-nick" style="color:${isMe ? 'var(--orka-accent)' : '#888'}">
@@ -436,7 +486,7 @@ function setLang(lang) {
     }
 }
 
-// Events
+// Eventos
 if (inputs.word) {
     inputs.word.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendWord(); });
 }
