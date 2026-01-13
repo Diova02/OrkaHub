@@ -34,6 +34,11 @@ body { overflow: hidden; }
     transition: all 0.2s ease;
 }
 
+.input-group {
+    display: flex;
+    gap: 8px;
+}
+
 /* INPUT DO CÓDIGO (Item 1 - Cor do Texto) */
 #input-room-code {
     color: white !important; /* Forçando cor */

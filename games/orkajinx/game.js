@@ -39,6 +39,7 @@ const btnPlayAgain = document.getElementById('btn-play-again');
 
 // --- INICIALIZAÇÃO ---
 async function init() {
+    OrkaCloud.startSession('orkajinx');
     setupLanguageButtons();
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
@@ -156,6 +157,9 @@ async function leaveRoomLogic() {
 
 // Cleanup ao fechar aba
 window.onbeforeunload = () => {
+    // Analytics: Salva a sessão e calcula o tempo
+    OrkaCloud.endSession('orkajinx');
+    
     if (state.roomId) {
         if (state.isHost) {
             supabase.from('jinx_rooms').delete().eq('id', state.roomId).then();
