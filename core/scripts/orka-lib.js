@@ -9,12 +9,19 @@ export const OrkaFX = {
         const colors = ['#0055ff', '#ffffff', '#2e8b57', '#e4b00f', '#ff0055'];
         for (let i = 0; i < 60; i++) {
             const c = document.createElement('div');
-            c.style.position = 'fixed'; c.style.top = '-10px'; c.style.width = '10px'; c.style.height = '10px'; c.style.zIndex = '9999'; c.style.opacity = '0.8';
+            c.style.position = 'fixed'; 
+            c.style.top = '-10px'; 
+            c.style.width = '10px'; 
+            c.style.height = '10px'; 
+            c.style.zIndex = '9999'; 
+            c.style.opacity = '0.8';
             c.style.left = Math.random() * 100 + 'vw';
             c.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            
             const duration = Math.random() * 3 + 3;
             c.style.animation = `fall ${duration}s linear forwards`;
             c.style.animationDelay = Math.random() * 2 + 's';
+            
             document.body.appendChild(c);
             setTimeout(() => c.remove(), duration * 1000 + 2000);
         }
@@ -23,25 +30,37 @@ export const OrkaFX = {
     toast: (msg, type = 'info') => {
         let container = document.getElementById('toast-container');
         if(!container) { // Cria se não existir
-            container = document.createElement('div'); id='toast-container'; document.body.appendChild(container);
+            container = document.createElement('div'); 
+            container.id = 'toast-container'; // <--- CORREÇÃO AQUI (Era: id='toast-container')
+            document.body.appendChild(container);
         }
+        
         const div = document.createElement('div');
         div.className = `toast ${type}`;
         div.textContent = msg;
+        
         container.appendChild(div);
-        setTimeout(() => div.remove(), 3000);
+        
+        // Remove após 3 segundos
+        setTimeout(() => {
+            div.style.opacity = '0';
+            setTimeout(() => div.remove(), 500); // Espera fade out
+        }, 3000);
     },
 
     shake: (elementId) => {
         const el = document.getElementById(elementId);
-        if(el) el.animate([{ transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'translateX(0)' }], { duration: 300 });
+        if(el) el.animate([
+            { transform: 'translateX(-5px)' }, 
+            { transform: 'translateX(5px)' }, 
+            { transform: 'translateX(0)' }
+        ], { duration: 300 });
     }
 };
 
 // --- 2. MÓDULO DE DATA (O Coração Determinístico) ---
 export const OrkaDate = {
     getDailyIndex: (startDate, dbSize) => {
-        // Lógica de checkpoints pode ser injetada aqui futuramente
         const today = new Date();
         today.setHours(0,0,0,0);
         const start = new Date(startDate);
@@ -67,11 +86,9 @@ export const OrkaDate = {
         const diffTime = Math.abs(today - start);
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
         
-        // Lógica: Pula de 3 em 3
         const baseIndex = diffDays * 3;
         
         let selected = [];
-        // Pega 4 grupos (1 sobrepõe o dia seguinte)
         for(let i = 0; i < 4; i++) {
             const index = (baseIndex + i) % categoriesKeys.length;
             selected.push(categoriesKeys[index]);
@@ -94,7 +111,7 @@ export const OrkaStorage = {
 
 // --- 4. UTILITÁRIOS GERAIS ---
 export const Utils = {
-    normalize: (str) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""), //NORMALIZAR TEXTO ACENTUADO/ESPAÇADO: "Água viva" -> "aguaviva"
+    normalize: (str) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
     toggleModal: (id, show = true) => {
         const el = document.getElementById(id);
         if(show) el.classList.add('active'); else el.classList.remove('active');
