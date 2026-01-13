@@ -48,11 +48,21 @@ async function init() {
 
 // --- UX: INPUT E TECLADO ---
 // (Lógica de autocomplete mantida igual, apenas garantindo funcionamento)
+// --- UX: INPUT E TECLADO ---
 inputs.word.addEventListener('input', () => {
+    // Pega o valor original (preservando minúsculas visualmente)
     const val = inputs.word.value.trim();
+    
     state.suggestionIndex = -1;
     if (val.length < 1) { suggestionsBox.style.display = 'none'; return; }
-    state.currentSuggestions = state.dictionary.filter(w => w.startsWith(val) && !state.usedWords.includes(w)).slice(0, 5); 
+    
+    // MUDANÇA AQUI: .startsWith(val.toUpperCase())
+    // Compara o input transformado em maiúsculo com o dicionário (que já é maiúsculo)
+    // Assim: "abe" vira "ABE" e encontra "ABELHA"
+    state.currentSuggestions = state.dictionary
+        .filter(w => w.startsWith(val.toUpperCase()) && !state.usedWords.includes(w))
+        .slice(0, 5); 
+    
     renderSuggestions(state.currentSuggestions);
 });
 

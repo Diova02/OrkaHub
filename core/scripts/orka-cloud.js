@@ -31,6 +31,14 @@ function getNickname() {
   return localStorage.getItem('orka_nickname')
 }
 
+function getLanguage() {
+  return localStorage.getItem('orka_language') || 'pt-BR'
+}
+
+function setLanguage(lang) {
+  localStorage.setItem('orka_language', lang)
+}
+
 // =========================
 // REGISTRO DE JOGADOR
 // =========================
@@ -120,5 +128,7 @@ export const OrkaCloud = {
   endSession,
   getNickname,
   updateNickname,
-  getPlayerId
+  getPlayerId,
+  getLanguage, 
+  setLanguage
 }
