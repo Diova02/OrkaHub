@@ -292,6 +292,13 @@ body {
 .input-group {
     display: flex;
     gap: 10px;
+    justify-content: center; /* Centraliza */
+}
+
+#input-room-code {
+    flex: 0 1 120px; /* Reduz largura (flex-grow 0, flex-shrink 1, basis 120px) */
+    font-size: 1.2rem;
+    letter-spacing: 2px;
 }
 
 /* Botões Secundários (Sair, Voltar) */
@@ -315,6 +322,64 @@ body {
     padding-left: 25px; /* Efeito visual de movimento */
 }
 
-/* --- TOAST CONTAINER (Garantia) --- */
-/* O orka-base já deve ter, mas garantimos posição se necessário */
-#toast-container { top: 90px; }
+#btn-start {
+    width: auto;         /* Não ocupa 100% */
+    min-width: 180px;    /* Tamanho mínimo decente */
+    margin: 0 auto 10px auto; /* Centraliza */
+    padding: 18px 30px;  /* Mais alto */
+    font-size: 1.1rem;
+    display: block;      /* Garante que margin auto funcione */
+}
+
+/* --- ANIMAÇÕES DE ESTADO (PEDIDO 2) --- */
+.player-card {
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    border: 1px solid transparent;
+}
+
+/* Estado Pronto (Pulsar leve) */
+.player-card.ready .player-avatar {
+    border-color: var(--status-partial);
+    box-shadow: 0 0 15px rgba(228, 176, 15, 0.4);
+    animation: pulseReady 2s infinite;
+}
+
+@keyframes pulseReady {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Revelação / Vitória */
+.player-card.revealed {
+    transform: translateY(-5px);
+}
+
+.player-card.winner .player-word-display {
+    color: var(--status-correct);
+    text-shadow: 0 0 10px rgba(46, 139, 87, 0.5);
+    animation: popWord 0.5s;
+}
+
+@keyframes popWord {
+    0% { transform: scale(0.5); opacity: 0; }
+    60% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* --- GHOST WORD (PEDIDO 7) --- */
+.last-word-display {
+    font-size: 0.75rem;
+    color: #444; /* Bem apagado */
+    margin-top: 4px;
+    height: 1rem;
+    text-transform: uppercase;
+    font-style: italic;
+}
+
+/* --- CORREÇÃO TOAST --- */
+#toast-container {
+    z-index: 10000 !important; /* Garante que apareça acima de tudo */
+    top: 20px;
+}

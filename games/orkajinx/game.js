@@ -11,11 +11,11 @@ let state = {
     isHost: false,
     language: 'pt-BR',
     dictionary: palavrasPT,
-    round: 1,
+    round: 1, // Agora sincronizado via DB
     players: [],
     usedWords: [],
     
-    // Controle de Teclado
+    // Teclado
     suggestionIndex: -1,
     currentSuggestions: []
 };
@@ -45,61 +45,38 @@ async function init() {
 }
 
 // --- UX: AUTOCOMPLETE & TECLADO ---
-
-// 1. Input Texto
+// (Mantido igual à versão anterior, resumido aqui para economizar espaço visual)
 inputs.word.addEventListener('input', () => {
     const val = inputs.word.value.trim().toUpperCase();
-    state.suggestionIndex = -1; // Reseta seleção
-
-    if (val.length < 1) { 
-        suggestionsBox.style.display = 'none'; 
-        return; 
-    }
-
-    // Filtra e guarda no estado
-    state.currentSuggestions = state.dictionary
-        .filter(w => w.startsWith(val) && !state.usedWords.includes(w)) 
-        .slice(0, 5); 
-
+    state.suggestionIndex = -1;
+    if (val.length < 1) { suggestionsBox.style.display = 'none'; return; }
+    state.currentSuggestions = state.dictionary.filter(w => w.startsWith(val) && !state.usedWords.includes(w)).slice(0, 5); 
     renderSuggestions(state.currentSuggestions);
 });
 
-// 2. Navegação por Teclado (Keydown)
 inputs.word.addEventListener('keydown', (e) => {
     if (suggestionsBox.style.display === 'none') return;
-
     if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        state.suggestionIndex++;
-        if (state.suggestionIndex >= state.currentSuggestions.length) state.suggestionIndex = 0; // Loop
+        e.preventDefault(); state.suggestionIndex++;
+        if (state.suggestionIndex >= state.currentSuggestions.length) state.suggestionIndex = 0;
         updateSuggestionHighlight();
-    } 
-    else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        state.suggestionIndex--;
-        if (state.suggestionIndex < 0) state.suggestionIndex = state.currentSuggestions.length - 1; // Loop
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault(); state.suggestionIndex--;
+        if (state.suggestionIndex < 0) state.suggestionIndex = state.currentSuggestions.length - 1;
         updateSuggestionHighlight();
-    } 
-    else if (e.key === 'Enter') {
-        // Se tiver algo selecionado na lista, usa ele
-        if (state.suggestionIndex > -1 && state.currentSuggestions[state.suggestionIndex]) {
-            e.preventDefault();
-            selectSuggestion(state.currentSuggestions[state.suggestionIndex]);
-        }
-        // Se não, o evento 'keypress' padrão cuida do envio
+    } else if (e.key === 'Enter' && state.suggestionIndex > -1) {
+        e.preventDefault(); selectSuggestion(state.currentSuggestions[state.suggestionIndex]);
     }
 });
 
 function renderSuggestions(matches) {
     if (matches.length === 0) { suggestionsBox.style.display = 'none'; return; }
-    
     suggestionsBox.innerHTML = '';
     matches.forEach((word, index) => {
         const div = document.createElement('div');
         div.className = 'suggestion-item';
         div.textContent = word;
-        div.dataset.index = index; // Para referência
-        
+        div.dataset.index = index;
         div.onclick = () => selectSuggestion(word);
         suggestionsBox.appendChild(div);
     });
@@ -109,13 +86,8 @@ function renderSuggestions(matches) {
 function updateSuggestionHighlight() {
     const items = suggestionsBox.querySelectorAll('.suggestion-item');
     items.forEach((item, idx) => {
-        if (idx === state.suggestionIndex) {
-            item.classList.add('selected');
-            // Scroll suave se necessário
-            item.scrollIntoView({ block: 'nearest' });
-        } else {
-            item.classList.remove('selected');
-        }
+        if (idx === state.suggestionIndex) { item.classList.add('selected'); item.scrollIntoView({ block: 'nearest' }); } 
+        else item.classList.remove('selected');
     });
 }
 
@@ -124,27 +96,20 @@ function selectSuggestion(word) {
     suggestionsBox.style.display = 'none';
     state.suggestionIndex = -1;
     inputs.word.focus();
-    // Opcional: Enviar direto ao selecionar? Melhor deixar o usuário dar Enter final.
 }
-
-// Fechar ao clicar fora
 document.addEventListener('click', (e) => {
-    if (!e.target.closest('#suggestions-box') && !e.target.closest('#word-input')) {
-        suggestionsBox.style.display = 'none';
-    }
+    if (!e.target.closest('#suggestions-box') && !e.target.closest('#word-input')) suggestionsBox.style.display = 'none';
 });
-
 
 // --- LÓGICA DE SALA ---
 
 document.getElementById('btn-create').addEventListener('click', async () => {
     const code = Math.random().toString(36).substring(2, 6).toUpperCase();
     const { data, error } = await supabase.from('jinx_rooms')
-        .insert({ code, language: state.language, status: 'waiting', used_words: [] })
+        .insert({ code, language: state.language, status: 'waiting', used_words: [], current_round: 1 })
         .select().single();
     
     if (error) return OrkaFX.toast('Erro ao criar sala', 'error');
-    
     state.isHost = true;
     enterRoom(data);
 });
@@ -174,15 +139,13 @@ async function enterRoom(roomData) {
     state.usedWords = roomData.used_words || [];
     setLang(roomData.language);
     
+    // Zera last_word ao entrar
     await supabase.from('jinx_room_players').upsert({
-        room_id: state.roomId, player_id: state.playerId, nickname: state.nickname
+        room_id: state.roomId, player_id: state.playerId, nickname: state.nickname, last_word: ''
     }, { onConflict: 'player_id, room_id' });
 
     document.getElementById('display-code').innerText = state.roomCode;
-    
-    // Decide qual tela mostrar
-    handleRoomStatus(roomData.status);
-    
+    handleRoomUpdate(roomData); // Sincroniza estado inicial
     subscribeToRoom();
 }
 
@@ -196,19 +159,21 @@ function subscribeToRoom() {
 
 async function fetchPlayers() {
     const { data } = await supabase.from('jinx_room_players').select('*').eq('room_id', state.roomId);
-    state.players = data;
+    state.players = data || [];
     renderPlayers();
     checkMyStatus();
 }
 
+// PEDIDO 5: Atualizar lista imediatamente ao sair
 function handlePlayerChange(payload) {
-    if (payload.eventType === 'INSERT') state.players.push(payload.new);
-    else if (payload.eventType === 'UPDATE') {
+    if (payload.eventType === 'INSERT') {
+        state.players.push(payload.new);
+        OrkaFX.toast(`${payload.new.nickname} entrou!`, 'info');
+    } else if (payload.eventType === 'UPDATE') {
         const index = state.players.findIndex(p => p.id === payload.new.id);
         if (index !== -1) state.players[index] = payload.new;
     } else if (payload.eventType === 'DELETE') {
         state.players = state.players.filter(p => p.id !== payload.old.id);
-        // Se eu fui kickado (ex: sala deletada manualmente)
         if(payload.old.player_id === state.playerId) window.location.reload();
     }
     renderPlayers();
@@ -217,98 +182,107 @@ function handlePlayerChange(payload) {
 }
 
 function handleRoomChange(payload) {
-    // Atualiza palavras usadas
-    if (payload.new.used_words) state.usedWords = payload.new.used_words;
-
-    // Gerencia estados globais da sala
-    handleRoomStatus(payload.new.status);
+    handleRoomUpdate(payload.new);
 }
 
-function handleRoomStatus(status) {
-    if (status === 'waiting') {
-        modalVictory.classList.remove('active'); // Fecha modal se estiver aberto
-        modalVictory.style.display = 'none';
-        state.round = 1;
-        document.getElementById('round-counter').innerText = `RODADA 1`;
-        showScreen('waiting');
+function handleRoomUpdate(roomData) {
+    if (roomData.used_words) state.usedWords = roomData.used_words;
+    
+    // PEDIDO 6: Sincronia de Rodadas
+    if (roomData.current_round) {
+        state.round = roomData.current_round;
+        const roundCounter = document.getElementById('round-counter');
+        if(roundCounter) roundCounter.innerText = `RODADA ${state.round}`;
     }
-    else if (status === 'playing') {
+
+    if (roomData.status === 'waiting') {
+        modalVictory.classList.remove('active');
+        modalVictory.style.display = 'none';
+        showScreen('waiting');
+    } else if (roomData.status === 'playing') {
         modalVictory.classList.remove('active');
         modalVictory.style.display = 'none';
         showScreen('game');
-    }
-    else if (status === 'finished') {
+    } else if (roomData.status === 'finished') {
         if (!state.isHost) endGameUI(); 
     }
 }
 
-
 // --- GAMEPLAY ---
 
-// Verifica estado local (destrava input se resetar rodada)
 function checkMyStatus() {
     const myPlayer = state.players.find(p => p.player_id === state.playerId);
     if (myPlayer) {
         if (!myPlayer.is_ready && inputs.word.disabled && !modalVictory.classList.contains('active')) {
+            // Destrava input para nova rodada
             inputs.word.disabled = false;
             inputs.word.value = '';
             inputs.word.focus();
             
-            const st = document.getElementById('status-text');
-            st.innerText = "NOVA TENTATIVA...";
-            setTimeout(() => st.innerText = "SINCRONIA MENTAL", 1500);
+            // PEDIDO 2: Animação suave (feita via CSS, aqui limpamos classes se precisar)
         } else if (myPlayer.is_ready) {
             inputs.word.disabled = true;
         }
     }
 }
 
-// Lógica Host
 async function checkGameLogic() {
     if (!state.isHost || state.players.length === 0) return;
     const allReady = state.players.every(p => p.is_ready);
     
     if (allReady) {
+        // PEDIDO 1: Timeouts reduzidos (3s -> 1.5s)
         setTimeout(async () => {
+            // Re-fetch para garantir integridade
             const { data: currentPlayers } = await supabase.from('jinx_room_players').select('*').eq('room_id', state.roomId);
             const words = currentPlayers.map(p => p.current_word);
             const allMatch = words.every(w => w === words[0]);
 
             if (allMatch) {
-                // VITÓRIA
                 state.usedWords.push(words[0]); 
                 await finishGame(words[0]);
             } else {
-                // ERRO
                 const newWords = words.filter(w => !state.usedWords.includes(w));
                 state.usedWords.push(...newWords); 
-                
-                // Feedback visual de erro para todos (via status update poderia ser melhor, mas vamos no simples)
-                // O resetRound já vai limpar tudo.
                 await resetRound();
             }
-        }, 3000);
+        }, 1500); 
     }
 }
 
 async function resetRound() {
-    state.round++;
-    document.getElementById('round-counter').innerText = `RODADA ${state.round}`;
+    // 1. Host calcula nova rodada
+    const nextRound = state.round + 1;
     
-    await supabase.from('jinx_rooms').update({ used_words: state.usedWords }).eq('id', state.roomId);
-    await supabase.from('jinx_room_players').update({ is_ready: false, current_word: '' }).eq('room_id', state.roomId);
+    // 2. PEDIDO 7: Move current_word para last_word (Mágica do SQL no Javascript)
+    // Para evitar N requests, vamos iterar e fazer updates (Supabase não tem "Swap Columns" nativo num update em massa simples via JS SDK)
+    // Mas podemos fazer um update geral onde last_word recebe o valor antigo? Não facilmente via SDK JS sem procedure.
+    // Vamos fazer um loop rápido, para 2-4 jogadores é imperceptível.
+    
+    const updates = state.players.map(p => ({
+        id: p.id, // Supabase PK
+        is_ready: false,
+        last_word: p.current_word, // Copia palavra
+        current_word: ''           // Limpa
+    }));
+
+    // Upsert em massa funciona bem para updates se tiver PK
+    await supabase.from('jinx_room_players').upsert(updates);
+
+    // 3. Atualiza Sala (Rodada + Palavras Usadas)
+    await supabase.from('jinx_rooms')
+        .update({ used_words: state.usedWords, current_round: nextRound })
+        .eq('id', state.roomId);
 }
 
 // --- ENVIO ---
 async function sendWord() {
     const word = inputs.word.value.trim().toUpperCase();
     
-    if (!state.dictionary.includes(word)) {
-        flashError(); return;
-    }
+    if (!state.dictionary.includes(word)) return flashError();
     if (state.usedWords.includes(word)) {
         OrkaFX.toast('Palavra já utilizada!', 'error');
-        flashError(); return;
+        return flashError();
     }
 
     inputs.word.disabled = true;
@@ -325,25 +299,18 @@ function flashError() {
     setTimeout(() => inputs.word.style.borderColor = '#333', 500);
 }
 
-
-// --- FIM DE JOGO & REPLAY ---
-
+// --- FIM DE JOGO ---
 async function finishGame(winningWord) {
-    // 1. Histórico
     await supabase.from('jinx_room_history').insert({
         code: state.roomCode, player_names: state.players.map(p => p.nickname),
         rounds_count: state.round, result: 'win'
     });
 
-    // 2. Status Finished
     await supabase.from('jinx_rooms')
         .update({ status: 'finished', used_words: state.usedWords })
         .eq('id', state.roomId);
     
-    // 3. UI Host
     endGameUI(winningWord);
-
-    // REMOVIDO: Auto-delete. A sala persiste para replay.
 }
 
 function endGameUI(word) {
@@ -353,11 +320,10 @@ function endGameUI(word) {
     document.getElementById('final-round').innerText = state.round;
     document.getElementById('winning-word').innerText = finalWord || "JINX!";
     
-    // Configura botões do Modal
     if (state.isHost) {
         btnPlayAgain.textContent = "Jogar Novamente";
         btnPlayAgain.disabled = false;
-        btnPlayAgain.onclick = resetGameRoom; // Função de reset
+        btnPlayAgain.onclick = resetGameRoom;
     } else {
         btnPlayAgain.textContent = "Aguardando Host...";
         btnPlayAgain.disabled = true;
@@ -368,18 +334,14 @@ function endGameUI(word) {
     OrkaFX.confetti(); 
 }
 
-// --- FUNÇÃO DE RESET (REPLAY) ---
 async function resetGameRoom() {
-    // Reseta sala para 'waiting', limpa palavras usadas (novo jogo = tudo limpo?)
-    // Geralmente num "Play Again" queremos zerar as palavras usadas.
-    
+    // Reset Total: Limpa palavras usadas, reseta rodada para 1
     await supabase.from('jinx_rooms')
-        .update({ status: 'waiting', used_words: [] }) // Zera palavras
+        .update({ status: 'waiting', used_words: [], current_round: 1 }) 
         .eq('id', state.roomId);
         
-    // Limpa status dos jogadores
     await supabase.from('jinx_room_players')
-        .update({ is_ready: false, current_word: '' })
+        .update({ is_ready: false, current_word: '', last_word: '' }) // Limpa ghost words também
         .eq('room_id', state.roomId);
 }
 
@@ -389,8 +351,16 @@ function renderPlayers() {
     const grid = document.getElementById('players-grid');
     if (!grid) return;
     grid.innerHTML = '';
+    
     const allReady = state.players.length > 0 && state.players.every(pl => pl.is_ready);
+    // Verifica vitória localmente para pintar de verde (Pedido 2)
+    let isWin = false;
+    if(allReady) {
+        const words = state.players.map(p => p.current_word);
+        isWin = words.every(w => w === words[0]);
+    }
 
+    // Lista de Espera (Lobby)
     const waitingList = document.getElementById('waiting-list');
     if (waitingList) {
         waitingList.innerHTML = state.players.map(p => `
@@ -400,32 +370,44 @@ function renderPlayers() {
         `).join('');
         
         const btnStart = document.getElementById('btn-start');
-        if (btnStart) {
-            if (state.isHost) {
-                btnStart.style.display = 'block';
-                btnStart.disabled = state.players.length < 2;
-                if(state.players.length < 2) btnStart.textContent = "Aguardando Jogadores...";
-                else btnStart.textContent = "COMEÇAR JOGO";
-            } else {
-                btnStart.style.display = 'none'; // Esconde se não for host
-            }
+        if (btnStart && state.isHost) {
+            btnStart.style.display = 'block';
+            btnStart.disabled = state.players.length < 2;
+            btnStart.textContent = state.players.length < 2 ? "Aguardando Jogadores..." : "COMEÇAR JOGO";
         }
     }
 
+    // Grid de Jogo
     state.players.forEach(p => {
         const isMe = p.player_id === state.playerId;
         const isReady = p.is_ready;
         let displayWord = '...';
         let cardClass = 'player-card';
 
-        if (isReady) { cardClass += ' ready'; if (!allReady) displayWord = 'PRONTO'; }
-        if (allReady) { displayWord = p.current_word || ''; cardClass += ' revealed'; }
+        // Lógica de Classes e Display
+        if (isReady) { 
+            cardClass += ' ready'; 
+            if (!allReady) displayWord = 'PRONTO'; 
+        }
+        if (allReady) { 
+            displayWord = p.current_word || ''; 
+            cardClass += ' revealed';
+            if (isWin) cardClass += ' winner'; // Pinta de verde
+        }
+
+        // PEDIDO 7: Ghost Word
+        const ghostWord = p.last_word || '';
 
         grid.innerHTML += `
             <div class="${cardClass}">
-                <div class="player-avatar"><span class="material-icons" style="color:#666; font-size:32px;">${isReady ? 'check_circle' : 'person'}</span></div>
-                <div class="player-nick" style="color:${isMe ? 'var(--orka-accent)' : '#888'}">${p.nickname}</div>
+                <div class="player-avatar">
+                    <span class="material-icons" style="color:#666; font-size:32px;">${isReady ? 'check_circle' : 'person'}</span>
+                </div>
+                <div class="player-nick" style="color:${isMe ? 'var(--orka-accent)' : '#888'}">
+                    ${p.nickname}
+                </div>
                 <div class="player-word-display">${displayWord}</div>
+                <div class="last-word-display">${ghostWord}</div>
             </div>`;
     });
 }
@@ -447,19 +429,15 @@ function setLang(lang) {
     state.dictionary = (lang === 'en-US') ? palavrasEN : palavrasPT;
     const btnPt = document.getElementById('btn-lang-pt');
     const btnEn = document.getElementById('btn-lang-en');
-    
     if (btnPt && btnEn) {
-        if(lang === 'pt-BR') {
-            btnPt.style.background = 'var(--orka-accent)'; btnPt.style.color = 'white';
-            btnEn.style.background = '#222'; btnEn.style.color = '#888';
-        } else {
-            btnEn.style.background = 'var(--orka-accent)'; btnEn.style.color = 'white';
-            btnPt.style.background = '#222'; btnPt.style.color = '#888';
-        }
+        const active = 'background:var(--orka-accent); color:white;';
+        const inactive = 'background:#222; color:#888;';
+        btnPt.style.cssText = lang === 'pt-BR' ? active : inactive;
+        btnEn.style.cssText = lang === 'en-US' ? active : inactive;
     }
 }
 
-// Event Listeners
+// Events
 if (inputs.word) {
     inputs.word.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendWord(); });
 }
