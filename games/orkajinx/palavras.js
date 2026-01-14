@@ -218,9 +218,242 @@ export const palavrasPT = [
     "Pulseira", "Colar", "Anel", "Brinco",
     "Capuz", "Touca",
     "Avental", "Farda", "Fantasia",
+    // 25. Países (Geografia é excelente para Jinx)
+    "Afeganistão", "África do Sul", "Albânia", "Alemanha", "Andorra", "Angola", "Arábia Saudita", "Argélia", "Argentina", "Armênia",
+    "Austrália", "Áustria", "Azerbaijão", "Bahamas", "Bangladesh", "Barbados", "Bahrein", "Bélgica", "Belize", "Benin",
+    "Bielorrússia", "Bolívia", "Bósnia", "Botsuana", "Brasil", "Brunei", "Bulgária", "Burkina Faso", "Burundi", "Butão",
+    "Cabo Verde", "Camarões", "Camboja", "Canadá", "Catar", "Cazaquistão", "Chade", "Chile", "China", "Chipre",
+    "Colômbia", "Comores", "Congo", "Coreia do Norte", "Coreia do Sul", "Costa do Marfim", "Costa Rica", "Croácia", "Cuba", "Dinamarca",
+    "Djibouti", "Dominica", "Egito", "El Salvador", "Emirados Árabes", "Equador", "Eritreia", "Eslováquia", "Eslovênia", "Espanha",
+    "Estados Unidos", "Estônia", "Etiópia", "Fiji", "Filipinas", "Finlândia", "França", "Gabão", "Gâmbia", "Gana",
+    "Geórgia", "Granada", "Grécia", "Guatemala", "Guiana", "Guiné", "Haiti", "Holanda", "Honduras", "Hungria",
+    "Iêmen", "Índia", "Indonésia", "Irã", "Iraque", "Irlanda", "Islândia", "Israel", "Itália", "Jamaica",
+    "Japão", "Jordânia", "Kuwait", "Laos", "Lesoto", "Letônia", "Líbano", "Libéria", "Líbia", "Liechtenstein",
+    "Lituânia", "Luxemburgo", "Macedônia", "Madagascar", "Malásia", "Malaui", "Maldivas", "Mali", "Malta", "Marrocos",
+    "Maurício", "Mauritânia", "México", "Mianmar", "Moçambique", "Moldávia", "Mônaco", "Mongólia", "Montenegro", "Namíbia",
+    "Nepal", "Nicarágua", "Níger", "Nigéria", "Noruega", "Nova Zelândia", "Omã", "Panamá", "Papua Nova Guiné", "Paquistão",
+    "Paraguai", "Peru", "Polônia", "Portugal", "Quênia", "Quirguistão", "Reino Unido", "República Checa", "Romênia", "Ruanda",
+    "Rússia", "Samoa", "San Marino", "Santa Lúcia", "São Tomé e Príncipe", "Senegal", "Serra Leoa", "Sérvia", "Singapura", "Síria",
+    "Somália", "Sri Lanka", "Suazilândia", "Sudão", "Suécia", "Suíça", "Suriname", "Tailândia", "Taiwan", "Tajiquistão",
+    "Tanzânia", "Timor-Leste", "Togo", "Tonga", "Trinidad e Tobago", "Tunísia", "Turcomenistão", "Turquia", "Tuvalu", "Ucrânia",
+    "Uganda", "Uruguai", "Uzbequistão", "Vanuatu", "Vaticano", "Venezuela", "Vietnã", "Zâmbia", "Zimbábue",
+    // 26. Capitais e Cidades Importantes (Mundo + Brasil)
+    "Brasília", "São Paulo", "Rio de Janeiro", "Salvador", "Belo Horizonte", "Curitiba", "Manaus", "Recife", "Porto Alegre", "Fortaleza",
+    "Belém", "Goiânia", "Guarulhos", "Campinas", "São Luís", "Maceió", "Natal", "Campo Grande", "Teresina", "João Pessoa",
+    "Aracaju", "Cuiabá", "Porto Velho", "Florianópolis", "Macapá", "Rio Branco", "Vitória", "Boa Vista", "Palmas", "Santos",
+    "Tóquio", "Nova York", "Paris", "Londres", "Berlim", "Roma", "Madri", "Pequim", "Moscou", "Washington",
+    "Buenos Aires", "Lisboa", "Ottawa", "Camberra", "Seul", "Bangkok", "Cairo", "Atenas", "Amsterdã", "Bruxelas",
+    "Viena", "Estocolmo", "Oslo", "Copenhague", "Helsinque", "Dublin", "Berna", "Varsóvia", "Praga", "Budapeste",
+    "Kiev", "Istambul", "Jerusalém", "Dubai", "Teerã", "Bagdá", "Délhi", "Mumbai", "Jacarta", "Manila",
+    "Hanoi", "Kuala Lumpur", "Cingapura", "Taipei", "Hong Kong", "Xangai", "Sydney", "Melbourne", "Auckland", "Cabo",
+    "Joanesburgo", "Nairóbi", "Lagos", "Cairo", "Casablanca", "Bogotá", "Lima", "Santiago", "Caracas", "Quito",
+    "La Paz", "Assunção", "Montevidéu", "Havana", "Los Angeles", "Chicago", "Miami", "Las Vegas", "São Francisco",
+    // 27. Marcas Famosas (Gera muito match fácil)
+    "Google", "Apple", "Microsoft", "Amazon", "Facebook", "Coca-Cola", "Pepsi", "McDonald's", "Burger King", "Nike",
+    "Adidas", "Puma", "Samsung", "Sony", "Nintendo", "PlayStation", "Xbox", "Netflix", "Disney", "Marvel",
+    "DC", "Toyota", "Honda", "Ford", "Chevrolet", "Volkswagen", "Fiat", "Ferrari", "Lamborghini", "Porsche",
+    "BMW", "Mercedes", "Audi", "Tesla", "Uber", "Instagram", "Twitter", "TikTok", "YouTube", "Spotify",
+    "Visa", "Mastercard", "Nubank", "Itaú", "Bradesco", "Caixa", "Banco do Brasil", "Nestlé", "Garoto", "Lacta",
+    "Sadia", "Perdigão", "Seara", "Omo", "Veja", "Bombril", "Colgate", "Oral-B", "Dove", "Nivea",
+    "Avon", "Natura", "Boticário", "Zara", "Renner", "Riachuelo", "C&A", "Hering", "Havaianas", "Melissa",
+    "Rolex", "Gucci", "Prada", "Louis Vuitton", "Chanel", "Dior", "Versace", "Armani", "Calvin Klein", "Tommy Hilfiger",
+    "Lego", "Barbie", "Hot Wheels", "Monopoly", "Uno", "Canon", "Nikon", "GoPro", "Dell", "HP",
+    "Intel", "AMD", "Nvidia", "Asus", "Acer", "Lenovo", "Motorola", "Xiaomi", "LG", "Panasonic",
+    // 28. Personagens de Ficção (Pop Culture)
+    "Batman", "Superman", "Homem-Aranha", "Hulk", "Thor", "Homem de Ferro", "Capitão América", "Mulher Maravilha", "Flash", "Aquaman",
+    "Coringa", "Thanos", "Darth Vader", "Luke Skywalker", "Yoda", "Obi-Wan", "Harry Potter", "Hermione", "Rony", "Voldemort",
+    "Dumbledore", "Gandalf", "Frodo", "Gollum", "Aragorn", "Legolas", "Sauron", "Sherlock Holmes", "Watson", "James Bond",
+    "Tarzan", "Mogli", "Drácula", "Frankenstein", "Lobisomem", "Papai Noel", "Coelhinho da Páscoa", "Fada do Dente", "Mickey", "Minnie",
+    "Pato Donald", "Pateta", "Pluto", "Pica-Pau", "Tom", "Jerry", "Scooby-Doo", "Salsicha", "Fred", "Barney",
+    "Bob Esponja", "Patrick", "Lula Molusco", "Homer Simpson", "Marge", "Bart", "Lisa", "Goku", "Vegeta", "Naruto",
+    "Sasuke", "Luffy", "Pikachu", "Ash", "Mario", "Luigi", "Peach", "Bowser", "Sonic", "Tails",
+    "Link", "Zelda", "Kratos", "Master Chief", "Pac-Man", "Ryu", "Ken", "Chun-Li", "Sub-Zero", "Scorpion",
+    // 29. Zodíaco e Esoterismo
+    "Áries", "Touro", "Gêmeos", "Câncer", "Leão", "Virgem", "Libra", "Escorpião", "Sagitário", "Capricórnio",
+    "Aquário", "Peixes", "Horóscopo", "Mapa Astral", "Ascendente", "Lua", "Sol", "Tarô", "Carta", "Vidente",
+    "Bola de Cristal", "Incensos", "Cristais", "Energia", "Chakra", "Aura", "Karma", "Dharma", "Reencarnação", "Espiritismo",
+    // 30. Bebidas (Expandindo)
+    "Vodka", "Whisky", "Gin", "Rum", "Tequila", "Conhaque", "Licor", "Saquê", "Champanhe", "Espumante",
+    "Cachaça", "Caipirinha", "Batida", "Coquetel", "Martini", "Margarita", "Mojito", "Piña Colada", "Cosmopolitan", "Negroni",
+    "Chopp", "IPA", "Lager", "Pilsen", "Stout", "Weiss", "Cidra", "Hidromel", "Grogue", "Absinto",
+    "Água com gás", "Água de coco", "Caldo de cana", "Garapa", "Chimarrão", "Tereré", "Mate", "Cappuccino", "Expresso", "Mocaccino",
+    // 31. Vestuário (Expandindo Tecidos e Acessórios)
+    "Algodão", "Lã", "Seda", "Linho", "Veludo", "Jeans", "Couro", "Nylon", "Poliéster", "Cetim",
+    "Renda", "Malha", "Moletom", "Camurça", "Flanela", "Viscose", "Elastano", "Microfibra", "Sarja", "Tule",
+    "Zíper", "Botão", "Bolso", "Gola", "Manga", "Barra", "Costura", "Decote", "Fivela", "Cadarço",
+    "Salto Alto", "Plataforma", "Sola", "Palmilha", "Bolsa de Mão", "Mochila", "Pochete", "Carteira", "Mala", "Necessaire",
+    // 32. Doenças e Saúde (Termos comuns)
+    "Gripe", "Resfriado", "Febre", "Tosse", "Dor de cabeça", "Enxaqueca", "Alergia", "Asma", "Bronquite", "Pneumonia",
+    "Diabetes", "Hipertensão", "Colesterol", "Gastrite", "Úlcera", "Cárie", "Gengivite", "Fratura", "Torção", "Luxação",
+    "Corte", "Ferida", "Cicatriz", "Hematoma", "Inflamação", "Infecção", "Vírus", "Bactéria", "Vacina", "Injeção",
+    "Comprimido", "Xarope", "Pomada", "Curativo", "Gesso", "Muleta", "Cadeira de rodas", "Óculos", "Lente", "Aparelho",
+    // 33. Elementos Químicos e Ciência
+    "Hidrogênio", "Hélio", "Lítio", "Berílio", "Boro", "Carbono", "Nitrogênio", "Oxigênio", "Flúor", "Neon",
+    "Sódio", "Magnésio", "Alumínio", "Silício", "Fósforo", "Enxofre", "Cloro", "Argônio", "Potássio", "Cálcio",
+    "Ferro", "Cobre", "Zinco", "Prata", "Ouro", "Mercúrio", "Chumbo", "Urânio", "Plutônio", "Titânio",
+    "Átomo", "Molécula", "Elétron", "Próton", "Nêutron", "Célula", "DNA", "RNA", "Genética", "Evolução",
+    "Gravidade", "Relatividade", "Física", "Química", "Biologia", "Matemática", "Cálculo", "Álgebra", "Geometria", "Estatística",
+    // 34. Jogos e Baralho
+    "Ás", "Rei", "Dama", "Valete", "Coringa", "Espadas", "Copas", "Ouros", "Paus", "Naip",
+    "Truco", "Pôquer", "Buraco", "Paciência", "Cacheta", "Dominó", "Dama", "Xadrez", "Gamão", "Ludo",
+    "Dado", "Tabuleiro", "Peça", "Ficha", "Jogador", "Vencedor", "Perdedor", "Empate", "Rodada", "Turno",
+    // 35. Ferramentas Digitais e Internet
+    "Site", "Blog", "Link", "URL", "Email", "Spam", "Vírus", "Hacker", "Senha", "Login",
+    "Emoji", "Sticker", "Gif", "Meme", "Viral", "Trend", "Hashtag", "Post", "Story", "Reels",
+    "Like", "Comentário", "Compartilhamento", "Seguidor", "Influencer", "Youtuber", "Streamer", "Gamer", "Noob", "Pro",
+    "Download", "Upload", "Streaming", "Wi-Fi", "Bluetooth", "USB", "HDMI", "Pixel", "Resolução", "Gigabyte",
+    // 36. Eventos e Festas
+    "Aniversário", "Casamento", "Noivado", "Batizado", "Formatura", "Churrasco", "Festa", "Balada", "Show", "Festival",
+    "Carnaval", "Páscoa", "Natal", "Ano Novo", "Réveillon", "São João", "Festa Junina", "Halloween", "Dia das Mães", "Dia dos Pais",
+    "Dia dos Namorados", "Feriado", "Férias", "Viagem", "Piquenique", "Luau", "Rave", "Concerto", "Exposição", "Feira",
+    // 37. Veículos (Expandido)
+    "Ambulância", "Viatura", "Bombeiro", "Guincho", "Trator", "Empilhadeira", "Betoneira", "Tanque", "Jipe", "Limusine",
+    "Conversível", "Picape", "Perua", "Hatch", "Sedã", "SUV", "Crossover", "Minivan", "Utilitário", "Esportivo",
+    "Balsa", "Lancha", "Iate", "Veleiro", "Escuna", "Transatlântico", "Porta-aviões", "Submarino", "Caiaque", "Canoa",
+    "Jato", "Biplano", "Monomotor", "Bimotor", "Planador", "Asa-delta", "Parapente", "Paraquedas", "Balão", "Dirigível",
+    // 38. Adjetivos Simples (Que funcionam como "Estado")
+    // Cuidado com estes, use apenas se quiser permitir qualidades
+    "Rápido", "Lento", "Forte", "Fraco", "Grande", "Pequeno", "Alto", "Baixo", "Gordo", "Magro",
+    "Bonito", "Feio", "Limpo", "Sujo", "Claro", "Escuro", "Cheio", "Vazio", "Novo", "Velho",
+    "Jovem", "Idoso", "Rico", "Pobre", "Feliz", "Triste", "Doente", "Saudável", "Vivo", "Morto",
+    "Quente", "Frio", "Seco", "Molhado", "Doce", "Salgado", "Azedo", "Amargo", "Picante", "Insosso",
+    // 39. Coisas de Escritório
+    "Grampeador", "Grampo", "Clips", "Perfurador", "Pasta", "Arquivo", "Envelope", "Etiqueta", "Carimbo", "Tinteiro",
+    "Crachá", "Cordão", "Lousa", "Quadro Branco", "Apagador", "Giz", "Canetão", "Projetor", "Slide", "Relatório",
+    "Planilha", "Documento", "Contrato", "Nota Fiscal", "Recibo", "Boleto", "Cheque", "Dinheiro", "Moeda", "Cofre",
+    // 40. Figuras Históricas e Famosos (Gera muito match!)
+    "Albert Einstein", "Isaac Newton", "Leonardo da Vinci", "Michelangelo", "Picasso", "Van Gogh", "Salvador Dalí", "Beethoven", "Mozart", "Bach",
+    "Shakespeare", "Homero", "Dante Alighieri", "Machado de Assis", "Clarice Lispector", "Fernando Pessoa", "Carlos Drummond", "Monteiro Lobato", "Paulo Coelho", "Jorge Amado",
+    "Cleópatra", "Júlio César", "Alexandre o Grande", "Napoleão", "Joana d'Arc", "Rei Arthur", "Rainha Elizabeth", "Princesa Diana", "Gengis Khan", "Nelson Mandela",
+    "Gandhi", "Martin Luther King", "Madre Teresa", "Papa Francisco", "Jesus", "Buda", "Maomé", "Moisés", "Noé", "Dalai Lama",
+    "Elvis Presley", "Michael Jackson", "Madonna", "Beyoncé", "Lady Gaga", "Rihanna", "Shakira", "Anitta", "Ivete Sangalo", "Roberto Carlos",
+    "Pelé", "Maradona", "Messi", "Cristiano Ronaldo", "Neymar", "Senna", "Schumacher", "Hamilton", "Tyson", "Ali",
+    "Marilyn Monroe", "Audrey Hepburn", "Charlie Chaplin", "Walt Disney", "Steven Spielberg", "Tarantino", "Scorsese", "Hitchcock", "Stan Lee", "J.K. Rowling",
+    "Bill Gates", "Steve Jobs", "Mark Zuckerberg", "Elon Musk", "Jeff Bezos", "Warren Buffett", "Silvio Santos", "Faustão", "Xuxa", "Gugu",
+    "Lula", "Bolsonaro", "Obama", "Trump", "Biden", "Putin", "Fidel Castro", "Che Guevara", "Lenin", "Stalin",
+    "Hitler", "Mussolini", "Churchill", "Roosevelt", "Kennedy", "Lincoln", "Washington", "Pedro Álvares Cabral", "Dom Pedro", "Tiradentes",
+    // 41. Times de Futebol (Brasil e Mundo)
+    "Flamengo", "Corinthians", "Palmeiras", "São Paulo", "Vasco", "Santos", "Grêmio", "Internacional", "Cruzeiro", "Atlético Mineiro",
+    "Botafogo", "Fluminense", "Bahia", "Vitória", "Sport", "Santa Cruz", "Náutico", "Fortaleza", "Ceará", "Coritiba",
+    "Athletico Paranaense", "Chapecoense", "Avaí", "Figueirense", "Goiás", "Vila Nova", "Paysandu", "Remo", "Ponte Preta", "Guarani",
+    "Real Madrid", "Barcelona", "Atlético de Madrid", "Sevilla", "Valencia", "Manchester United", "Manchester City", "Liverpool", "Chelsea", "Arsenal",
+    "Tottenham", "Juventus", "Milan", "Inter de Milão", "Roma", "Napoli", "Bayern de Munique", "Borussia Dortmund", "PSG", "Lyon",
+    "Marseille", "Porto", "Benfica", "Sporting", "Ajax", "PSV", "Boca Juniors", "River Plate", "Peñarol", "Nacional",
+    "Seleção Brasileira", "Seleção Argentina", "Seleção Alemã", "Seleção Italiana", "Seleção Francesa", "Copa do Mundo", "Champions League", "Libertadores", "Brasileirão", "Estadual",
+    // 42. Outros Esportes (Times e Termos)
+    "Lakers", "Bulls", "Warriors", "Celtics", "Heat", "Knicks", "Patriots", "Cowboys", "Packers", "Giants",
+    "Yankees", "Red Sox", "Dodgers", "Ferrari", "McLaren", "Mercedes", "Red Bull", "Williams", "Renault", "Haas",
+    "UFC", "MMA", "Octógono", "Nocaute", "Finalização", "Cinturão", "Tatame", "Quimono", "Faixa Preta", "Dojô",
+    "Touchdown", "Quarterback", "Dunk", "Ace", "Match Point", "Tie-break", "Set", "Game", "Pit Stop", "Pole Position",
+    // 43. Raças de Cães e Gatos
+    "Vira-lata", "Poodle", "Labrador", "Golden Retriever", "Bulldog", "Pug", "Pastor Alemão", "Rottweiler", "Pitbull", "Pinscher",
+    "Yorkshire", "Shih Tzu", "Maltês", "Chihuahua", "Beagle", "Dálmata", "Husky Siberiano", "São Bernardo", "Doberman", "Boxer",
+    "Cocker Spaniel", "Dachshund", "Salsicha", "Chow Chow", "Akita", "Border Collie", "Lulu da Pomerânia", "Basset", "Greyhound", "Mastiff",
+    "Siamês", "Persa", "Angorá", "Maine Coon", "Sphynx", "Ragdoll", "Bengal", "Himalaia", "Bombaim", "Gato Preto",
+    // 44. Flores e Plantas (Específicas)
+    "Rosa", "Tulipa", "Orquídea", "Margarida", "Girassol", "Lírio", "Violeta", "Cravo", "Jasmim", "Hortênsia",
+    "Bromélia", "Cacto", "Suculenta", "Samambaia", "Bambu", "Bonsai", "Eucalipto", "Pinheiro", "Ipê", "Pau-Brasil",
+    "Babosa", "Camomila", "Hortelã", "Alecrim", "Coentro", "Salsa", "Cebolinha", "Arruda", "Manjerona", "Sálvia",
+    "Vitória-régia", "Flor de Lótus", "Dente-de-leão", "Lavanda", "Hibisco", "Azaleia", "Begônia", "Copo-de-leite", "Gérbera", "Petúnia",
+    // 45. Gêneros Musicais e Danças
+    "Rock", "Pop", "Samba", "Pagode", "Sertanejo", "Funk", "Forró", "Axé", "MPB", "Bossa Nova",
+    "Jazz", "Blues", "Soul", "R&B", "Hip Hop", "Rap", "Trap", "Reggae", "Eletrônica", "House",
+    "Techno", "Trance", "Gospel", "Clássica", "Ópera", "Country", "Folk", "Indie", "K-Pop", "Latina",
+    "Reggaeton", "Salsa", "Tango", "Valsa", "Bolero", "Zumba", "Ballet", "Sapateado", "Dança do Ventre", "Flamenco",
+    // 46. Gêneros de Filmes e Termos de Cinema
+    "Comédia", "Drama", "Terror", "Suspense", "Ação", "Aventura", "Romance", "Ficção Científica", "Documentário", "Animação",
+    "Musical", "Faroeste", "Policial", "Guerra", "Fantasia", "Herói", "Tragédia", "Sátira", "Curta-metragem", "Longa-metragem",
+    "Oscar", "Globo de Ouro", "Emmy", "Grammy", "Palma de Ouro", "Diretor", "Ator", "Atriz", "Dublê", "Roteiro",
+    "Pipoca", "Ingresso", "Bilheteria", "Estreia", "Trailer", "Spoiler", "Cena", "Câmera", "Luz", "Ação",
+    // 47. Mitologia e Religião (Deuses e Seres)
+    "Zeus", "Hera", "Poseidon", "Ades", "Atena", "Apolo", "Ártemis", "Ares", "Afrodite", "Hermes",
+    "Thor", "Odin", "Loki", "Freya", "Hela", "Hércules", "Medusa", "Minotauro", "Centauro", "Pégaso",
+    "Sereia", "Ciclope", "Fênix", "Leviatã", "Belzebu", "Lúcifer", "Satanás", "Querubim", "Arcanjo", "Santo",
+    "Bíblia", "Alcorão", "Torá", "Vedas", "Igreja", "Mesquita", "Sinagoga", "Terreiro", "Altar", "Rosário",
+    // 48. Moedas e Economia
+    "Real", "Dólar", "Euro", "Libra", "Iene", "Peso", "Rublo", "Franco", "Yuan", "Rúpia",
+    "Bitcoin", "Ethereum", "Criptomoeda", "Pix", "Cartão", "Crédito", "Débito", "Juros", "Inflação", "Imposto",
+    "Salário", "Aposentadoria", "Bolsa de Valores", "Ação", "Investimento", "Poupança", "Tesouro", "Dívida", "Empréstimo", "Financiamento",
+    // 49. Pedras Preciosas e Metais
+    "Diamante", "Rubi", "Esmeralda", "Safira", "Ametista", "Topázio", "Turquesa", "Pérola", "Opala", "Ônix",
+    "Jade", "Água-marinha", "Cristal", "Quartzo", "Granada", "Ágata", "Malaquita", "Obsidiana", "Lápis-lazúli", "Citrino",
+    "Ouro Branco", "Ouro Rosé", "Platina", "Titânio", "Bronze", "Latão", "Estanho", "Níquel", "Chumbo", "Mercúrio",
+    // 50. Anatomia Específica (Mais detalhada)
+    "Cílios", "Retina", "Tímpano", "Lóbulo", "Narina", "Septo", "Gengiva", "Canino", "Molar", "Siso",
+    "Amígdala", "Tireoide", "Aorta", "Ventrículo", "Glóbulo", "Plaqueta", "Plasma", "Bílis", "Apêndice", "Cóccix",
+    "Fêmur", "Tíbia", "Fíbula", "Rádio", "Ulna", "Úmero", "Esterno", "Bacia", "Menisco", "Tendão de Aquiles",
+    "Neurônio", "Sinapse", "Derme", "Epiderme", "Folículo", "Vesícula", "Próstata", "Útero", "Ovário", "Trompa",
+    // 51. Coisas de Casa (Específicos de Cozinha/Limpeza)
+    "Liquidificador", "Batedeira", "Torradeira", "Sanduicheira", "Airfryer", "Cafeteira", "Chaleira", "Mixer", "Processador", "Espremedor",
+    "Panela de Pressão", "Frigideira", "Wok", "Caçarola", "Leiteira", "Escorredor", "Ralo", "Sifão", "Torneira", "Filtro",
+    "Vassoura", "Rodo", "Pá", "MOP", "Aspirador", "Robô Aspirador", "Espanador", "Pano", "Flanela", "Esponja",
+    "Detergente", "Sabão em Pó", "Amaciante", "Água Sanitária", "Desinfetante", "Multiuso", "Lustra-móveis", "Inseticida", "Naftalina", "Aromatizador",
+    // 52. Papelaria e Escritório (Expandido)
+    "Caderno", "Agenda", "Planner", "Bloco", "Post-it", "Fichário", "Pasta Suspensa", "Arquivo Morto", "Envelope", "Etiqueta",
+    "Caneta Azul", "Caneta Vermelha", "Caneta Preta", "Lapiseira", "Grafite", "Marca-texto", "Corretivo", "Cola Bastão", "Cola Branca", "Durex",
+    "Fita Crepe", "Fita Isolante", "Dupla Face", "Estilete", "Tesoura", "Grampeador", "Extrator", "Perfurador", "Carimbo", "Almofada",
+    "Calculadora", "Régua", "Compasso", "Transferidor", "Esquadro", "Gabarito", "Prancheta", "Lousa", "Giz", "Apagador",
+    // 53. Sobremesas e Doces Brasileiros
+    "Brigadeiro", "Beijinho", "Cajuzinho", "Doce de Leite", "Pé de Moleque", "Paçoca", "Rapadura", "Cocada", "Quindim", "Bolo de Rolo",
+    "Goiabada", "Romeu e Julieta", "Pudim", "Manjar", "Sagu", "Canjica", "Pamonha", "Curau", "Arroz Doce", "Maria Mole",
+    "Suspiro", "Churros", "Sonho", "Carolina", "Bomba", "Eclair", "Trufa", "Bombom", "Barra de Chocolate", "Ovo de Páscoa",
+    "Panetone", "Chocotone", "Rabanada", "Pavê", "Mousse", "Gelatina", "Salada de Frutas", "Açaí", "Cupuaçu", "Tapioca",
+    // 54. Jogos de Tabuleiro e Brinquedos
+    "Banco Imobiliário", "War", "Imagem e Ação", "Detetive", "Jogo da Vida", "Cara a Cara", "Perfil", "Quest", "Uno", "Pife",
+    "Dominó", "Dama", "Xadrez", "Gamão", "Ludo", "Trilha", "Resta Um", "Cubo Mágico", "Quebra-cabeça", "Memória",
+    "Bola de Gude", "Pião", "Ioiô", "Pipa", "Estilingue", "Bila", "Peteca", "Amarelinha", "Corda", "Elástico",
+    "Boneca", "Carrinho", "Autorama", "Ferrorama", "Lego", "Playmobil", "Massinha", "Slime", "Skate", "Patins",
+    // 55. Sentimentos e Adjetivos de Personalidade (Profundos)
+    "Teimoso", "Gentil", "Egoísta", "Altruísta", "Tímido", "Extrovertido", "Introvertido", "Sincero", "Falso", "Leal",
+    "Traidor", "Corajoso", "Medroso", "Ansioso", "Calmo", "Estressado", "Nervoso", "Feliz", "Deprimido", "Eufórico",
+    "Inteligente", "Sábio", "Ignorante", "Burro", "Esperto", "Ingênuo", "Malicioso", "Bondoso", "Maldoso", "Cruel",
+    "Generoso", "Avarento", "Pão-duro", "Gastão", "Organizado", "Bagunçado", "Preguiçoso", "Proativo", "Criativo", "Racional",
+    // 56. Phobias e Medos (Comuns)
+    "Aracnofobia", "Claustrofobia", "Acrofobia", "Agorafobia", "Tripofobia", "Fobia Social", "Medo de Altura", "Medo de Escuro", "Medo de Palhaço", "Medo de Avião",
+    "Pânico", "Susto", "Pesadelo", "Assombração", "Fantasma", "Vulto", "Espírito", "Monstro", "Bicho-papão", "Homem do Saco",
+    // 57. Universo Geek e RPG
+    "Mago", "Guerreiro", "Ladino", "Clérigo", "Paladino", "Bárbaro", "Druida", "Ranger", "Bardo", "Monge",
+    "Feiticeiro", "Necromante", "Vampiro", "Lobisomem", "Zumbi", "Esqueleto", "Múmia", "Fantasma", "Lich", "Dragão",
+    "Dungeon", "Masmorra", "Castelo", "Taverna", "Vila", "Reino", "Império", "Floresta", "Pântano", "Montanha",
+    "Espada", "Escudo", "Arco", "Flecha", "Machado", "Martelo", "Cajado", "Varinha", "Adaga", "Poção",
+    // 58. Cores Específicas (Expandido)
+    "Carmesim", "Escarlate", "Bordô", "Ocre", "Cáqui", "Salmão", "Coral", "Pêssego", "Ciano", "Turquesa",
+    "Anil", "Índigo", "Violeta", "Lavanda", "Lilás", "Magenta", "Fúcsia", "Rosa Choque",
+    "Oliva", "Verde Água", "Azul Bebê", "Azul Marinho", "Azul Royal", "Cinza Chumbo", "Prata", "Dourado", "Bronze", "Cobre",
+    // 59. Material Escolar e Artes
+    "Pincel", "Tinta", "Aquarela", "Guache", "Óleo", "Acrílica", "Tela", "Cavalete", "Paleta", "Argila",
+    "Carvão", "Giz de Cera", "Lápis de Cor", "Canetinha", "Hidrocor", "Papel", "Cartolina", "Papel Pardo", "Papel Manteiga", "Papel Alumínio",
+    "Sulfite", "Papel Canson", "Papel Crepom", "Papel de Seda", "Origami", "Dobradura", "Recorte", "Colagem", "Mosaico", "Escultura",
+    // 60. Fenômenos Naturais e Clima
+    "Furacão", "Tornado", "Ciclone", "Tufão", "Terremoto", "Maremoto", "Tsunami", "Erupção", "Avalanche", "Deslizamento",
+    "Inundação", "Enchente", "Seca", "Estiagem", "Geada", "Nevasca", "Granizo", "Raio", "Trovão", "Relâmpago",
+    "Arco-íris", "Aurora Boreal", "Eclipse", "Sol da Meia Noite", "Estrela Cadente", "Meteoro", "Cratera", "Buraco Negro", "Supernova", "Big Bang",
+    // 61. Família e Parentesco (Completo)
+    "Mãe", "Pai", "Filho", "Filha", "Irmão", "Irmã", "Avô", "Avó", "Neto", "Neta",
+    "Bisavô", "Bisavó", "Bisneto", "Bisneta", "Tio", "Tia", "Sobrinho", "Sobrinha", "Primo", "Prima",
+    "Sogro", "Sogra", "Genro", "Nora", "Cunhado", "Cunhada", "Padrasto", "Madrasta", "Enteado", "Enteada",
+    "Padrinho", "Madrinha", "Afilhado", "Afilhada", "Compadre", "Comadre", "Marido", "Esposa", "Noivo", "Noiva",
+    // 62. Palavras Aleatórias "Difíceis" (Ótimas para desempatar)
+    "Paralelepípedo", "Otorrinolaringologista", "Inconstitucionalissimamente", "Oftalmologista", "Caleidoscópio", "Excentricidade", "Idiossincrasia", "Perspicácia", "Procrastinação", "Resiliência",
+    "Serendipidade", "Efêmero", "Sempiterno", "Inexorável", "Voz", "Luz", "Paz", "Fé", "Sol", "Sal",
+    "Umbigo", "Sovaco", "Canela", "Cotovelo", "Joelho", "Nuca", "Calcanhar", "Tornozelo", "Pulso", "Punho",
+    // 63. Marcas de Carro e Luxo (Reforço)
+    "Bugatti", "Maserati", "Alfa Romeo", "Land Rover", "Jaguar", "Volvo", "Scania", "Iveco", "Yamaha", "Suzuki",
+    "Kawasaki", "Harley-Davidson", "Ducati", "Triumph", "Royal Enfield", "Bentley", "Rolls-Royce", "Aston Martin", "Lotus", "Mini Cooper",
+    // 64. Capitais e Cidades que faltaram
+    "Dacar", "Luanda", "Maputo", "Cabul", "Bagdá", "Damasco", "Beirute", "Amã", "Riad", "Ancara",
+    "Teerã", "Islamabad", "Katmandu", "Daca", "Hanoi", "Manila", "Jacarta", "Camberra", "Wellington", "Suva",
+    "Pretória", "Abuja", "Argel", "Trípoli", "Cartum", "Adis Abeba", "Mogadíscio", "Kinshasa", "Brazzaville", "Libreville",
+    // 65. Eletrodomésticos e Tecnologia (Retro e Atual)
+    "Videocassete", "DVD", "Blu-ray", "Walkman", "Discman", "MP3", "iPod", "Bipe", "Pager", "Fax",
+    "Máquina de Datilografar", "Toca-discos", "Vinil", "Fita Cassete", "Disquete", "CD", "Pen Drive", "HD Externo", "Cartão de Memória", "Nuvem",
+    "Smartwatch", "Drone", "VR", "Impressora 3D", "Robô", "Assistente Virtual", "Alexa", "Siri", "Google Home", "Chatbot",
 
     //Mix
-    "Boneco de neve", "Gelo", "Neve", "Mamona", "Zumbi","Esqueleto","Tumba","Cemitério",
+    "Boneco de neve", "Mamona", "Zumbi","Esqueleto","Tumba",
+
+    //Orka Vain
+    "Orka Zoo","Orka Studio","Dethrone","Jinx","Diova"
 ];
 
 export const palavrasEN = [
