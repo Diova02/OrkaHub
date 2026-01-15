@@ -140,19 +140,19 @@
     </footer>
 
     <div id="modal-profile" class="modal-overlay">
-    <div class="modal-content">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <h2 style="margin:0; font-size:1.2rem; color:var(--orka-accent);">PERFIL</h2>
-            <button id="btn-close-profile" class="icon-btn" style="border:none;"><span class="material-icons">close</span></button>
-        </div>
-
-        <div class="profile-avatar-container">
-            <div class="profile-avatar-box">
-                <img id="user-avatar" src="" alt="Avatar" style="display:none; width:100%; height:100%; object-fit:cover;">
-                
-                <span id="default-avatar-icon" class="material-icons">person</span>
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2 style="margin:0; font-size:1.2rem; color:var(--orka-accent);">PERFIL</h2>
+                <button id="btn-close-profile" class="icon-btn" style="border:none;"><span class="material-icons">close</span></button>
             </div>
-        </div>
+
+            <div class="profile-avatar-container">
+                <div class="profile-avatar-box">
+                    <img id="user-avatar" src="" alt="Avatar" style="display:none; width:100%; height:100%; object-fit:cover;">
+                    
+                    <span id="default-avatar-icon" class="material-icons">person</span>
+                </div>
+            </div>
 
         <div class="profile-section">
             <label>Seu Apelido</label>
@@ -191,6 +191,35 @@
             </p>
         </div>
     </div>
+
+    <div id="modal-account" class="modal-overlay">
+        <div class="modal-content">
+            <h2 style="color:var(--orka-accent);">CONTA ORKA</h2>
+            <p style="font-size:0.9rem; color:#888; margin-bottom:20px;">
+                Crie uma conta para salvar seu progresso e bolos na nuvem.
+            </p>
+
+            <input type="email" id="acc-email" placeholder="Email" class="orka-input" style="margin-bottom:10px;">
+            <input type="password" id="acc-pass" placeholder="Senha (min 6)" class="orka-input" style="margin-bottom:20px;">
+
+            <button id="btn-register" class="orka-btn orka-btn-primary" style="width:100%; margin-bottom:10px;">
+                CRIAR CONTA & SALVAR PROGRESSO (+5🎂)
+            </button>
+
+            <button id="btn-login" class="orka-btn" style="width:100%; background:#333;">
+                JÁ TENHO CONTA (ENTRAR)
+            </button>
+            
+            <p style="font-size:0.8rem; color:#666; margin-top:15px; text-align:center;">
+                Ao entrar em outra conta, os dados atuais deste dispositivo serão substituídos pelos da conta.
+            </button>
+            
+            <button id="btn-close-acc" class="icon-btn" style="position:absolute; top:10px; right:10px; border:none;">
+                <span class="material-icons">close</span>
+            </button>
+        </div>
+    </div>
+
 </div>
 <script type="module" src="script.js"></script>
 </body>

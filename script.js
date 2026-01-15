@@ -26,6 +26,8 @@ async function loadProfileData() {
     // Isso garante que temos os dados reais do banco antes de decidir abrir o modal
     await OrkaCloud.init();
 
+    await OrkaCloud.startSession('orka_hub'); // <--- ISSO GERA O SESSION_ID
+
     const currentNick = OrkaCloud.getNickname();
     const currentLang = OrkaCloud.getLanguage();
     const avatarUrl = OrkaCloud.getAvatarUrl();
@@ -160,6 +162,42 @@ langBtns.forEach(btn => {
         loadProfileData();
     });
 });
+
+// Exemplo de conexão (adicione no seu script.js)
+const btnRegister = document.getElementById('btn-register');
+const btnLogin = document.getElementById('btn-login');
+
+btnRegister.onclick = async () => {
+    const email = document.getElementById('acc-email').value;
+    const pass = document.getElementById('acc-pass').value;
+    
+    // Chama o OrkaCloud V3.3
+    const result = await OrkaCloud.registerAccount(email, pass);
+    
+    if (result.success) {
+        if (result.bonus) OrkaFX.toast("Conta criada! +5 Bolos 🎂", "success");
+        else OrkaFX.toast("Conta atualizada!", "success");
+        // Fecha modal
+    } else {
+        OrkaFX.toast(result.error, "error");
+    }
+};
+
+btnLogin.onclick = async () => {
+    const email = document.getElementById('acc-email').value;
+    const pass = document.getElementById('acc-pass').value;
+    
+    // Chama o OrkaCloud V3.3
+    const result = await OrkaCloud.loginAccountAccount(email, pass);
+    
+    if (result.success) {
+        if (result.bonus) OrkaFX.toast("Conta criada! +5 Bolos 🎂", "success");
+        else OrkaFX.toast("Conta atualizada!", "success");
+        // Fecha modal
+    } else {
+        OrkaFX.toast(result.error, "error");
+    }
+};
 
 // Inicialização
 window.addEventListener('load', loadProfileData);
