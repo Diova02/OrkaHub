@@ -6,8 +6,8 @@ import { palavrasPT, palavrasEN } from './palavras.js';
 let state = {
     roomId: null,
     roomCode: null,
-    playerId: OrkaCloud.getPlayerId(),
-    nickname: OrkaCloud.getNickname() || 'Anonimo',
+    playerId: null, // <--- CORREÇÃO: Começa vazio, espera o Cloud
+    nickname: 'Anonimo',
     isHost: false,
     hostId: null,
     language: 'pt-BR',
@@ -20,9 +20,9 @@ let state = {
     suggestionIndex: -1,
     currentSuggestions: [],
 
-    timeLimit: 90,       // Padrão
+    timeLimit: 90,
     roundStartTime: null,
-    timerInterval: null, // Para limpar o setInterval
+    timerInterval: null,
 };
 
 // --- DOM ELEMENTS ---
@@ -37,14 +37,11 @@ const inputs = {
     word: document.getElementById('word-input')
 };
 
-// --- UTILITÁRIOS DE TEXTO (A MÁGICA ACONTECE AQUI) ---
-
-// 1. Normaliza: Remove acentos e deixa minúsculo para COMPARAÇÃO
+// --- UTILITÁRIOS DE TEXTO ---
 function normalize(str) {
     return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
-// 2. Formata: Deixa a primeira letra maiúscula e o resto minúsculo para EXIBIÇÃO
 function capitalize(str) {
     if (!str) return "";
     return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
@@ -56,11 +53,18 @@ const btnPlayAgain = document.getElementById('btn-play-again');
 
 // --- INICIALIZAÇÃO ---
 async function init() {
-    const sessionId = await OrkaCloud.startSession('orkajinx');
-    state.playerId = OrkaCloud.getUserId(); // Pega o ID seguro
-    state.language = OrkaCloud.getLanguage();
+    // 1. Inicia Sessão e Conexão (Espera carregar o perfil)
+    await OrkaCloud.startSession('orkajinx');
+    
+    // 2. Agora é seguro pegar os dados do Cloud
+    state.playerId = OrkaCloud.getUserId();
+    state.nickname = OrkaCloud.getNickname() || 'Anonimo';
+    state.language = OrkaCloud.getLanguage(); // Já vem do banco
 
+    // 3. Aplica configurações iniciais
     setupLanguageButtons();
+    setLang(state.language); // Aplica visualmente a língua carregada
+    
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
     if (code) { inputs.roomCode.value = code; joinRoom(code); }
