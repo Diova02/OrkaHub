@@ -180,6 +180,11 @@ tipBtn.addEventListener("click", () => {
 // INICIALIZAÇÃO
 // ==========================================
 async function initGame(dateInput = new Date()) {
+
+    // Adicionar no começo
+    if (!orkaSessionId) orkaSessionId = await OrkaCloud.startSession('orka_zoo');
+    currentLang = OrkaCloud.getLanguage(); // Pega do banco
+
     langBtn.textContent = currentLang.toUpperCase();
     applyTranslation(); 
     input.placeholder = currentLang === 'pt' ? "Digite um animal..." : "Type an animal...";
@@ -198,10 +203,6 @@ async function initGame(dateInput = new Date()) {
         localStorage.setItem('orkaZooTutorialV3', 'true');
     }
 
-    //Salvar na nuvem
-    if (!orkaSessionId) {
-        orkaSessionId = await OrkaCloud.startSession('orka_zoo');
-    }
 }
 
 function getTargetByDate(dateObj) {
@@ -731,13 +732,30 @@ function endGame(win) {
 
     stats.innerHTML = statText;
 
+    // Verifica se o dia jogado é HOJE (ignora horas, compara apenas dia/mês/ano)
+    const isToday = gameState.currentDate.toDateString() === new Date().toDateString();
+
     if (win) { 
         OrkaFX.confetti(); 
-        OrkaFX.toast(t('toastWin'), "success"); 
+
+        if (isToday) {
+            // Ganhou e é o dia certo: BOLO!
+            OrkaCloud.addBolo(1);
+            OrkaFX.toast(t('toastWin') + " (+1 🎂)", "success");
+        } else {
+            // Ganhou em dia passado: Só Parabéns (sem bolo)
+            OrkaFX.toast(t('toastWin'), "success");
+        }
     } 
     else { 
         OrkaFX.toast(t('toastLose'), "error"); 
     }
+    
+    OrkaCloud.endSession({
+        win: win,
+        animal: gameState.targetAnimal.nome.pt,
+        attempts: gameState.attemptsCount
+    });
 
     showPageSummary(win);
     setTimeout(() => { modal.classList.add('active'); }, 1500);
@@ -773,10 +791,9 @@ function getArrayStatus(g, t) {
 }
 
 window.addEventListener('beforeunload', () => {
-    if (orkaSessionId) {
-        OrkaCloud.endSession(orkaSessionId);
-        orkaSessionId = null;
-    }
+    // V3: Não precisa passar ID, ele já sabe qual é a sessão ativa.
+    // Enviamos apenas um metadata vazio ou reason para saber que fechou a aba.
+    OrkaCloud.endSession({ reason: 'tab_closed' });
 });
 
 window.closeModal = (id) => document.getElementById(id).classList.remove('active');

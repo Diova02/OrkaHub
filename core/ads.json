@@ -1,0 +1,20 @@
+[
+  {
+    "id": "house_jinx_promo",
+    "name": "Promo Jinx Interna",
+    "type": "banner_vertical",
+    "image": "ad_jinx_promo.jpg",
+    "link": "/games/orkajinx/index.html",
+    "valid_until": null,
+    "weight": 80
+  },
+  {
+    "id": "partner_cafe_1",
+    "name": "Café do Zé",
+    "type": "banner_vertical",
+    "image": "ad_cafe_ze.png",
+    "link": "https://cafedoze.com.br",
+    "valid_until": "2025-12-31",
+    "weight": 20
+  }
+]

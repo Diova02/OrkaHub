@@ -57,6 +57,17 @@ function loadProfileData() {
     });
 }
 
+// Exemplo de como renderizar ícones de avatar
+const avatarUrl = OrkaCloud.getAvatarUrl();
+const imgElement = document.getElementById('user-avatar');
+
+if (avatarUrl) {
+    imgElement.src = avatarUrl; // Usa assets/pictures/foto.png
+} else {
+    imgElement.src = ''; // Mostra o ícone fallback do CSS/HTML
+}
+
+
 function openModal(forceStay = false) {
     if (!modal) return;
     modal.classList.add('active');

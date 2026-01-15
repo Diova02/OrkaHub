@@ -56,7 +56,10 @@ const btnPlayAgain = document.getElementById('btn-play-again');
 
 // --- INICIALIZAÇÃO ---
 async function init() {
-    OrkaCloud.startSession('orkajinx');
+    const sessionId = await OrkaCloud.startSession('orkajinx');
+    state.playerId = OrkaCloud.getUserId(); // Pega o ID seguro
+    state.language = OrkaCloud.getLanguage();
+
     setupLanguageButtons();
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
@@ -189,18 +192,11 @@ async function leaveRoomLogic() {
 }
 
 // Cleanup ao fechar aba
-window.onbeforeunload = () => {
-    // Analytics: Salva a sessão e calcula o tempo
-    OrkaCloud.endSession('orkajinx');
-    
-    if (state.roomId) {
-        if (state.isHost) {
-            supabase.from('jinx_rooms').delete().eq('id', state.roomId).then();
-        } else {
-            supabase.from('jinx_room_players').delete().eq('player_id', state.playerId).then();
-        }
-    }
-};
+window.addEventListener('beforeunload', () => {
+    // V3: Não precisa passar ID, ele já sabe qual é a sessão ativa.
+    // Enviamos apenas um metadata vazio ou reason para saber que fechou a aba.
+    OrkaCloud.endSession({ reason: 'tab_closed' });
+});
 
 // --- REALTIME ---
 function subscribeToRoom() {
@@ -437,6 +433,14 @@ function flashError() {
 // --- FIM DE JOGO ---
 async function finishGame(winningWord) {
     // ... (salvamento do histórico mantém igual) ...
+
+    OrkaCloud.endSession({
+        win: true,
+        rounds: state.round,
+        players: state.players.length,
+        role: state.isHost ? 'host' : 'guest'
+    });
+
     await supabase.from('jinx_room_history').insert({
         code: state.roomCode, player_names: state.players.map(p => p.nickname),
         rounds_count: state.round, result: 'win'
