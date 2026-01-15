@@ -181,11 +181,19 @@ tipBtn.addEventListener("click", () => {
 // ==========================================
 async function initGame(dateInput = new Date()) {
 
-    // Adicionar no começo
-    if (!orkaSessionId) orkaSessionId = await OrkaCloud.startSession('orka_zoo');
-    currentLang = OrkaCloud.getLanguage(); // Pega do banco
+    // 1. Inicia Sessão
+    if (!orkaSessionId) {
+        orkaSessionId = await OrkaCloud.startSession('orka_zoo');
+    }
+    
+    // 2. Pega o idioma do Cloud (ex: 'pt-BR') e transforma em curto (ex: 'pt')
+    const fullLang = OrkaCloud.getLanguage() || 'pt-BR';
+    currentLang = fullLang.split('-')[0]; // Pega só a primeira parte (antes do traço)
+    
+    // Garante que só aceitamos 'pt' ou 'en' (fallback para 'pt' se vier algo estranho)
+    if (currentLang !== 'pt' && currentLang !== 'en') currentLang = 'pt';
 
-    langBtn.textContent = currentLang.toUpperCase();
+    //langBtn.textContent = currentLang.toUpperCase();
     applyTranslation(); 
     input.placeholder = currentLang === 'pt' ? "Digite um animal..." : "Type an animal...";
 
@@ -290,9 +298,13 @@ langBtn.addEventListener("click", () => {
 });
 
 function applyTranslation() {
+    if (!translations[currentLang]) currentLang = 'pt';
+    
     document.querySelectorAll("[data-t]").forEach(el => {
         const key = el.getAttribute("data-t");
-        if(translations[currentLang][key]) el.textContent = translations[currentLang][key];
+        if(translations[currentLang] && translations[currentLang][key]) {
+            el.textContent = translations[currentLang][key];
+        }
     });
     input.placeholder = currentLang === 'pt' ? "Digite um animal..." : "Type an animal...";
 }

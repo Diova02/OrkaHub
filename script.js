@@ -1,4 +1,5 @@
 import { OrkaCloud } from './core/scripts/orka-cloud.js';
+import { OrkaFX } from './core/scripts/orka-lib.js'; // Importando FX para o Toast
 
 // --- ELEMENTOS DO DOM ---
 const modal = document.getElementById('modal-profile');
@@ -15,73 +16,77 @@ const btnDelete = document.getElementById('btn-delete-nick');
 const btnAdd = document.getElementById('btn-add-nick');
 
 const langBtns = document.querySelectorAll('.lang-option');
-
-// Variável para controle do botão de boas-vindas
 let welcomeBtn = null;
 
 // --- FUNÇÕES ---
 
-function loadProfileData() {
+// Transforma loadProfileData em async para esperar o Cloud
+async function loadProfileData() {
+    // 1. CARREGAMENTO INICIAL (A MÁGICA ACONTECE AQUI)
+    // Isso garante que temos os dados reais do banco antes de decidir abrir o modal
+    await OrkaCloud.init();
+
     const currentNick = OrkaCloud.getNickname();
     const currentLang = OrkaCloud.getLanguage();
+    const avatarUrl = OrkaCloud.getAvatarUrl();
 
-    // Remove botão de boas-vindas se existir (reset visual)
+    // Reset visual
     if(welcomeBtn) welcomeBtn.style.display = 'none';
 
-    // 1. Lógica do Nickname
+    // 2. Avatar
+    const imgElement = document.getElementById('user-avatar');
+    const iconElement = document.getElementById('default-avatar-icon');
+    if (imgElement && iconElement) {
+        if (avatarUrl) {
+            imgElement.src = avatarUrl;
+            imgElement.style.display = 'block';
+            iconElement.style.display = 'none';
+        } else {
+            imgElement.style.display = 'none';
+            iconElement.style.display = 'block';
+        }
+    }
+
+    // 3. Nickname & Lógica de Abertura Automática
     if (currentNick) {
-        // Usuário existe
+        // Tem nick: Mostra normal
         displayNick.textContent = currentNick;
         inputNick.value = currentNick;
         
         viewMode.style.display = 'flex';
         editMode.style.display = 'none';
-        btnAdd.style.display = 'none';
+        if(btnAdd) btnAdd.style.display = 'none';
     } else {
-        // Novo Usuário (Boas Vindas)
+        // Não tem nick: Prepara UI de "Novo"
         displayNick.textContent = '';
         inputNick.value = '';
         
         viewMode.style.display = 'none';
         editMode.style.display = 'none';
-        btnAdd.style.display = 'block'; 
+        if(btnAdd) btnAdd.style.display = 'block'; 
+
+        // LÓGICA DA PRIMEIRA VEZ (Check LocalStorage)
+        const hasSeenIntro = localStorage.getItem('orka_hub_intro_seen');
         
-        // MUDANÇA 1: openModal(false) -> Modal Opcional (sempre tem botão fechar)
-        openModal(false); 
+        if (!hasSeenIntro) {
+            openModal(false); // Abre
+            OrkaFX.toast("Bem vindo ao Orka Hub!", "info"); // Toast
+            localStorage.setItem('orka_hub_intro_seen', 'true'); // Marca como visto
+        }
     }
 
-    // 2. Lógica do Idioma
+    // 4. Idioma
     langBtns.forEach(btn => {
         if (btn.dataset.lang === currentLang) btn.classList.add('selected');
         else btn.classList.remove('selected');
     });
 }
 
-// Exemplo de como renderizar ícones de avatar
-const avatarUrl = OrkaCloud.getAvatarUrl();
-const imgElement = document.getElementById('user-avatar');
-
-if (avatarUrl) {
-    imgElement.src = avatarUrl; // Usa assets/pictures/foto.png
-} else {
-    imgElement.src = ''; // Mostra o ícone fallback do CSS/HTML
-}
-
-
 function openModal(forceStay = false) {
     if (!modal) return;
     modal.classList.add('active');
-    
-    // MUDANÇA 2: Sempre mostramos o botão fechar, ignorando forceStay visualmente
-    // Mantemos a lógica apenas para impedir clique fora se desejado, 
-    // mas o botão X estará sempre lá.
     if(btnClose) btnClose.style.display = 'flex'; 
-
-    if (forceStay) {
-        modal.onclick = (e) => { if(e.target === modal) return; }; 
-    } else {
-        modal.onclick = (e) => { if(e.target === modal) modal.classList.remove('active'); };
-    }
+    modal.onclick = (e) => { if(e.target === modal) modal.classList.remove('active'); };
 }
 
 function toggleEditMode(isEditing) {
@@ -97,37 +102,31 @@ function toggleEditMode(isEditing) {
 
 async function saveNickname() {
     const newNick = inputNick.value.trim();
-    
     if (newNick) {
         await OrkaCloud.updateNickname(newNick);
         
-        // MUDANÇA 3: Fluxo de Boas-Vindas
-        // Esconde os modos de edição
         editMode.style.display = 'none';
         viewMode.style.display = 'none';
-        btnAdd.style.display = 'none';
+        if(btnAdd) btnAdd.style.display = 'none';
 
-        // Cria ou atualiza o botão de boas-vindas
         if (!welcomeBtn) {
             welcomeBtn = document.createElement('button');
             welcomeBtn.className = 'orka-btn orka-btn-primary';
             welcomeBtn.style.width = '100%';
             welcomeBtn.style.marginTop = '15px';
             welcomeBtn.style.padding = '15px';
-            welcomeBtn.onclick = () => modal.classList.remove('active'); // Fecha ao clicar
-            
-            // Insere no final da seção de perfil
+            welcomeBtn.onclick = () => modal.classList.remove('active');
             const container = document.querySelector('.profile-section');
             if(container) container.appendChild(welcomeBtn);
         }
 
-        welcomeBtn.textContent = `Seja bem-vindo(a), ${newNick}!`;
+        welcomeBtn.textContent = `Tudo pronto, ${newNick}!`;
         welcomeBtn.style.display = 'block';
-
-        // Garante idioma padrão
-        if (!localStorage.getItem('orka_language')) {
-             OrkaCloud.setLanguage('pt-BR');
-        }
+        
+        if (!localStorage.getItem('orka_language')) OrkaCloud.setLanguage('pt-BR');
+        
+        // Garante que não abre mais sozinho
+        localStorage.setItem('orka_hub_intro_seen', 'true');
     } else {
         await deleteNickname();
         loadProfileData();
@@ -140,27 +139,18 @@ async function deleteNickname() {
     loadProfileData();
 }
 
-// --- EVENTOS ---
-
-if (btnOpen) {
-    btnOpen.addEventListener('click', () => { 
-        loadProfileData();
-        openModal(false); 
-    });
-}
+// Eventos
+if (btnOpen) btnOpen.addEventListener('click', () => { 
+    // Força abrir mesmo se já viu intro, pois foi clique manual
+    openModal(false); 
+    loadProfileData(); // Recarrega dados para garantir frescor
+});
 
 if (btnClose) btnClose.addEventListener('click', () => modal.classList.remove('active'));
-
 if (btnEdit) btnEdit.addEventListener('click', () => toggleEditMode(true));
 if (btnAdd) btnAdd.addEventListener('click', () => toggleEditMode(true));
-
 if (btnSave) btnSave.addEventListener('click', saveNickname);
-if (inputNick) {
-    inputNick.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') saveNickname();
-    });
-}
-
+if (inputNick) inputNick.addEventListener('keypress', (e) => { if (e.key === 'Enter') saveNickname(); });
 if (btnDelete) btnDelete.addEventListener('click', deleteNickname);
 
 langBtns.forEach(btn => {

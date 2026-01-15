@@ -148,7 +148,9 @@
 
         <div class="profile-avatar-container">
             <div class="profile-avatar-box">
-                <span class="material-icons">person</span>
+                <img id="user-avatar" src="" alt="Avatar" style="display:none; width:100%; height:100%; object-fit:cover;">
+                
+                <span id="default-avatar-icon" class="material-icons">person</span>
             </div>
         </div>
 
@@ -166,7 +168,8 @@
                 <button id="btn-delete-nick" class="icon-btn-small danger" title="Remover Nick"><span class="material-icons" style="font-size:1rem;">delete</span></button>
             </div>
             
-            <button id="btn-add-nick" class="orka-btn orka-btn-primary" style="display:none; margin-top:10px; width:100%;">
+            <button id="btn-add-nick" class="orka-btn orka-btn-primary" 
+                style="display:none; margin: 15px auto; width: auto; padding: 12px 30px; min-width: 150px;">
                 Adicionar Nickname
             </button>
         </div>
