@@ -1,115 +1,171 @@
 // =========================
-// ORKA CLOUD — Analytics Core (V2)
+// ORKA CLOUD — V3 (Analytics, Economy & Social)
 // =========================
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2?bundle&target=browser'
 
-// 🔐 Configurações (Ajuste sua URL se mudou, mas a Key ANON é segura aqui)
+// 🔐 Configurações
 const supabaseUrl = 'https://lvwlixmcgfuuiizeelmo.supabase.co'
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d2xpeG1jZ2Z1dWlpemVlbG1vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc4OTUwMzQsImV4cCI6MjA4MzQ3MTAzNH0.qa0nKUXewE0EqUePwfzQbBOaHypRqkhUxRnY5qgsDbo'
 
 export const supabase = createClient(supabaseUrl, supabaseKey)
 
-// Estado Local
+// Estado Global da Aplicação
 let state = {
     sessionId: null,
     userId: null,
     gameId: null,
     startTime: null,
     isActive: false,
-    sessionSaved: false // Controle do Anti-Bounce
+    sessionSaved: false,
+    // Cache do Perfil (Para acesso instantâneo na UI)
+    profile: {
+        nickname: null,
+        bolo: 0,
+        image: 'default_avatar.png',
+        language: 'pt-BR'
+    }
 };
 
-// Configurações de Tempo
-const BOUNCE_THRESHOLD = 5000; // 5 segundos para considerar sessão válida
-const INACTIVITY_LIMIT = 10 * 60 * 1000; // 10 minutos
+// Configurações
+const BOUNCE_THRESHOLD = 5000; 
+const INACTIVITY_LIMIT = 10 * 60 * 1000;
 let inactivityTimer = null;
 let bounceTimer = null;
 
 // =========================
-// 1. GESTÃO DE USUÁRIO
+// 1. GESTÃO DE USUÁRIO E PERFIL
 // =========================
 
 async function initAuth() {
-    // Verifica sessão atual
     const { data: { session } } = await supabase.auth.getSession();
     
     if (session) {
         state.userId = session.user.id;
     } else {
-        // Login Anônimo
         const { data, error } = await supabase.auth.signInAnonymously();
         if (error) { console.error("OrkaAuth Error:", error); return null; }
         state.userId = data.user.id;
     }
 
-    // Garante perfil no banco
     await ensureProfile(state.userId);
     return state.userId;
 }
 
 async function ensureProfile(uid) {
-    // Tenta pegar o nick local para garantir
-    const localNick = localStorage.getItem('orka_nickname');
-    
-    // Verifica se já existe usando maybeSingle para não dar erro 406
-    const { data: existing } = await supabase
+    // 1. Tenta carregar do banco
+    const { data: remoteProfile } = await supabase
         .from('players')
-        .select('id, nickname')
+        .select('nickname, bolo, profile_image, language')
         .eq('id', uid)
         .maybeSingle();
 
-    if (!existing) {
-        // Cria perfil
-        await supabase.from('players').insert({
+    // 2. Tenta carregar backup local (fallback)
+    const localNick = localStorage.getItem('orka_nickname');
+    const localLang = localStorage.getItem('orka_language') || navigator.language.split('-')[0]; // Detecta 'pt' ou 'en'
+
+    if (!remoteProfile) {
+        // CRIA NOVO PERFIL
+        const newProfile = {
             id: uid,
             nickname: localNick || null,
-            last_seen_at: new Date()
-        });
+            language: ['pt', 'en'].includes(localLang) ? localLang : 'pt', // Validação básica
+            bolo: 0, // Default do banco
+            profile_image: 'default_avatar.png'
+        };
+
+        await supabase.from('players').insert(newProfile);
+        
+        // Atualiza estado local
+        state.profile = { ...state.profile, ...newProfile };
     } else {
+        // PERFIL EXISTENTE: Sincroniza estado
+        state.profile = {
+            nickname: remoteProfile.nickname,
+            bolo: remoteProfile.bolo,
+            image: remoteProfile.profile_image,
+            language: remoteProfile.language
+        };
+
         // Atualiza Last Seen
-        await supabase.from('players')
-            .update({ last_seen_at: new Date() })
-            .eq('id', uid);
-            
-        // Se o banco tem nick null mas localStorage tem algo, atualiza o banco
-        if (!existing.nickname && localNick) {
-            updateNickname(localNick);
-        }
+        supabase.from('players').update({ last_seen_at: new Date() }).eq('id', uid);
     }
 }
 
 // =========================
-// 2. GESTÃO DE SESSÃO (COM ANTI-BOUNCE)
-// =====================================
+// 2. ECONOMIA E CUSTOMIZAÇÃO (NOVO)
+// =========================
+
+// Adiciona (ou remove se negativo) Bolos de forma segura
+async function addBolo(amount) {
+    if (!state.userId) return;
+
+    // Atualiza UI localmente instantaneamente (Otimismo)
+    state.profile.bolo += amount;
+    
+    // Chama a função segura no banco
+    const { error } = await supabase.rpc('add_bolo', { amount: amount });
+    
+    if (error) {
+        console.error("Erro na transação:", error);
+        state.profile.bolo -= amount; // Reverte se falhar
+    } else {
+        console.log(`OrkaEconomy: ${amount > 0 ? '+' : ''}${amount} Bolos`);
+    }
+}
+
+async function setProfileImage(imageName) {
+    state.profile.image = imageName;
+    if (state.userId) {
+        await supabase.from('players').update({ profile_image: imageName }).eq('id', state.userId);
+    }
+}
+
+// =========================
+// 3. INTERNACIONALIZAÇÃO (i18n)
+// =========================
+
+function getLanguage() {
+    return state.profile.language || 'pt';
+}
+
+async function setLanguage(lang) {
+    if (lang !== 'pt' && lang !== 'en') return; // Segurança básica
+    
+    state.profile.language = lang;
+    localStorage.setItem('orka_language', lang); // Backup Local
+
+    if (state.userId) {
+        // Salva preferência na nuvem
+        await supabase.from('players').update({ language: lang }).eq('id', state.userId);
+    }
+    
+    // Dispara evento para a UI se atualizar (opcional)
+    window.dispatchEvent(new CustomEvent('orka-lang-change', { detail: lang }));
+}
+
+// =========================
+// 4. GESTÃO DE SESSÃO
+// =========================
 
 async function startSession(gameId) {
     state.gameId = gameId;
     state.startTime = Date.now();
     state.isActive = true;
-    state.sessionSaved = false;
     
-    await initAuth(); // Garante auth antes de tudo
+    await initAuth(); // Carrega perfil e idioma antes de tudo
 
-    // Gera um ID de sessão localmente para usar nos rastreios imediatos
     state.sessionId = crypto.randomUUID(); 
-
-    // MONITOR DE INATIVIDADE
     startInactivityMonitor();
 
-    // ANTI-BOUNCE: Só salva no banco daqui a 5 segundos
     if (bounceTimer) clearTimeout(bounceTimer);
     bounceTimer = setTimeout(() => {
-        if (state.isActive) {
-            persistSessionStart();
-        }
+        if (state.isActive) persistSessionStart();
     }, BOUNCE_THRESHOLD);
 
-    console.log(`OrkaCloud: Sessão iniciada (Local: ${state.sessionId})`);
     return state.sessionId;
 }
 
-// Grava a sessão no banco de fato (passou dos 5s)
 async function persistSessionStart() {
     if (state.sessionSaved) return;
     
@@ -120,17 +176,14 @@ async function persistSessionStart() {
     };
 
     const { error } = await supabase.from('sessions').insert({
-        id: state.sessionId, // Usa o ID que geramos
+        id: state.sessionId,
         player_id: state.userId,
         game_id: state.gameId,
         started_at: new Date(state.startTime),
         platform_info: deviceInfo
     });
 
-    if (!error) {
-        state.sessionSaved = true;
-        console.log("OrkaCloud: Sessão persistida no DB (Anti-Bounce superado)");
-    }
+    if (!error) state.sessionSaved = true;
 }
 
 async function endSession(metadata = {}) {
@@ -141,18 +194,10 @@ async function endSession(metadata = {}) {
 
     const duration = Math.floor((Date.now() - state.startTime) / 1000);
 
-    // Se a sessão durou menos que o bounce e não foi salva, IGNORA
-    if (!state.sessionSaved && duration < (BOUNCE_THRESHOLD / 1000)) {
-        console.log("OrkaCloud: Sessão Bounce ignorada (< 5s).");
-        return;
-    }
+    if (!state.sessionSaved && duration < (BOUNCE_THRESHOLD / 1000)) return;
 
-    // Se ainda não salvou (mas durou > 5s ou foi chamada explicitamente), salva o início agora
-    if (!state.sessionSaved) {
-        await persistSessionStart();
-    }
+    if (!state.sessionSaved) await persistSessionStart();
 
-    // Atualiza o fim
     await supabase.from('sessions').update({
         ended_at: new Date(),
         duration_seconds: duration,
@@ -163,84 +208,58 @@ async function endSession(metadata = {}) {
 }
 
 // =========================
-// 3. RASTREAMENTO (ADS & CONVERSÃO)
+// 5. RASTREAMENTO E UTILITÁRIOS
 // =========================
 
 async function track(eventName, eventType = 'click', data = {}) {
-    // Se a sessão ainda não foi salva (bounce period), força salvar agora
-    // porque se houve interação (clique), não é bounce!
-    if (!state.sessionSaved && state.sessionId) {
-        await persistSessionStart();
-    }
-
+    if (!state.sessionSaved && state.sessionId) await persistSessionStart();
     if (!state.sessionId || !state.userId) return;
 
-    // Fire & Forget (não espera resposta para não travar UI)
     supabase.from('analytics_events').insert({
         session_id: state.sessionId,
         player_id: state.userId,
         event_name: eventName,
         event_type: eventType,
         event_data: data
-    }).then(({ error }) => {
-        if (error) console.warn("Track Error:", error);
     });
 }
-
-//EXEMPLO DE USO: (botão de dica fictício)
-//OrkaCloud.track('used_hint' [nome do evento] , 'interaction' [tipo do evento], { 
-//        animal_target: gameState.targetAnimal.nome.pt,
-//        attempts_at_time: gameState.attemptsCount [conteúdo no "data"]
-//    });
-
-// =========================
-// 4. UTILITÁRIOS & WATCHDOG
-// =========================
 
 function startInactivityMonitor() {
     const resetTimer = () => {
         if (inactivityTimer) clearTimeout(inactivityTimer);
         inactivityTimer = setTimeout(() => {
-            console.warn("OrkaCloud: Usuário inativo. Encerrando sessão.");
             endSession({ reason: "inactivity_timeout" });
-            window.location.href = '../../index.html'; // Volta pro Hub
+            window.location.href = '../../index.html'; 
         }, INACTIVITY_LIMIT);
     };
-
-    // Reseta o timer em interações
-    window.onload = resetTimer;
-    document.onmousemove = resetTimer;
-    document.onkeydown = resetTimer;
-    document.ontouchstart = resetTimer;
-    document.onclick = resetTimer;
-}
-
-function stopInactivityMonitor() {
-    if (inactivityTimer) clearTimeout(inactivityTimer);
-    document.onmousemove = null;
-    document.onclick = null;
-    // ... limpar outros listeners se precisar
+    window.onload = document.onmousemove = document.onkeydown = document.ontouchstart = document.onclick = resetTimer;
 }
 
 async function updateNickname(newNickname) {
+    state.profile.nickname = newNickname;
     localStorage.setItem('orka_nickname', newNickname);
     if (state.userId) {
-        await supabase.from('players')
-            .update({ nickname: newNickname })
-            .eq('id', state.userId);
+        await supabase.from('players').update({ nickname: newNickname }).eq('id', state.userId);
     }
 }
 
-function getNickname() {
-    return localStorage.getItem('orka_nickname');
-}
-
-// API Pública
+// =========================
+// EXPORTAÇÃO PÚBLICA
+// =========================
 export const OrkaCloud = {
     startSession,
     endSession,
-    track, // <--- Nova função
+    track,
+    // Perfil & Economia
+    getNickname: () => state.profile.nickname,
     updateNickname,
-    getNickname,
+    getBolo: () => state.profile.bolo,
+    addBolo, 
+    getProfileImage: () => state.profile.image,
+    setProfileImage,
+    // Idioma
+    getLanguage,
+    setLanguage,
+    // Utils
     getUserId: () => state.userId
 };
