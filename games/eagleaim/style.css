@@ -324,3 +324,26 @@ header {
         /* Remove o desconto de 70px do header */
     }
 }
+
+/* Botão Voltar ao Hub (Flutuante no Menu) */
+.float-home-btn {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: rgba(255, 255, 255, 0.1); /* Vidro escuro */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    border-radius: 50%;
+    width: 45px; height: 45px;
+    display: flex; justify-content: center; align-items: center;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+    z-index: 50; /* Acima de tudo no menu */
+}
+
+.float-home-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+.float-home-btn .material-icons { font-size: 24px; }

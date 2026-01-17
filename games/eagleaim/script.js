@@ -73,7 +73,8 @@ async function init() {
         'wave': '../../assets/sounds/recharge.mp3', // Um whoosh de vento
         'endgame': '../../assets/sounds/last-impact.mp3', // Fim das ondas
         'record': '../../assets/sounds/crowd-applause.mp3', // Pequena vinheta de vitória
-        'precise': '../../assets/sounds/shine.mp3' //Perfect hit
+        'precise': '../../assets/sounds/shine.mp3', //Perfect hit
+        'tick': '../../assets/sounds/beep.mp3'
     });
 
     loadDailyRecord();
@@ -83,6 +84,7 @@ async function init() {
         requestFullScreen(); // 🚀 Tenta esconder a barra de endereço
         startCountdown();
     });
+    
     
     // Miss Click (Fundo transparente)
     els.missLayer.addEventListener('mousedown', (e) => handleMissClick(e));
@@ -169,12 +171,14 @@ function startCountdown() {
     let count = 3;
     els.countText.textContent = count;
     els.countText.style.color = '#facc15';
+    OrkaAudio.play('tick'); // <--- Toca no "3"
     
     const interval = setInterval(() => {
         count--;
         if (count > 0) {
             els.countText.textContent = count;
             els.countText.style.transform = 'scale(1.5)';
+            OrkaAudio.play('tick'); // <--- Toca no "1 e 2"
             setTimeout(() => els.countText.style.transform = 'scale(1)', 100);
         } else if (count === 0) {
             els.countText.textContent = "AIM!";
@@ -278,6 +282,14 @@ function spawnWave(index) {
         els.targets.appendChild(el);
     });
 }
+
+// Listener do Botão Voltar
+    document.getElementById('btn-back-hub').addEventListener('click', () => {
+        // Sai do Fullscreen se estiver (opcional, navegadores fazem auto)
+        if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+        // Redireciona
+        window.location.href = '../../index.html';
+    });
 
 function handleMissClick(e) {
     if (!state.isPlaying) return;
