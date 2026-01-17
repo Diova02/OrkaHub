@@ -77,9 +77,12 @@ async function init() {
     });
 
     loadDailyRecord();
-
-    // Listeners de Jogo
-    els.btnPlay.addEventListener('click', startCountdown);
+    
+    // Listener ATUALIZADO
+    els.btnPlay.addEventListener('click', () => {
+        requestFullScreen(); // 🚀 Tenta esconder a barra de endereço
+        startCountdown();
+    });
     
     // Miss Click (Fundo transparente)
     els.missLayer.addEventListener('mousedown', (e) => handleMissClick(e));
@@ -453,6 +456,18 @@ async function loadLeaderboardUI() {
         div.innerHTML = `<span class="rank-pos">#${index + 1}</span><span class="rank-name">${entry.nickname}</span><span class="rank-score">${entry.score.toFixed(3)}s</span>`;
         els.rankingList.appendChild(div);
     });
+}
+
+function requestFullScreen() {
+    const doc = window.document;
+    const docEl = doc.documentElement;
+
+    const request = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+    
+    if (request && !doc.fullscreenElement) {
+        // Tenta entrar em fullscreen (pode falhar se o usuário negar, mas tentamos)
+        request.call(docEl).catch(err => console.log("Fullscreen bloqueado ou cancelado"));
+    }
 }
 
 init();

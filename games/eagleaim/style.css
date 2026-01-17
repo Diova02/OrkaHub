@@ -294,3 +294,33 @@ header {
 .rank-pos { width: 30px; font-weight: bold; }
 .rank-name { flex-grow: 1; text-align: left; padding-left: 10px; }
 .rank-score { font-weight: bold; }
+
+/* Estilo do Aviso de Rotação */
+#rotate-warning {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: #000;
+    z-index: 9999;
+    display: none; /* Escondido por padrão */
+    flex-direction: column; justify-content: center; align-items: center;
+    color: #facc15; text-align: center; font-family: sans-serif;
+}
+
+/* REGRAS PARA CELULAR (Telas pequenas) */
+
+/* A. Se a tela for alta e estreita (Portrait/Em pé) */
+@media screen and (max-width: 900px) and (orientation: portrait) {
+    #rotate-warning { display: flex; } /* Mostra aviso */
+    #game-wrapper, header { display: none; } /* Esconde o resto */
+}
+
+/* B. Se a tela for baixa (Landscape/Deitado no celular) */
+@media screen and (max-height: 600px) and (orientation: landscape) {
+    /* Esconde o cabeçalho para ganhar espaço */
+    header { display: none !important; }
+    
+    /* O jogo ocupa 100% da altura agora */
+    #game-wrapper {
+        height: 100vh; 
+        /* Remove o desconto de 70px do header */
+    }
+}
