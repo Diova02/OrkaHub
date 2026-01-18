@@ -141,7 +141,7 @@ export const palavrasPT = [
   "Galho", "Galinha", "Galinheiro", "Galo", "Galpão", "Gamão", "Gâmbia", "Game", "Gamer", "Gana",
   "Gandalf", "Gandhi", "Ganso", "Garagem", "Garapa", "Garçom", "Garfo", "Garganta", "Garoto", "Garoupa",
   "Garra", "Garrafa", "gás", "Gasoso", "Gastão", "Gastrite", "Gato", "Geada", "Gel", "Geladeira",
-  "Gelado", "Gelatina", "Geleia", "gelo", "Gelo", "Gêmeos", "Generoso", "Genética", "Gengibre", "Gengis Khan",
+  "Gelado", "Gelatina", "Geleia", "Gelo", "Gêmeos", "Generoso", "Genética", "Gengibre", "Gengis Khan",
   "Gengiva", "Gengivite", "Genro", "Gentil", "Geógrafo", "Geometria", "Geórgia", "Gerador", "Gérbera", "Gergelim",
   "Gesso", "Gestor", "Giants", "Gif", "Gigabyte", "Gigante", "Gin", "Ginásio", "Girafa", "Girassol",
   "Giz", "Glândula", "Globo", "Glóbulo", "Glúteo", "Goblin", "Gohan", "Goiabada", "Goiânia", "Goiás",

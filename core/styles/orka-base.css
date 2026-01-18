@@ -205,3 +205,99 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: var(--orka-accent); 
 }
+
+/* =========================================
+   ESTILOS ESPECÍFICOS: TUTORIAL (Adicionar ao orka-base.css)
+   ========================================= */
+/* =========================================
+   ATUALIZAÇÃO TUTORIAL & BOTÕES
+   Adicionar ao final do orka-base.css
+   ========================================= */
+
+/* Estilo do Corpo do Tutorial (Card Único) */
+.tutorial-body {
+    background: #151515; /* Fundo mais escuro */
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+    text-align: left;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+/* Lista de Passos (Limpa e sem animação) */
+.tutorial-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.tutorial-list li {
+    font-size: 0.95rem;
+    color: #ddd;
+    line-height: 1.5;
+    /* Sem hover, sem animação, apenas texto limpo */
+}
+
+.tutorial-list li strong {
+    color: #fff;
+}
+
+/* Botão "Entendi" mais alto e com presença */
+.orka-btn-xl {
+    padding: 16px 32px;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 800;
+    width: 100%;
+    margin-top: 10px;
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+.orka-btn-xl:hover {
+    transform: translateY(-3px); /* Sobe um pouquinho */
+    box-shadow: 0 10px 20px rgba(0, 85, 255, 0.3); /* Brilho azul */
+    filter: brightness(1.1);
+}
+
+/* Ajuste no título do modal para ficar mais elegante */
+.modal-content h2 {
+    color: var(--orka-accent);
+    text-transform: uppercase;
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+    letter-spacing: 1px;
+    border-bottom: 1px solid var(--orka-border);
+    padding-bottom: 15px;
+}
+
+/* Estilo das Sugestões */
+.suggestion-item {
+    padding: 10px;
+    border-bottom: 1px solid #333;
+    cursor: pointer;
+    transition: background 0.2s;
+    background: #1a1a1a;
+    color: #fff;
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.suggestion-item:hover {
+    background: #333;
+}
+
+/* O Segredo das Setinhas: Classe de Seleção */
+.suggestion-item.selected {
+    background: var(--orka-accent); /* Azul Orka */
+    color: white;
+    font-weight: bold;
+}

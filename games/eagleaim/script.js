@@ -113,7 +113,7 @@ async function init() {
     updateDateDisplay();
     
     // 🔊 CARREGAMENTO DOS SONS
-    OrkaAudio.load({
+    OrkaAudio.loadAll({
         'shoot': '../../assets/sounds/shoot.mp3',   // Som mecânico de gatilho/disparo leve
         //'hit': '../../assets/sounds/table-smash.mp3',   // Um "POP" ou vidro quebrando satisfatório
         'miss': '../../assets/sounds/glass-shrink.mp3',    // Um "Buzz" ou som grave

@@ -288,9 +288,41 @@ langBtns.forEach(btn => {
     });
 });
 
-// Exemplo de conexão (adicione no seu script.js)
 const btnRegister = document.getElementById('btn-register');
-const btnLogin = document.getElementById('btn-login');
+// No script.js do Hub
+const btnLogin = document.getElementById('btn-login'); // Use o ID correto
+
+btnLogin.addEventListener('click', async () => {
+    const email = document.getElementById('seu-input-email').value;
+    
+    // 1. UI Feedback
+    btnLogin.disabled = true;
+    btnLogin.textContent = "Aguarde...";
+
+    // 2. Logout preventivo (Limpa sessão anônima para evitar conflitos)
+    await OrkaCloud.logout(); 
+
+    // 3. Tenta Logar
+    const { error } = await OrkaCloud.requestEmailLogin(email);
+
+    if (error) {
+        console.error("Supabase Error:", error);
+        
+        // Tratamento específico para o erro 429 (Rate Limit)
+        if (error.status === 429 || error.message.includes("security purposes")) {
+            alert("Muitas tentativas! Espere 60 segundos.");
+        } else {
+            alert("Erro: " + error.message);
+        }
+        
+        btnLogin.disabled = false;
+        btnLogin.textContent = "ENTRAR";
+    } else {
+        alert("Link mágico enviado! Cheque seu email.");
+        // Mantém desabilitado para evitar duplo clique
+        btnLogin.textContent = "Enviado!";
+    }
+});
 
 btnRegister.onclick = async () => {
     const email = document.getElementById('acc-email').value;
@@ -298,22 +330,6 @@ btnRegister.onclick = async () => {
     
     // Chama o OrkaCloud V3.3
     const result = await OrkaCloud.registerAccount(email, pass);
-    
-    if (result.success) {
-        if (result.bonus) OrkaFX.toast("Conta criada! +5 Bolos 🎂", "success");
-        else OrkaFX.toast("Conta atualizada!", "success");
-        // Fecha modal
-    } else {
-        OrkaFX.toast(result.error, "error");
-    }
-};
-
-btnLogin.onclick = async () => {
-    const email = document.getElementById('acc-email').value;
-    const pass = document.getElementById('acc-pass').value;
-    
-    // Chama o OrkaCloud V3.3
-    const result = await OrkaCloud.loginAccountAccount(email, pass);
     
     if (result.success) {
         if (result.bonus) OrkaFX.toast("Conta criada! +5 Bolos 🎂", "success");
@@ -536,4 +552,24 @@ document.getElementById('btn-cancel-otp').addEventListener('click', () => {
     stepEmail.style.display = 'flex';
     stepOtp.style.display = 'none';
     authMsg.textContent = "";
+});
+
+// Exemplo de blindagem no botão de login
+btnLogin.addEventListener('click', async () => {
+    btnLogin.disabled = true; // Trava o botão
+    btnLogin.textContent = "Enviando...";
+    
+    const { error } = await OrkaCloud.requestEmailLogin(email);
+    
+    if (error) {
+        alert("Erro: " + error.message);
+        // Só destrava se der erro (mas se for erro 429, o ideal é manter travado por um tempo)
+        setTimeout(() => { 
+            btnLogin.disabled = false; 
+            btnLogin.textContent = "Entrar"; 
+        }, 5000); 
+    } else {
+        //alert("Email enviado! Cheque sua caixa de entrada.");
+        // Mantém travado para o usuário não reenviar sem querer
+    }
 });

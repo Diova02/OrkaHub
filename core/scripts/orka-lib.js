@@ -1,124 +1,14 @@
-/* =========================================
-   ORKA STUDIO - JS LIBRARY
-   Funções utilitárias, FX e Lógica de Data.
-   ========================================= */
+/* =================================================================
+   ORKA STUDIO - CORE LIBRARY (V3.0)
+   Ferramentas comuns para Lógica, Áudio, FX e Matemática.
+   ================================================================= */
 
-// --- 1. MÓDULO DE EFEITOS (FX) ---
-export const OrkaFX = {
-    confetti: () => {
-        const colors = ['#0055ff', '#ffffff', '#2e8b57', '#e4b00f', '#ff0055'];
-        for (let i = 0; i < 60; i++) {
-            const c = document.createElement('div');
-            c.style.position = 'fixed'; 
-            c.style.top = '-10px'; 
-            c.style.width = '10px'; 
-            c.style.height = '10px'; 
-            c.style.zIndex = '9999'; 
-            c.style.opacity = '0.8';
-            c.style.left = Math.random() * 100 + 'vw';
-            c.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-            
-            const duration = Math.random() * 3 + 3;
-            c.style.animation = `fall ${duration}s linear forwards`;
-            c.style.animationDelay = Math.random() * 2 + 's';
-            
-            document.body.appendChild(c);
-            setTimeout(() => c.remove(), duration * 1000 + 2000);
-        }
-    },
-    
-    toast: (msg, type = 'info') => {
-        let container = document.getElementById('toast-container');
-        if(!container) { // Cria se não existir
-            container = document.createElement('div'); 
-            container.id = 'toast-container'; // <--- CORREÇÃO AQUI (Era: id='toast-container')
-            document.body.appendChild(container);
-        }
-        
-        const div = document.createElement('div');
-        div.className = `toast ${type}`;
-        div.textContent = msg;
-        
-        container.appendChild(div);
-        
-        // Remove após 3 segundos
-        setTimeout(() => {
-            div.style.opacity = '0';
-            setTimeout(() => div.remove(), 500); // Espera fade out
-        }, 3000);
-    },
+import { OrkaCloud } from './orka-cloud.js';
 
-    shake: (elementId) => {
-        const el = document.getElementById(elementId);
-        if(el) el.animate([
-            { transform: 'translateX(-5px)' }, 
-            { transform: 'translateX(5px)' }, 
-            { transform: 'translateX(0)' }
-        ], { duration: 300 });
-    }
-};
+// =========================
+// 1. MATH & RNG (O Cérebro)
+// =========================
 
-// --- 2. MÓDULO DE DATA (O Coração Determinístico) ---
-export const OrkaDate = {
-    getDailyIndex: (startDate, dbSize) => {
-        const today = new Date();
-        today.setHours(0,0,0,0);
-        const start = new Date(startDate);
-        const diffTime = Math.abs(today - start);
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        if(diffDays < 0) return 0;
-        return diffDays % dbSize;
-    },
-    
-    getIndexByDate: (targetDate, startDate, dbSize) => {
-        const t = new Date(targetDate); t.setHours(0,0,0,0);
-        const s = new Date(startDate);
-        const diffTime = Math.abs(t - s);
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        if(diffDays < 0) return 0;
-        return diffDays % dbSize;
-    },
-
-    getDailyCategories: (startDate, categoriesKeys) => {
-        const today = new Date();
-        today.setHours(0,0,0,0);
-        const start = new Date(startDate);
-        const diffTime = Math.abs(today - start);
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        
-        const baseIndex = diffDays * 3;
-        
-        let selected = [];
-        for(let i = 0; i < 4; i++) {
-            const index = (baseIndex + i) % categoriesKeys.length;
-            selected.push(categoriesKeys[index]);
-        }
-        return selected;
-    }
-};
-
-// --- 3. MÓDULO DE ARMAZENAMENTO ---
-export const OrkaStorage = {
-    save: (key, data) => localStorage.setItem(key, JSON.stringify(data)),
-    load: (key) => JSON.parse(localStorage.getItem(key) || 'null'),
-    updateCalendar: (dateObj, status) => {
-        const iso = dateObj.toISOString().split('T')[0];
-        const stats = JSON.parse(localStorage.getItem('orka_calendar_global') || '{}');
-        stats[iso] = status;
-        localStorage.setItem('orka_calendar_global', JSON.stringify(stats));
-    }
-};
-
-// --- 4. UTILITÁRIOS GERAIS ---
-export const Utils = {
-    normalize: (str) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
-    toggleModal: (id, show = true) => {
-        const el = document.getElementById(id);
-        if(show) el.classList.add('active'); else el.classList.remove('active');
-    }
-};
-
-// --- 5. MÓDULO MATEMÁTICO (NOVO) ---
 export const OrkaMath = {
     // Algoritmo Mulberry32: Rápido e determinístico
     createSeededRNG: (seed) => {
@@ -130,22 +20,88 @@ export const OrkaMath = {
         }
     },
 
-    // Gera semente baseada na data (YYYYMMDD)
+    // Gera semente baseada na data (Formato Int: 20241025)
     getDateSeed: (dateObj = new Date()) => {
         const y = dateObj.getFullYear();
         const m = String(dateObj.getMonth() + 1).padStart(2, '0');
         const d = String(dateObj.getDate()).padStart(2, '0');
         return parseInt(`${y}${m}${d}`);
+    },
+
+    // --- NOVOS UTILITÁRIOS ---
+
+    // Retorna inteiro entre min e max (inclusive)
+    randomRange: (min, max, rngFunction = Math.random) => {
+        return Math.floor(rngFunction() * (max - min + 1)) + min;
+    },
+
+    // Embaralha array (Fisher-Yates) suportando RNG customizado
+    shuffle: (array, rngFunction = Math.random) => {
+        let currentIndex = array.length, randomIndex;
+        // Enquanto restarem elementos...
+        while (currentIndex != 0) {
+            // Pega um elemento restante...
+            randomIndex = Math.floor(rngFunction() * currentIndex);
+            currentIndex--;
+            // E troca com o elemento atual.
+            [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+        }
+        return array;
+    },
+
+    // Pega item aleatório de um array
+    pickRandom: (array, rngFunction = Math.random) => {
+        return array[Math.floor(rngFunction() * array.length)];
     }
 };
 
-// --- 6. MÓDULO DE ÁUDIO (NOVO) ---
-// --- 6. MÓDULO DE ÁUDIO (ATUALIZADO - WEB AUDIO API) ---
+// =========================
+// 2. DATA & TEMPO (O Relógio)
+// =========================
+export const OrkaDate = {
+    // Retorna índice do dia (0, 1, 2...) desde a data de lançamento
+    getDailyIndex: (startDateStr, dbSize) => {
+        const today = new Date();
+        return OrkaDate.getIndexByDate(today, startDateStr, dbSize);
+    },
+    
+    getIndexByDate: (targetDate, startDateStr, dbSize) => {
+        const t = new Date(targetDate); t.setHours(0,0,0,0);
+        const s = new Date(startDateStr); s.setHours(0,0,0,0); // Garante hora zerada
+        
+        const diffTime = t - s; // Diferença em milissegundos
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        
+        if(diffDays < 0) return 0; // Evita índices negativos antes do lançamento
+        return diffDays % dbSize; // Loopa se o banco acabar
+    },
+
+    // Seleciona X itens baseados no dia (Rotação determinística)
+    getDailyCategories: (startDate, categoriesKeys, amount = 4) => {
+        const today = new Date(); today.setHours(0,0,0,0);
+        const start = new Date(startDate); start.setHours(0,0,0,0);
+        
+        const diffDays = Math.floor((today - start) / (1000 * 60 * 60 * 24));
+        
+        // Pula 'amount' posições a cada dia
+        const baseIndex = diffDays * amount; 
+        
+        let selected = [];
+        for(let i = 0; i < amount; i++) {
+            const index = (baseIndex + i) % categoriesKeys.length;
+            selected.push(categoriesKeys[index]);
+        }
+        return selected;
+    }
+};
+
+// =========================
+// 3. AUDIO ENGINE (Web Audio API)
+// =========================
 export const OrkaAudio = {
     context: null,
     buffers: {},
 
-    // Inicializa o contexto (deve ser chamado após interação do usuário)
     init: () => {
         if (!OrkaAudio.context) {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -153,55 +109,156 @@ export const OrkaAudio = {
         }
     },
 
-    // Carrega sons (Agora suporta Async para performance)
-    load: (soundMap) => {
+    // Carrega múltiplos sons e retorna Promise quando TODOS acabarem
+    // Uso: await OrkaAudio.loadAll({ jump: 'jump.mp3', win: 'win.mp3' });
+    loadAll: async (soundMap) => {
         OrkaAudio.init();
-        
-        Object.entries(soundMap).forEach(async ([key, path]) => {
+        const promises = Object.entries(soundMap).map(async ([key, path]) => {
             try {
                 const response = await fetch(path);
                 const arrayBuffer = await response.arrayBuffer();
-                // Decodifica o áudio para memória bruta (Zero Latência)
                 const audioBuffer = await OrkaAudio.context.decodeAudioData(arrayBuffer);
                 OrkaAudio.buffers[key] = audioBuffer;
+                return true;
             } catch (e) {
-                console.warn(`Erro ao carregar som: ${key}`, e);
+                console.warn(`🔇 Falha ao carregar som: ${key} (${path})`, e);
+                return false;
             }
         });
+        return Promise.all(promises);
     },
 
-    // Toca o som usando BufferSource (Super rápido)
-    play: (key, volume = 1.0) => {
+    play: (key, volume = 1.0, pitch = 1.0) => {
         if (!OrkaAudio.context) OrkaAudio.init();
-
-        // Navegadores bloqueiam áudio até o primeiro clique. Isso desbloqueia:
-        if (OrkaAudio.context.state === 'suspended') {
-            OrkaAudio.context.resume();
-        }
+        if (OrkaAudio.context.state === 'suspended') OrkaAudio.context.resume();
 
         const buffer = OrkaAudio.buffers[key];
         if (!buffer) return;
 
-        // Cria uma "fonte" descartável para esse som específico
         const source = OrkaAudio.context.createBufferSource();
         source.buffer = buffer;
+        
+        // Efeito de Pitch (Opcional, bom para sons repetitivos não enjoarem)
+        if (pitch !== 1.0) source.playbackRate.value = pitch;
 
-        // Controle de Volume
         const gainNode = OrkaAudio.context.createGain();
         gainNode.gain.value = volume;
 
-        // Conecta: Fonte -> Volume -> Alto-falante
         source.connect(gainNode);
         gainNode.connect(OrkaAudio.context.destination);
-
-        // Toca imediatamente
         source.start(0);
     }
 };
 
-// --- 7. MÓDULO DE CALENDÁRIO UI (NOVO) ---
+// =========================
+// 4. VISUAL FX (Juice)
+// =========================
+export const OrkaFX = {
+    confetti: (amount = 60) => {
+        const colors = ['#0055ff', '#ffffff', '#2e8b57', '#e4b00f', '#ff0055'];
+        const fragment = document.createDocumentFragment(); // Performance: Reflow único
+
+        for (let i = 0; i < amount; i++) {
+            const c = document.createElement('div');
+            // Estilos inline para evitar CSS externo obrigatório
+            Object.assign(c.style, {
+                position: 'fixed', top: '-10px', width: '10px', height: '10px',
+                zIndex: '9999', opacity: '0.9', borderRadius: '2px', pointerEvents: 'none',
+                left: Math.random() * 100 + 'vw',
+                backgroundColor: colors[Math.floor(Math.random() * colors.length)]
+            });
+
+            const duration = Math.random() * 3 + 2;
+            c.style.animation = `fall ${duration}s linear forwards`;
+            c.style.animationDelay = Math.random() * 1 + 's'; // Delay menor para resposta mais rápida
+            
+            fragment.appendChild(c);
+            
+            // Auto-limpeza
+            setTimeout(() => c.remove(), duration * 1000 + 1000);
+        }
+        document.body.appendChild(fragment);
+    },
+    
+    toast: (msg, type = 'info') => {
+        let container = document.getElementById('toast-container');
+        if(!container) { 
+            container = document.createElement('div'); 
+            container.id = 'toast-container'; 
+            // Garante que o container tenha estilo básico se não houver CSS
+            container.style.cssText = "position: fixed; top: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px;";
+            document.body.appendChild(container);
+        }
+        
+        const div = document.createElement('div');
+        div.className = `toast ${type}`;
+        div.textContent = msg;
+        // Animação CSS deve estar no seu arquivo de estilo global, 
+        // mas aqui forçamos o texto caso não carregue estilo
+        if(!div.style.padding) div.style.cssText = "background: #333; color: #fff; padding: 12px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);";
+        
+        container.appendChild(div);
+        
+        setTimeout(() => {
+            div.style.transition = "opacity 0.5s";
+            div.style.opacity = '0';
+            setTimeout(() => div.remove(), 500);
+        }, 3000);
+    },
+
+    shake: (elementId, intensity = 5) => {
+        const el = document.getElementById(elementId);
+        if(el) el.animate([
+            { transform: `translateX(-${intensity}px)` }, 
+            { transform: `translateX(${intensity}px)` }, 
+            { transform: 'translateX(0)' }
+        ], { duration: 300, easing: 'ease-in-out' });
+    }
+};
+
+// =========================
+// 5. STORAGE & UTILS
+// =========================
+export const OrkaStorage = {
+    save: (key, data) => localStorage.setItem(key, JSON.stringify(data)),
+    
+    load: (key, defaultVal = null) => {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : defaultVal;
+    },
+    
+    // Atualiza status local do calendário (Vitória/Derrota/Jogado)
+    updateCalendarStatus: (dateObj, status) => {
+        const iso = dateObj.toISOString().split('T')[0];
+        const stats = OrkaStorage.load('orka_calendar_global', {});
+        stats[iso] = status;
+        OrkaStorage.save('orka_calendar_global', stats);
+    }
+};
+
+export const Utils = {
+    // Normaliza strings para comparações (ex: "Maçã" -> "maca")
+    normalize: (str) => str ? str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "",
+    
+    // Toggle simples de classe CSS
+    toggleModal: (id, show = true) => {
+        const el = document.getElementById(id);
+        if(!el) return;
+        if(show) el.classList.add('active'); else el.classList.remove('active');
+    },
+
+    // Formata milissegundos para MM:SS
+    formatTime: (seconds) => {
+        const m = Math.floor(seconds / 60).toString().padStart(2,'0');
+        const s = Math.floor(seconds % 60).toString().padStart(2,'0');
+        return `${m}:${s}`;
+    }
+};
+
+// =========================
+// 6. UI MODULES (Calendário)
+// =========================
 export const OrkaCalendar = {
-    // Renderiza o grid dentro de um container
     render: (containerId, labelId, dateRef, config = {}) => {
         const grid = document.getElementById(containerId);
         const label = document.getElementById(labelId);
@@ -212,28 +269,28 @@ export const OrkaCalendar = {
         const year = dateRef.getFullYear();
         const month = dateRef.getMonth();
         
-        // Atualiza título do mês (Ex: "Janeiro 2026")
-        label.textContent = dateRef.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+        // Capitaliza a primeira letra do mês
+        const monthName = dateRef.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+        label.textContent = monthName.charAt(0).toUpperCase() + monthName.slice(1);
 
         const firstDay = new Date(year, month, 1).getDay();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
         const todayStr = new Date().toISOString().split('T')[0];
 
-        // Configurações padrão
         const { 
             minDate = '2024-01-01', 
             onClick = null,
-            getDayClass = null // Função para retornar classes extras (win, lose, etc)
+            getDayClass = null 
         } = config;
 
-        // Dias vazios do início
+        // Espaços vazios antes do dia 1
         for(let i=0; i<firstDay; i++) {
             const div = document.createElement('div');
             div.className = 'calendar-day empty';
             grid.appendChild(div);
         }
 
-        // Dias do mês
+        // Dias preenchidos
         for(let d=1; d<=daysInMonth; d++) {
             const div = document.createElement('div');
             div.className = 'calendar-day';
@@ -241,31 +298,305 @@ export const OrkaCalendar = {
             
             const isoDate = new Date(year, month, d).toISOString().split('T')[0];
             
-            // Verifica status customizado (Ex: se ganhou ou perdeu)
+            // Classes customizadas (ex: 'win', 'lose')
             if (getDayClass) {
                 const extraClass = getDayClass(isoDate);
                 if (extraClass) {
-                    // CORREÇÃO: Divide a string por espaços e adiciona as classes individualmente
                     const classes = extraClass.trim().split(/\s+/);
                     if (classes[0]) div.classList.add(...classes);
                 }
             }
-            // Lógica de Bloqueio
+
+            // Lógica de Bloqueio (Futuro ou antes do lançamento)
             if (isoDate < minDate || isoDate > todayStr) {
                 div.classList.add('disabled');
             } else {
-                // Dia Ativo (Hover e Click)
                 div.onclick = () => {
                     if(div.classList.contains('disabled')) return;
                     if(onClick) onClick(new Date(year, month, d));
                 };
             }
-            
-            // Marca o dia selecionado visualmente
-            // (Nota: dateRef é a data do Mês que estamos vendo, não necessariamente a selecionada. 
-            // Para simplificar, quem chama deve passar a classe 'active-date' via getDayClass se quiser)
-            
             grid.appendChild(div);
         }
+    }
+};
+
+// =========================
+// 8. MÓDULO DE INTERNACIONALIZAÇÃO (I18N)
+// =========================
+export const OrkaI18n = {
+    dictionary: {},
+    currentLang: 'pt',
+
+    // Inicializa e traduz a página automaticamente
+    init: (dict, langOverride = null) => {
+        OrkaI18n.dictionary = dict;
+        
+        // 1. Tenta pegar do Cloud, ou LocalStorage, ou usa PT padrão
+        const savedLang = langOverride || OrkaCloud.getLanguage() || localStorage.getItem('orka_language') || 'pt-BR';
+        OrkaI18n.currentLang = savedLang.startsWith('en') ? 'en' : 'pt';
+        
+        // 2. Aplica na hora
+        OrkaI18n.updateDOM();
+        
+        return OrkaI18n.currentLang;
+    },
+
+    // Função t('chave') para usar dentro do JS
+    t: (key) => {
+        const langDict = OrkaI18n.dictionary[OrkaI18n.currentLang];
+        return (langDict && langDict[key]) ? langDict[key] : key;
+    },
+
+    // Busca elementos com data-t="chave" e troca o texto
+    updateDOM: () => {
+        document.querySelectorAll("[data-t]").forEach(el => {
+            const key = el.getAttribute("data-t");
+            el.innerHTML = OrkaI18n.t(key); // innerHTML para permitir <b>bold</b>
+        });
+        
+        // Atualiza placeholders de inputs
+        document.querySelectorAll("[data-t-placeholder]").forEach(el => {
+            const key = el.getAttribute("data-t-placeholder");
+            el.placeholder = OrkaI18n.t(key);
+        });
+    },
+
+    toggleLang: () => {
+        OrkaI18n.currentLang = OrkaI18n.currentLang === 'pt' ? 'en' : 'pt';
+        OrkaCloud.setLanguage(OrkaI18n.currentLang); // Salva na nuvem
+        OrkaI18n.updateDOM();
+        return OrkaI18n.currentLang;
+    }
+};
+
+// =========================
+// 9. MÓDULO UI: AUTOCOMPLETE (V3.2 - Deduplicação e Fix Setas)
+// =========================
+export const OrkaAutocomplete = {
+    attach: (inputId, containerId, dataSource, onSubmit, config = {}) => {
+        const input = document.getElementById(inputId);
+        const box = document.getElementById(containerId);
+        if(!input || !box) return;
+
+        // Cleanup
+        if (input._orkaHandlers) {
+            input.removeEventListener("input", input._orkaHandlers.onInput);
+            input.removeEventListener("keydown", input._orkaHandlers.onKeydown);
+            document.removeEventListener("click", input._orkaHandlers.onClickOutside);
+        }
+
+        let currentFocus = -1;
+        // Detecta se é array simples ou objetos
+        const isSimpleArray = dataSource.length > 0 && typeof dataSource[0] === 'string';
+        const keys = config.searchKeys || ['nome'];
+
+        const getVal = (item) => {
+            if (isSimpleArray) return item;
+            if (typeof config.displayKey === 'function') return config.displayKey(item);
+            const path = config.displayKey || 'nome';
+            return path.split('.').reduce((o, i) => o[i], item);
+        };
+
+        const onInput = function() {
+            const val = Utils.normalize(this.value);
+            closeList();
+            if (!val) return;
+            currentFocus = -1;
+
+            // 1. Filtra
+            const rawMatches = dataSource.filter(item => {
+                const itemStr = Utils.normalize(getVal(item));
+                if (config.method === 'startsWith') return itemStr.startsWith(val);
+                return itemStr.includes(val);
+            });
+
+            // 2. Ordena
+            rawMatches.sort((a, b) => getVal(a).localeCompare(getVal(b)));
+
+            // 3. Deduplica (Novo!)
+            // Remove "gelo" se "Gelo" já entrou, baseando-se no valor normalizado
+            const uniqueMatches = [];
+            const seen = new Set();
+            
+            for (const item of rawMatches) {
+                const normalized = Utils.normalize(getVal(item));
+                if (!seen.has(normalized)) {
+                    seen.add(normalized);
+                    uniqueMatches.push(item);
+                }
+            }
+
+            if (uniqueMatches.length > 0) {
+                box.style.display = "block";
+                // Limita a 5 sugestões
+                uniqueMatches.slice(0, 5).forEach(match => {
+                    const div = document.createElement("div");
+                    div.className = "suggestion-item";
+                    div.textContent = getVal(match); // Exibe o texto original do banco
+                    div.addEventListener("click", () => {
+                        input.value = getVal(match);
+                        closeList();
+                        onSubmit(match); 
+                    });
+                    box.appendChild(div);
+                });
+            }
+        };
+
+        const onKeydown = function(e) {
+            let items = box.getElementsByClassName("suggestion-item");
+            if (e.key === "ArrowDown") {
+                e.preventDefault(); // Impede o cursor de andar no input
+                currentFocus++;
+                addActive(items);
+            } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                currentFocus--;
+                addActive(items);
+            } else if (e.key === "Enter") {
+                e.preventDefault();
+                if (currentFocus > -1 && items && items[currentFocus]) {
+                    items[currentFocus].click();
+                } else {
+                    const val = Utils.normalize(input.value);
+                    const exact = dataSource.find(item => Utils.normalize(getVal(item)) === val);
+                    closeList();
+                    onSubmit(exact || input.value); 
+                }
+            }
+        };
+
+        const onClickOutside = (e) => { if (e.target !== input && e.target !== box) closeList(); };
+
+        function addActive(items) {
+            if (!items || items.length === 0) return;
+            Array.from(items).forEach(x => x.classList.remove("selected")); // OBS: Mudei de 'active' para 'selected' para bater com o CSS
+            
+            if (currentFocus >= items.length) currentFocus = 0;
+            if (currentFocus < 0) currentFocus = (items.length - 1);
+            
+            items[currentFocus].classList.add("selected"); 
+            items[currentFocus].scrollIntoView({block: "nearest"});
+        }
+
+        function closeList() {
+            box.innerHTML = "";
+            box.style.display = "none";
+        }
+
+        input.addEventListener("input", onInput);
+        input.addEventListener("keydown", onKeydown);
+        document.addEventListener("click", onClickOutside);
+        input._orkaHandlers = { onInput, onKeydown, onClickOutside };
+    },
+    
+    clear: (inputId) => {
+        const el = document.getElementById(inputId);
+        if(el) el.value = "";
+    }
+};
+
+// =========================
+// 10. MÓDULO UI: TUTORIAL PADRÃO (Atualizado)
+// =========================
+export const OrkaTutorial = {
+    checkAndShow: (gameKey, content) => {
+        if (localStorage.getItem(gameKey)) return;
+
+        const modalId = 'orka-generic-tutorial';
+        let modal = document.getElementById(modalId);
+        
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = modalId;
+            modal.className = 'modal-overlay'; 
+            document.body.appendChild(modal);
+        }
+
+        // Gera lista HTML limpa (<ul>)
+        const stepsHtml = content.steps.map(s => `<li>${s}</li>`).join('');
+        
+        modal.innerHTML = `
+            <div class="modal-content tutorial-box">
+                <h2>${content.title}</h2>
+                <div class="tutorial-body">
+                    <ul class="tutorial-list">
+                        ${stepsHtml}
+                    </ul>
+                </div>
+                <button id="btn-close-tut" class="orka-btn orka-btn-primary orka-btn-xl">
+                    ${content.btnText || 'ENTENDI'}
+                </button>
+            </div>
+        `;
+
+        setTimeout(() => modal.classList.add('active'), 100);
+
+        const closeBtn = document.getElementById('btn-close-tut');
+        closeBtn.onclick = () => {
+            modal.classList.remove('active');
+            localStorage.setItem(gameKey, 'true'); 
+            setTimeout(() => modal.remove(), 500); 
+        };
+        closeBtn.focus();
+    }
+};
+
+// =========================
+// 11. MÓDULO UI GERAL (Alertas e Confirmações)
+// =========================
+export const OrkaUI = {
+    // Modal de Confirmação Genérico
+    confirm: (title, text, onConfirm) => {
+        // Verifica se já existe, senão cria
+        const modalId = 'orka-confirm-modal';
+        let modal = document.getElementById(modalId);
+        
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = modalId;
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width:400px">
+                    <h3 id="${modalId}-title" style="color:var(--status-wrong); margin-top:0"></h3>
+                    <p id="${modalId}-text" style="color:#ccc; margin: 15px 0 25px 0"></p>
+                    <div style="display:flex; gap:10px; justify-content:center">
+                        <button id="${modalId}-cancel" class="orka-btn">CANCELAR</button>
+                        <button id="${modalId}-ok" class="orka-btn orka-btn-primary" style="background:var(--status-wrong)">CONFIRMAR</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        // Popula textos
+        document.getElementById(`${modalId}-title`).textContent = title;
+        document.getElementById(`${modalId}-text`).textContent = text;
+        
+        // Configura Botões (Clonagem para limpar listeners antigos)
+        const btnOk = document.getElementById(`${modalId}-ok`);
+        const btnCancel = document.getElementById(`${modalId}-cancel`);
+        
+        const newOk = btnOk.cloneNode(true);
+        const newCancel = btnCancel.cloneNode(true);
+        btnOk.parentNode.replaceChild(newOk, btnOk);
+        btnCancel.parentNode.replaceChild(newCancel, btnCancel);
+
+        // Abre
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('active'), 10);
+
+        // Ações
+        const close = () => {
+            modal.classList.remove('active');
+            setTimeout(() => modal.style.display = 'none', 300);
+        };
+
+        newCancel.addEventListener('click', close);
+        newOk.addEventListener('click', () => {
+            close();
+            onConfirm();
+        });
     }
 };
