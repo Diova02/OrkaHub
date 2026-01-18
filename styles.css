@@ -410,3 +410,81 @@ main{
 
 @keyframes spin { 100% { transform: rotate(360deg); } }
 .orka-spin { animation: spin 1s linear infinite; }
+
+/* --- TELA DE CARREGAMENTO --- */
+#orka-loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--orka-bg); /* Usa a cor de fundo padrão */
+    z-index: 9999; /* Fica acima de tudo */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+/* Classe para esconder suavemente */
+#orka-loader.hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.loader-content {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.loader-logo {
+    width: 120px;
+    height: 120px;
+    animation: float 3s ease-in-out infinite; /* Efeito de flutuar opcional */
+}
+
+.loader-title {
+    color: var(--orka-accent);
+    font-size: 1.5rem;
+    margin: 0;
+    letter-spacing: 2px;
+}
+
+.loader-text {
+    color: #888;
+    font-size: 0.9rem;
+    font-style: italic;
+    margin-bottom: 20px;
+    min-height: 1.2em;
+}
+
+/* Barra de Progresso */
+.loader-bar-container {
+    width: 250px;
+    height: 6px;
+    background: #111;
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid #333;
+}
+
+.loader-bar-fill {
+    height: 100%;
+    background: var(--orka-accent);
+    width: 0%;
+    animation: loadingFill 2s infinite ease-in-out;
+}
+
+@keyframes loadingFill {
+    0% { width: 0%; margin-left: 0; }
+    50% { width: 70%; margin-left: 20%; }
+    100% { width: 100%; margin-left: 100%; }
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}

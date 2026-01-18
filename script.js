@@ -196,13 +196,27 @@ async function loadProfileData() {
             }
         });
     }
+
+    // Esconde a tela de carregamento
+    const loader = document.getElementById('orka-loader');
+    if (loader) {
+        // Um pequeno delay para o usuário conseguir ler a frase (opcional)
+        setTimeout(() => {
+            loader.classList.add('hidden');
+        }, 1000); // 1 segundo de "charme"
+    }
 }
 
 function openModal(forceStay = false) {
     if (!modal) return;
     modal.classList.add('active');
     if(btnClose) btnClose.style.display = 'flex'; 
-    modal.onclick = (e) => { if(e.target === modal) modal.classList.remove('active'); };
+    modal.onclick = (e) => { 
+        if(e.target === modal) {
+            modal.classList.remove('active');
+            hideWelcomeButton(); // Some magicamente
+        }
+    };
 }
 
 function toggleEditMode(isEditing) {
@@ -225,31 +239,19 @@ async function saveNickname() {
         viewMode.style.display = 'none';
         if(btnAdd) btnAdd.style.display = 'none';
 
-        // Lógica Limpa:
+        // Usamos apenas o botão que já está no HTML (btnWelcome)
         if (btnWelcome) {
-            // Pega tradução dinâmica
             const lang = OrkaCloud.getLanguage().startsWith('en') ? 'en' : 'pt';
-            const msg = translations[lang].readyBtn.replace('{nick}', newNick);
+            // Certifique-se que 'translations' está acessível ou use texto fixo
+            const msgTemplate = translations?.[lang]?.readyBtn || "Tudo pronto, {nick}!";
             
-            btnWelcome.textContent = msg;
+            btnWelcome.textContent = msgTemplate.replace('{nick}', newNick);
             btnWelcome.style.display = 'block';
-            btnWelcome.onclick = () => modal.classList.remove('active');
+            
+            // Removemos event listeners antigos clonando o nó (hack rápido) ou apenas reatribuindo onclick
+            btnWelcome.onclick = () => { modal.classList.remove('active'); hideWelcomeButton();}
         }
 
-        if (!welcomeBtn) {
-            welcomeBtn = document.createElement('button');
-            welcomeBtn.className = 'orka-btn orka-btn-primary';
-            welcomeBtn.style.width = '100%';
-            welcomeBtn.style.marginTop = '15px';
-            welcomeBtn.style.padding = '15px';
-            welcomeBtn.onclick = () => modal.classList.remove('active');
-            const container = document.querySelector('.profile-section');
-            if(container) container.appendChild(welcomeBtn);
-        }
-
-        welcomeBtn.textContent = `Tudo pronto, ${newNick}!`;
-        welcomeBtn.style.display = 'block';
-        
         if (!localStorage.getItem('orka_language')) OrkaCloud.setLanguage('pt-BR');
         
         // Garante que não abre mais sozinho
@@ -273,7 +275,7 @@ if (btnOpen) btnOpen.addEventListener('click', () => {
     loadProfileData(); // Recarrega dados para garantir frescor
 });
 
-if (btnClose) btnClose.addEventListener('click', () => modal.classList.remove('active'));
+if (btnClose) btnClose.addEventListener('click', () => { modal.classList.remove('active');  hideWelcomeButton()});
 if (btnEdit) btnEdit.addEventListener('click', () => toggleEditMode(true));
 if (btnAdd) btnAdd.addEventListener('click', () => toggleEditMode(true));
 if (btnSave) btnSave.addEventListener('click', saveNickname);
@@ -481,7 +483,7 @@ document.getElementById('btn-send-code').addEventListener('click', async () => {
     try {
         const res = await OrkaCloud.requestEmailLogin(email);
 
-        if (res.success) {
+        if (!res.error) {
             stepEmail.style.display = 'none';
             stepOtp.style.display = 'flex';
             
@@ -514,7 +516,7 @@ document.getElementById('btn-verify-code').addEventListener('click', async () =>
 
     const res = await OrkaCloud.verifyEmailLogin(email, token);
 
-    if (res.success) {
+    if (!res.error) {
         const lang = OrkaCloud.getLanguage().startsWith('en') ? 'en' : 'pt';
         authMsg.textContent = translations[lang].authSuccess;
         authMsg.style.color = "var(--status-correct)";
@@ -554,22 +556,33 @@ document.getElementById('btn-cancel-otp').addEventListener('click', () => {
     authMsg.textContent = "";
 });
 
-// Exemplo de blindagem no botão de login
-btnLogin.addEventListener('click', async () => {
-    btnLogin.disabled = true; // Trava o botão
-    btnLogin.textContent = "Enviando...";
-    
-    const { error } = await OrkaCloud.requestEmailLogin(email);
-    
-    if (error) {
-        alert("Erro: " + error.message);
-        // Só destrava se der erro (mas se for erro 429, o ideal é manter travado por um tempo)
-        setTimeout(() => { 
-            btnLogin.disabled = false; 
-            btnLogin.textContent = "Entrar"; 
-        }, 5000); 
-    } else {
-        //alert("Email enviado! Cheque sua caixa de entrada.");
-        // Mantém travado para o usuário não reenviar sem querer
+// --- MENSAGENS DE CARREGAMENTO ---
+const loadingMessages = [
+    "Seja bem-vindo(a) ao universo Orka!",
+    "Beba água! Hidratação dá XP.",
+    "Nossos duendes estão polindo os pixels...",
+    "Ouvi falar que o criador da Orka é um gatinho...",
+    "Carregando texturas de alta definição (mentira)...",
+    "Organizando o deck de cartas...",
+    "Calibrando a mira da águia...",
+    "Alimentando os animais do zoológico..."
+];
+
+// Função para pegar frase aleatória
+function setRandomLoadingMessage() {
+    const msgElement = document.getElementById('loader-msg');
+    if (msgElement) {
+        const randomIndex = Math.floor(Math.random() * loadingMessages.length);
+        msgElement.textContent = loadingMessages[randomIndex];
     }
-});
+}
+
+// Chame isso imediatamente para o usuário já ver a frase
+setRandomLoadingMessage();
+
+// Função auxiliar para resetar o botão
+function hideWelcomeButton() {
+    if (btnWelcome) {
+        btnWelcome.style.display = 'none';
+    }
+}
