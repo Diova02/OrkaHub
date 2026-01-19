@@ -29,12 +29,14 @@ let state = {
     // Usuário
     userId: null,
     email: null,
+    existsOnDB: false,
     profile: {
         nickname: null,
         bolo: 0,
         image: 'default',
         language: CONFIG.defaultLang,
         is_registered: false,
+        role: 'user',
         inventory: { avatars: ['default'] }
     }
 };
@@ -81,40 +83,6 @@ async function initAuth() {
     return state.userId;
 }
 
-// Sincroniza o perfil local com o remoto
-async function _ensureProfile(uid) {
-    if (!uid) return;
-
-    const { data: remote } = await supabase.from('players').select('*').eq('id', uid).maybeSingle();
-    
-    if (!remote) {
-        // Cria novo perfil
-        const localNick = localStorage.getItem('orka_nickname');
-        const newProfile = { 
-            id: uid, 
-            nickname: localNick || null, 
-            language: CONFIG.defaultLang, 
-            bolo: 0, 
-            profile_image: 'default',
-            inventory: { avatars: ['default'] }
-        };
-        await supabase.from('players').insert(newProfile);
-        Object.assign(state.profile, newProfile);
-    } else {
-        // Carrega existente
-        state.profile = { 
-            nickname: remote.nickname, 
-            bolo: remote.bolo, 
-            image: remote.profile_image, 
-            language: remote.language,
-            is_registered: remote.is_registered,
-            inventory: remote.inventory || { avatars: ['default'] }
-        };
-        // Atualiza "Visto por último" sem await para não bloquear
-        supabase.from('players').update({ last_seen_at: new Date() }).eq('id', uid);
-    }
-}
-
 // --- CONTA & REGISTRO ---
 
 async function registerAccount(email, password) {
@@ -154,6 +122,58 @@ function _translateAuthError(msg) {
     return msg;
 }
 
+async function _ensureProfile(uid) {
+    if (!uid) return;
+
+    // 1. Tenta buscar no banco (LEITURA)
+    const { data: remote } = await supabase.from('players').select('*').eq('id', uid).maybeSingle();
+    
+    if (remote) {
+        // Se achou, ótimo. Carrega e marca que existe.
+        state.existsOnDB = true;
+        state.profile = { 
+            nickname: remote.nickname, 
+            bolo: remote.bolo, 
+            image: remote.profile_image, 
+            language: remote.language,
+            is_registered: remote.is_registered,
+            role: remote.role || 'user',
+            inventory: remote.inventory || { avatars: ['default'] }
+        };
+        // Update leve de "visto por último" (não cria usuário novo, só atualiza quem existe)
+        supabase.from('players').update({ last_seen_at: new Date() }).eq('id', uid);
+    } else {
+        // 2. Se NÃO achou, NÃO CRIA NADA. Apenas configura a memória local.
+        state.existsOnDB = false;
+        const localNick = localStorage.getItem('orka_nickname');
+        // Mantém os defaults definidos no state.profile
+        if (localNick) state.profile.nickname = localNick;
+    }
+}
+
+// NOVA FUNÇÃO ÚNICA: Chama isso quando o usuário fizer algo importante
+async function _syncUser() {
+    // Se já existe no banco OU não temos ID, não faz nada
+    if (state.existsOnDB || !state.userId) return;
+
+    const newProfile = { 
+        id: state.userId, 
+        nickname: state.profile.nickname, 
+        language: state.profile.language || 'pt-BR', 
+        bolo: state.profile.bolo || 0, 
+        profile_image: state.profile.image || 'default',
+        inventory: state.profile.inventory
+    };
+    
+    // Agora sim, CRIA o registro
+    const { error } = await supabase.from('players').insert(newProfile);
+    
+    if (!error) {
+        state.existsOnDB = true;
+        console.log("👤 Perfil anônimo criado no DB.");
+    }
+}
+
 // =================================================================
 //  REGION 2: GAMEPLAY (SAVES & LEADERBOARD)
 // =================================================================
@@ -186,7 +206,14 @@ async function loadGameSave(gameId, defaultState = null) {
 async function saveGameProgress(gameId, dataObject) {
     if (!state.userId) return;
 
-    // Upsert: Cria ou Atualiza
+    // --- FIX DA PARAFERNALHA ---
+    // Se o usuário ainda não existe no DB (Lazy Load), cria ele AGORA antes de salvar o jogo
+    if (state.existsOnDB === false) { 
+        console.log("👤 Lazy Load: Criando usuário no DB antes de salvar...");
+        await _syncUser(); 
+    }
+    // ---------------------------
+
     const { error } = await supabase.from('game_saves').upsert({
         player_id: state.userId,
         game_id: gameId,
@@ -224,22 +251,18 @@ async function getLeaderboard(gameId, dateObj = new Date()) {
 
 async function submitScore(gameId, score, dateObj = new Date()) {
     if (!state.userId) await initAuth();
-    const dateStr = dateObj.toISOString().split('T')[0];
-
-    // TODO: Para alta escala, mover essa lógica para uma RPC Postgres 'submit_highscore'
     
-    // 1. Checa score atual
-    const { data: current } = await supabase.from('leaderboards')
-        .select('score').eq('game_id', gameId).eq('player_id', state.userId).eq('played_at', dateStr).maybeSingle();
+    // --- FIX DA PARAFERNALHA ---
+    if (state.existsOnDB === false) await _syncUser();
+    // ---------------------------
 
-    // 2. Só atualiza se for melhor (menor tempo/maior ponto dependendo do jogo)
-    // Assumindo "Menor é Melhor" (tempo) para este exemplo:
-    if (current && current.score <= score) return { success: true, newRecord: false };
-
+    const dateStr = dateObj.toISOString().split('T')[0];
+    
+    // ... resto da função submitScore igual ...
     const { error } = await supabase.from('leaderboards').upsert({ 
         game_id: gameId, player_id: state.userId, score: score, played_at: dateStr
     }, { onConflict: 'game_id, player_id, played_at' });
-
+    
     if (error) return { error: error.message };
     return { success: true, newRecord: true };
 }
@@ -262,6 +285,7 @@ async function addBolo(amount) {
  */
 async function unlockItem(itemId, type = 'avatars', cost = 0) {
     if (!state.userId) return false;
+    await _syncUser();
 
     // 1. Pré-cheque local (UX rápida)
     if (state.profile.bolo < cost) return false;
@@ -364,7 +388,8 @@ async function endSession(metadata = {}) {
 
 async function _persistSession() {
     if (state.sessionSaved) return;
-    if (!state.userId && state.authPromise) await state.authPromise;
+    if (!state.userId && state.authPromise) state.authPromise;
+    await _syncUser();
 
     const info = { ua: navigator.userAgent, mobile: /Mobi|Android/i.test(navigator.userAgent) };
     const { error } = await supabase.from('sessions').insert({
@@ -437,8 +462,13 @@ export const OrkaCloud = {
     updateNickname: async (n) => { 
         state.profile.nickname = n; 
         localStorage.setItem('orka_nickname', n); 
-        if(state.userId) await supabase.from('players').update({nickname:n}).eq('id',state.userId); 
+        if(state.userId) { 
+            await _syncUser();
+            await supabase.from('players').update({nickname:n}).eq('id',state.userId);
+        } 
     },
+    getRole: () => state.profile.role,
+
     getLanguage: () => state.profile.language,
     setLanguage: async (l) => { 
         state.profile.language = l; 

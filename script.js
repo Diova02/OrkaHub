@@ -1,4 +1,4 @@
-import { OrkaCloud } from './core/scripts/orka-cloud.js';
+import { OrkaCloud, supabase } from './core/scripts/orka-cloud.js';
 import { OrkaFX } from './core/scripts/orka-lib.js'; // Importando FX para o Toast
 
 export const gamesList = [
@@ -88,6 +88,7 @@ async function loadProfileData() {
     // 1. CARREGAMENTO INICIAL (A MÁGICA ACONTECE AQUI)
     // Isso garante que temos os dados reais do banco antes de decidir abrir o modal
     await OrkaCloud.init();
+    const role = OrkaCloud.getRole() || 'user';
 
     await OrkaCloud.startSession('orka_hub'); // <--- ISSO GERA O SESSION_ID
 
@@ -197,15 +198,91 @@ async function loadProfileData() {
         });
     }
 
+    const tabs = ["games", "about", "admin"];
+
+    // 🔐 Controle de permissão do Admin
+    if (role !== "admin") {
+    document.getElementById("tab-admin")?.remove();
+    document.getElementById("section-admin")?.remove();
+    }
+
+    // ⚙️ Lógica especial do admin
+    if (active === "admin" && role === "admin") {
+        console.log("👑 Modo Admin Ativado");
+        await loadAdminDashboard();
+    }
+    }
+
+    // 🧠 Delegação de eventos (UM listener)
+    document.getElementById("tabs").addEventListener("click", async (e) => {
+        const btn = e.target.closest(".tab-btn");
+        if (!btn) return;
+
+        await showTab(btn.dataset.tab);
+    });
+
+
+    async function showTab(active) {
+        document.querySelectorAll(".tab-btn").forEach(btn =>
+            btn.classList.toggle("active", btn.dataset.tab === active)
+        );
+
+        document.querySelectorAll(".tab-content").forEach(section =>
+            section.classList.toggle(
+            "active",
+            section.id === `section-${active}`
+            )
+        );
+
+        if (active === "admin" && role === "admin") {
+            await loadAdminDashboard();
+        }
+    }
+
     // Esconde a tela de carregamento
     const loader = document.getElementById('orka-loader');
     if (loader) {
         // Um pequeno delay para o usuário conseguir ler a frase (opcional)
         setTimeout(() => {
             loader.classList.add('hidden');
-        }, 1000); // 1 segundo de "charme"
+        }, 1200); // 1,2 segundo de "charme"
     }
+
+
+// Função para carregar Dashboard
+async function loadAdminDashboard() {
+    const { data, error } = await supabase.rpc('get_admin_dashboard_stats');
+    if (error) return console.error(error);
+
+    document.getElementById('adm-total-users').textContent = data.total_users;
+    document.getElementById('adm-active').textContent = data.active_24h;
+    document.getElementById('adm-sessions').textContent = data.total_sessions;
+
+    const tbody = document.querySelector('#adm-games-table tbody');
+    tbody.innerHTML = '';
+    
+    // Cruzamento de dados: ID do Banco + Nome do JS
+    data.games_ranking.forEach(gameStat => {
+        // Busca o nome bonito na sua constante gamesList
+        const gameInfo = gamesList.find(g => g.id === gameStat.game_id);
+        const title = gameInfo ? gameInfo.title : gameStat.game_id; // Fallback para o ID se não achar
+        
+        const row = `<tr>
+            <td>${title}</td>
+            <td>${gameStat.play_count}</td>
+            <td>${gameStat.unique_players}</td>
+        </tr>`;
+        tbody.innerHTML += row;
+    });
 }
+
+// Botão da Faxina (Chama a RPC de limpeza manualmente)
+document.getElementById('btn-run-cleaner')?.addEventListener('click', async () => {
+    if(!confirm("Limpar usuários fantasmas inativos?")) return;
+    const { data, error } = await supabase.rpc('clean_ghost_users');
+    alert(error ? "Erro: " + error.message : data);
+    loadAdminDashboard(); // Atualiza números
+});
 
 function openModal(forceStay = false) {
     if (!modal) return;

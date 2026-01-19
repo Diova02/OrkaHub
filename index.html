@@ -44,8 +44,38 @@
         </div>
     </header>
 
+
+    <nav class="hub-tabs" id="tabs">
+        <button class="tab-btn active" id="tab-games" data-tab="section-games">JOGOS</button>
+        <button class="tab-btn" id="tab-about" data-tab="section-about">SOBRE</button>
+        <button class="tab-btn" id="tab-admin" data-tab="section-admin" style="display:none">ADMIN</button>
+    </nav>
+
+    <section id="section-admin" class="tab-content">
+        <div class="admin-dashboard">
+            <h2>Orka Command Center</h2>
+            <div class="stats-grid" id="admin-stats-grid">
+                <div class="stat-card"><h3>Jogadores</h3><p id="adm-total-users">...</p></div>
+                <div class="stat-card"><h3>Ativos (24h)</h3><p id="adm-active">...</p></div>
+                <div class="stat-card"><h3>Sessões</h3><p id="adm-sessions">...</p></div>
+            </div>
+            
+            <h3>Desempenho dos Jogos</h3>
+            <table class="orka-table" id="adm-games-table">
+                <thead><tr><th>Jogo</th><th>Sessões</th><th>Jogadores Únicos</th></tr></thead>
+                <tbody></tbody>
+            </table>
+            
+            <div style="margin-top:20px; text-align:right;">
+                <button id="btn-run-cleaner" class="orka-btn" style="background:#cc3333;">🧹 Rodar Faxina</button>
+                <button id="btn-refresh-adm" class="orka-btn">🔄 Atualizar</button>
+            </div>
+        </div>
+    </section>
+
     <main>
-    <section class="hub-section">
+    <section class="hub-section" id="section-about"></section>
+    <section class="hub-section" id="section-games">
             <h2 data-t="dailyGames">Jogos Diários</h2> 
             <div id="list-daily" class="game-list"></div> 
         </section>

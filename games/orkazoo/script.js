@@ -359,46 +359,94 @@ function getStorageKey() {
 }
 
 async function saveProgress() {
-    const data = {
-        guessed: Array.from(gameState.guessedNames),
+    // 1. Prepara os dados REAIS baseados no seu gameState atual
+    // AQUI ESTAVA O ERRO: Usamos 'gameState' e não 'state'
+    const dataParaSalvar = {
+        guessed: Array.from(gameState.guessedNames), // Converte o Set de chutes para Lista
         over: gameState.isGameOver,
         win: gameState.isGameOver && Array.from(gameState.guessedNames).pop() === gameState.targetAnimal.nome.pt,
         startT: startTime,
-        endT: endTime
+        endT: endTime,
+        attempts: gameState.attemptsCount // Útil ter o contador salvo explícito
     };
-    OrkaStorage.save(getStorageKey(), data);
-    OrkaStorage.updateCalendarStatus(gameState.currentDate, data.win ? 'win' : (data.over ? 'lose' : 'playing'));
-    if (gameState.isGameOver) await OrkaCloud.saveGameProgress(GAME_ID, data);
+
+    // 2. Salva Localmente (Backup/Offline)
+    OrkaStorage.save(getStorageKey(), dataParaSalvar);
+    OrkaStorage.updateCalendarStatus(gameState.currentDate, dataParaSalvar.win ? 'win' : (dataParaSalvar.over ? 'lose' : 'playing'));
+
+    // 3. Salva na Nuvem (A CADA CHUTE)
+    // Removemos o 'if (gameState.isGameOver)' para salvar o progresso parcial também
+    const cloudId = getCloudGameId();
+    
+    //console.log(`☁️ Salvando progresso parcial em: ${cloudId}`); // (Opcional: Debug)
+    await OrkaCloud.saveGameProgress(cloudId, dataParaSalvar);
 }
 
-function loadProgress() {
-    const data = OrkaStorage.load(getStorageKey());
+async function loadProgress() {
+    // 1. Gera o ID específico para a data que estamos vendo no calendário
+    const cloudId = getCloudGameId();
+
+    // 2. Tenta buscar na nuvem usando esse ID específico
+    let data = await OrkaCloud.loadGameSave(cloudId, null);
+
+    // 3. Fallback para LocalStorage (se não achar na nuvem)
+    if (!data) {
+        data = OrkaStorage.load(getStorageKey());
+        
+        // Migração Silenciosa: Se achou local mas não na nuvem, sobe pra nuvem
+        if (data && data.over) {
+            console.log(`☁️ Migrando save de ${cloudId} para nuvem...`);
+            OrkaCloud.saveGameProgress(cloudId, data);
+        }
+    }
+
+    // 4. Se tiver dados (da nuvem ou local), restaura o jogo
     if (data) {
         startTime = data.startT;
         endTime = data.endT;
-        if (data.guessed.length > 0) {
+
+        if (data.guessed && data.guessed.length > 0) {
              const emptyState = document.getElementById("empty-state");
              if(emptyState) emptyState.style.display = "none";
         }
 
-        data.guessed.forEach(name => {
-            const obj = animalsDB.find(a => a.nome.pt === name);
-            if(obj) {
-                gameState.guessedNames.add(name);
-                gameState.attemptsCount++;
-                renderRow(obj);
-            }
-        });
+        // Limpa o grid antes de desenhar para evitar duplicatas ao trocar de data
+        gridBody.innerHTML = "";
+        gameState.guessedNames.clear();
+        gameState.attemptsCount = 0;
+
+        if (Array.isArray(data.guessed)) {
+            data.guessed.forEach(name => {
+                const obj = animalsDB.find(a => a.nome.pt === name);
+                if(obj) {
+                    gameState.guessedNames.add(name);
+                    gameState.attemptsCount++;
+                    renderRow(obj);
+                }
+            });
+        }
         attemptDisplay.textContent = gameState.attemptsCount;
         
         if(data.over) {
             gameState.isGameOver = true;
             document.getElementById("guess-input").disabled = true;
             document.getElementById("submit-btn").disabled = true;
+            
+            // Só revela o animal se perdeu (se ganhou, o último chute já é o animal)
             if (!data.win) renderRow(gameState.targetAnimal, true);
+            
+            // O modal só deve abrir automaticamente se for o dia de HOJE.
+            // Se estou navegando no calendário, não quero popups na cara.
+            const isToday = gameState.currentDate.toDateString() === new Date().toDateString();
             fillEndModal(data.win); 
+            if (isToday) Utils.toggleModal('modal-end', true);
         }
     }
+}
+
+function getCloudGameId() {
+    const dateStr = gameState.currentDate.toISOString().split('T')[0];
+    return `${GAME_ID}_${dateStr}`;
 }
 
 async function endGame(win) {
