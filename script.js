@@ -121,25 +121,49 @@ async function loadProfileData() {
     const boloDisplay = document.getElementById('header-bolo-count');
     if (boloDisplay) boloDisplay.textContent = currentBolo;
 
+    // --- ATUALIZAÇÃO DO MODAL ---
     const imgElement = document.getElementById('user-avatar');
     const container = document.querySelector('.profile-avatar-box');
+    
+    // --- NOVO: ATUALIZAÇÃO DO HEADER ---
+    const headerImg = document.getElementById('header-avatar-img');
+    const headerIcon = document.getElementById('header-avatar-icon');
+
     if (avatarUrl) {
+        // Lógica do Modal
         container.classList.add('loading');
         imgElement.style.display = 'none';
+        
+        // Carrega imagem
         const tempImg = new Image();
         tempImg.src = avatarUrl;
         tempImg.onload = () => {
+            // Atualiza Modal
             imgElement.src = avatarUrl;
             imgElement.style.display = 'block';
             container.classList.remove('loading');
             document.getElementById('default-avatar-icon').style.display = 'none';
+
+            // Atualiza Header (Botão novo!)
+            if(headerImg && headerIcon) {
+                headerImg.src = avatarUrl;
+                headerImg.style.display = 'block';
+                headerIcon.style.display = 'none';
+            }
         };
     } else {
+        // Reset Modal
         container.classList.remove('loading');
         imgElement.style.display = 'none';
         document.getElementById('default-avatar-icon').style.display = 'block';
-    }
 
+        // Reset Header
+        if(headerImg && headerIcon) {
+            headerImg.style.display = 'none';
+            headerIcon.style.display = 'block';
+        }
+    }
+    
     // 4. UI de Login (Apenas OTP)
     const currentEmail = OrkaCloud.getEmail();
     const loginContainer = document.getElementById('auth-logged-in');

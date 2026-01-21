@@ -126,7 +126,7 @@ async function init() {
         document.getElementById('calendar-btn').click(); // Apenas clica no botão principal
     });
 
-    // --- NOVO SISTEMA DE CALENDÁRIO ---
+   // --- NOVO SISTEMA DE CALENDÁRIO ---
     OrkaCalendar.bind({
         triggerBtn: 'calendar-btn',
         modalId: 'modal-calendar',
@@ -136,15 +136,21 @@ async function init() {
         nextBtn: 'next-month'
     }, {
         minDate: MIN_DATE,
+        getCurrentDate: () => state.currentDate,
         
-        // Garante que o calendário abra no mês do jogo atual
-        getCurrentDate: () => state.currentDate, 
+        // --- A MÁGICA ACONTECE AQUI ---
+        // Essa função roda para cada dia do mês. 
+        // Se existir um recorde salvo para aquele dia, retorna a classe 'win' (verde).
+        getDayClass: (isoDate) => {
+            const hasRecord = OrkaStorage.load(`eagleAim_record_${isoDate}`);
+            return hasRecord ? 'win' : ''; 
+        },
         
         onSelect: (d) => {
             state.currentDate = d;
             updateDateDisplay();
             loadDailyRecord();
-            loadLeaderboardInline(); // Atualiza ranking do dia selecionado
+            loadLeaderboardInline();
             Utils.toggleModal('modal-calendar', false);
         }
     });

@@ -324,7 +324,8 @@ export const OrkaCalendar = {
 
     update: () => {
         const { gridId, titleId } = OrkaCalendar.state.config;
-        const { minDate = '2024-01-01', onSelect } = OrkaCalendar.state.config;
+        // Agora desestruturamos também o getDayClass
+        const { minDate = '2024-01-01', onSelect, getDayClass } = OrkaCalendar.state.config;
         
         const grid = document.getElementById(gridId);
         const label = document.getElementById(titleId);
@@ -343,8 +344,7 @@ export const OrkaCalendar = {
         const daysInMonth = new Date(year, month + 1, 0).getDate();
         const todayStr = new Date().toISOString().split('T')[0];
 
-        // Carrega status global (win/lose)
-        const history = OrkaStorage.load('orka_calendar_global', {});
+        // REMOVIDO: const history = OrkaStorage.load('orka_calendar_global', {}); <-- ISSO ERA O CULPADO
 
         // Dias vazios
         for(let i=0; i<firstDay; i++) {
@@ -361,9 +361,13 @@ export const OrkaCalendar = {
             
             const isoDate = new Date(year, month, d).toISOString().split('T')[0];
             
-            if (history[isoDate]) div.classList.add(history[isoDate]);
+            // --- NOVO: Pergunta ao jogo qual a classe desse dia ---
+            if (typeof getDayClass === 'function') {
+                const statusClass = getDayClass(isoDate); // O jogo retorna 'win', 'lose' ou ''
+                if (statusClass) div.classList.add(statusClass);
+            }
 
-            // Validação de data
+            // Validação de data (Futuro ou Passado bloqueado)
             if (isoDate < minDate || isoDate > todayStr) {
                 div.classList.add('disabled');
             } else {

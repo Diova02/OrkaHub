@@ -640,3 +640,41 @@ main{
 .tab-btn.active {
   font-weight: bold;
 }
+
+/* Estilo base do botão de perfil no cabeçalho */
+.header-profile-btn {
+    background: transparent;
+    border: 2px solid transparent; /* Borda invisível para não pular layout no hover */
+    cursor: pointer;
+    color: #fff;
+    border-radius: 50%; /* Torna o botão redondo */
+    width: 40px;        /* Tamanho fixo */
+    height: 40px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;   /* Garante que a imagem não vaze as bordas redondas */
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Animação suave com "bouncy" */
+}
+
+/* Estilo da imagem dentro do botão */
+.header-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Garante que a imagem preencha sem distorcer */
+}
+
+/* --- ESTADOS DE INTERAÇÃO --- */
+
+/* Hover: Cresce e ganha a borda azul Orka */
+.header-profile-btn:hover {
+    transform: scale(1.1);
+    border-color: #0055ff; /* Azul Orka (ou use var(--orka-accent)) */
+    box-shadow: 0 0 15px rgba(0, 85, 255, 0.4); /* Glow opcional */
+}
+
+/* Ajuste fino para o ícone padrão centralizar caso não tenha foto */
+.header-profile-btn .material-icons {
+    font-size: 24px;
+}

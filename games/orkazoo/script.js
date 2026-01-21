@@ -27,6 +27,8 @@ const dictionary = {
         // Mensagens de Estado Inicial (Vazio)
         startMsg: "Tudo começa com um chute...",
         startSub: "Digite o nome de um animal para iniciar a caçada!",
+        tipBtn: "LEGAL",
+        tipTitle: "CURIOSIDADE DO DIA",
 
         // Cabeçalho da Tabela (IMPORTANTE: O HTML precisa ter data-t com essas chaves)
         hAnimal: "Animal",
@@ -70,6 +72,8 @@ const dictionary = {
         // Empty State
         startMsg: "It all starts with a guess...",
         startSub: "Type an animal name to begin the hunt!",
+        tipBtn: "COOL",
+        tipTitle: "CURIOSITY OF THE DAY",
 
         // Table Headers
         hAnimal: "Animal",
@@ -202,21 +206,40 @@ async function initGame(dateInput = new Date()) {
     loadProgress();
 
     OrkaCalendar.bind({
-        triggerBtn: 'calendar-btn',
-        modalId: 'modal-calendar',
-        gridId: 'calendar-grid',
-        titleId: 'calendar-month-year',
-        prevBtn: 'prev-month',
-        nextBtn: 'next-month'
+        triggerBtn: 'calendar-btn',       
+        modalId: 'modal-calendar',        
+        gridId: 'calendar-grid',          
+        titleId: 'calendar-month-year',   
+        prevBtn: 'prev-month',            
+        nextBtn: 'next-month'             
     }, {
-        minDate: START_DATE.toISOString().split('T')[0],
-        currentDate: gameState.currentDate, // Para abrir focado no dia do jogo atual
-        onSelect: (d) => { 
-            initGame(d); 
-            Utils.toggleModal('modal-calendar', false); // Lib fecha o modal ou você fecha aqui
+        minDate: '2026-01-01',            
+        
+        getCurrentDate: () => gameState.currentDate, 
+        
+        // --- CORREÇÃO AQUI ---
+        getDayClass: (isoDate) => {
+            // 1. Ajuste a chave para bater com getStorageKey() ('orkaZoo_' e não 'orka_zoo_daily_')
+            const key = `orkaZoo_${isoDate}`; 
+            const data = OrkaStorage.load(key);
+            
+            if (!data) return ''; 
+
+            // 2. Ajuste a lógica para ler as propriedades que você realmente salva (win/over)
+            // Em saveProgress você salva: { win: true/false, over: true/false ... }
+            if (data.win) return 'win';
+            if (data.over) return 'lose';
+            
+            // Se existe dados mas não acabou (over=false), está jogando
+            return 'playing'; 
+        },
+
+        onSelect: (date) => {
+            gameState.currentDate = date; 
+            initGame(date);           
+            Utils.toggleModal('modal-calendar', false); 
         }
     });
-
 }
 
 function resetGameUI() {
