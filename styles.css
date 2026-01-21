@@ -58,12 +58,12 @@
 
 /* O Card em si */
 .game-card-horizontal {
-    min-width: 240px;
+    min-width: 240px; /* Desktop */
     width: 240px;
-    height: 180px; /* Altura fixa do card */
-    
+    height: 180px;
+    /* ... resto das props ... */
     display: flex;
-    flex-direction: column; /* Garante: Imagem em Cima, Texto Embaixo */
+    flex-direction: column;
     background: #0f0f0f;
     border: 1px solid var(--orka-border);
     border-radius: 12px;
@@ -74,6 +74,14 @@
     position: relative;
     flex-shrink: 0;
     scroll-snap-align: start;
+}
+
+/* Regra para Mobile */
+@media (max-width: 480px) {
+    .game-card-horizontal {
+        min-width: 75vw; /* Ocupa 75% da tela no mobile */
+        width: 75vw;
+    }
 }
 
 .card-print {
@@ -292,29 +300,27 @@ main{
 
 .profile-avatar-container {
     display: flex;
-    justify-content: center; /* Centraliza horizontalmente */
-    align-items: center;     /* Centraliza verticalmente (se houver altura) */
-    width: 100%;             /* GARANTE que o container ocupe a linha inteira */
+    justify-content: center;
+    align-items: center;
+    width: 100%;
     margin-bottom: 10px;
 }
 
 .profile-avatar-box {
-    /* TRAVANDO O TAMANHO (Segurança) */
     width: 80px;
     height: 80px;
-    min-width: 80px; /* Garante que não esmague */
+    min-width: 80px;
     min-height: 80px;
     
-    border-radius: 50%; /* Círculo perfeito */
-    background-color: #0f0f0f; /* Fundo escuro */
-    border: 2px solid var(--orka-accent); /* Borda azul */
+    border-radius: 50%;
+    background-color: #0f0f0f;
+    border: 2px solid var(--orka-accent);
     
-    /* Centralizando o ícone dentro da bolinha */
     display: flex;
-    justify-content: center; /* Centraliza horizontalmente */
-    align-items: center;     /* Centraliza verticalmente (se houver altura) */
+    justify-content: center;
+    align-items: center;
     margin-bottom: 20px;
-
+    position: relative;
     overflow: hidden;
 }
 
@@ -322,14 +328,6 @@ main{
 .profile-avatar-box .material-icons {
     font-size: 48px; /* Tamanho grande do ícone */
     color: #666;     /* Cinza discreto para silhueta */
-}
-
-/* Container do avatar com fundo pulsante (Skeleton Loading) */
-.profile-avatar-box {
-    /* Mantenha suas propriedades existentes e adicione/garanta: */
-    background-color: #222;
-    position: relative;
-    overflow: hidden;
 }
 
 /* Classe para animação enquanto carrega */
@@ -536,7 +534,7 @@ main{
 }
 
 .tab-content.active {
-    display: block;
+    display: block; /* Essencial para funcionar */
     opacity: 1;
     transform: translateY(0);
 }

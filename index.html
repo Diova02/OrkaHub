@@ -15,17 +15,18 @@
     <div id="orka-loader">
         <div class="loader-content">
             <img src="assets/icons/orka-logo.png" alt="Orka Logo" class="loader-logo">
-            <h2 class="loader-title">CARREGANDO...</h2>
+            <h2 class="loader-title" data-t="loaderTitle">CARREGANDO...</h2>
             <p id="loader-msg" class="loader-text">...</p>
             <div class="loader-bar-container">
                 <div class="loader-bar-fill"></div>
             </div>
         </div>
     </div>
+
     <header>
         <div class="header-content">
             <div class="left-group">
-                <a href="/" class="home-link" title="Voltar para o início">
+                <a href="/" class="home-link" title="Orka Studio">
                     <img src="assets/icons/orka-logo.png" alt="Orka Studio" class="orka-logo">
                 </a>
             </div>
@@ -37,67 +38,74 @@
                     <span class="material-icons" style="color:#ffcc00; font-size:1.2rem; margin-right:4px;">cake</span>
                     <span id="header-bolo-count">0</span>
                 </div>
-                <button id="btn-profile" class="icon-btn" title="Configurar Perfil">
+                <button id="btn-profile" class="icon-btn" data-t-title="profileBtn">
                     <span class="material-icons">person</span>
                 </button>
             </div>
         </div>
     </header>
 
-
     <nav class="hub-tabs" id="tabs">
-        <button class="tab-btn active" id="tab-games" data-tab="section-games">JOGOS</button>
-        <button class="tab-btn" id="tab-about" data-tab="section-about">SOBRE</button>
-        <button class="tab-btn" id="tab-admin" data-tab="section-admin" style="display:none">ADMIN</button>
+        <button class="tab-btn active" id="tab-games" data-tab="games" data-t="tabGames">JOGOS</button>
+        <button class="tab-btn" id="tab-about" data-tab="about" data-t="tabAbout">SOBRE</button>
+        <button class="tab-btn" id="tab-admin" data-tab="admin" data-t="tabAdmin" style="display:none">ADMIN</button>
     </nav>
 
-    <section id="section-admin" class="tab-content">
-        <div class="admin-dashboard">
-            <h2>Orka Command Center</h2>
-            <div class="stats-grid" id="admin-stats-grid">
-                <div class="stat-card"><h3>Jogadores</h3><p id="adm-total-users">...</p></div>
-                <div class="stat-card"><h3>Ativos (24h)</h3><p id="adm-active">...</p></div>
-                <div class="stat-card"><h3>Sessões</h3><p id="adm-sessions">...</p></div>
-            </div>
-            
-            <h3>Desempenho dos Jogos</h3>
-            <table class="orka-table" id="adm-games-table">
-                <thead><tr><th>Jogo</th><th>Sessões</th><th>Jogadores Únicos</th></tr></thead>
-                <tbody></tbody>
-            </table>
-            
-            <div style="margin-top:20px; text-align:right;">
-                <button id="btn-run-cleaner" class="orka-btn" style="background:#cc3333;">🧹 Rodar Faxina</button>
-                <button id="btn-refresh-adm" class="orka-btn">🔄 Atualizar</button>
-            </div>
-        </div>
-    </section>
-
     <main>
-    <section class="hub-section" id="section-about"></section>
-    <section class="hub-section" id="section-games">
-            <h2 data-t="dailyGames">Jogos Diários</h2> 
-            <div id="list-daily" class="game-list"></div> 
+        <section id="section-admin" class="tab-content">
+            <div class="admin-dashboard">
+                <h2>Orka Command Center</h2>
+                <div class="stats-grid" id="admin-stats-grid">
+                    <div class="stat-card"><h3>Jogadores</h3><p id="adm-total-users">...</p></div>
+                    <div class="stat-card"><h3>Ativos (24h)</h3><p id="adm-active">...</p></div>
+                    <div class="stat-card"><h3>Sessões</h3><p id="adm-sessions">...</p></div>
+                </div>
+                
+                <h3>Desempenho dos Jogos</h3>
+                <table class="orka-table" id="adm-games-table">
+                    <thead><tr><th>Jogo</th><th>Sessões</th><th>Jogadores Únicos</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+                
+                <div style="margin-top:20px; text-align:right;">
+                    <button id="btn-run-cleaner" class="orka-btn" style="background:#cc3333;">🧹 Rodar Faxina</button>
+                    <button id="btn-refresh-adm" class="orka-btn">🔄 Atualizar</button>
+                </div>
+            </div>
         </section>
 
-        <section class="hub-section">
-            <h2 data-t="webGames">Jogos Web</h2>
-            <div id="list-web" class="game-list"></div>
+        <section id="section-about" class="tab-content">
+            <div style="text-align:center; color:#888; margin-top:50px;">
+                <h2 data-t="aboutTitle">SOBRE A ORKA</h2>
+                <p data-t="aboutText">Somos um estúdio focado em experiências web simples e divertidas.</p>
+            </div>
         </section>
 
-        <section class="hub-section">
-            <h2 data-t="pnpGames">PnP</h2>
-            <div id="list-pnp" class="game-list"><div class="empty-msg" data-t="emptyMsg">Nada aqui ainda!</div></div>
-        </section>
+        <section id="section-games" class="tab-content active">
+            <div class="hub-section">
+                <h2 data-t="dailyGames">Jogos Diários</h2> 
+                <div id="list-daily" class="game-list"></div> 
+            </div>
 
-        <section class="hub-section">
-            <h2 data-t="soonGames">Nos próximos episódios...</h2>
-            <div id="list-soon" class="game-list"></div>
+            <div class="hub-section">
+                <h2 data-t="webGames">Jogos Web</h2>
+                <div id="list-web" class="game-list"></div>
+            </div>
+
+            <div class="hub-section">
+                <h2 data-t="pnpGames">PnP</h2>
+                <div id="list-pnp" class="game-list"><div class="empty-msg" data-t="emptyMsg">Nada aqui ainda!</div></div>
+            </div>
+
+            <div class="hub-section">
+                <h2 data-t="soonGames">Nos próximos episódios...</h2>
+                <div id="list-soon" class="game-list"></div>
+            </div>
         </section>
     </main>
 
     <footer style="text-align: center; color: #444; padding: 40px; font-size: 0.8rem;">
-        &copy; 2026 Orka Studio. Todos os direitos reservados.
+        <span data-t="footerCopy">&copy; 2026 Orka Studio. Todos os direitos reservados.</span>
     </footer>
 
     <div id="modal-profile" class="modal-overlay">
@@ -114,117 +122,85 @@
                 </div>
             </div>
 
-        <div class="profile-section">
-            <label data-t="nickLabel">Seu Apelido</label>
-            
-            <div id="view-nick-mode" class="nick-container">
-                <span id="display-nick" class="nick-text">...</span>
-                <button id="btn-edit-nick" class="icon-btn-small" title="Editar"><span class="material-icons" style="font-size:1rem;">edit</span></button>
-            </div>
-
-            <div id="edit-nick-mode" class="nick-container" style="display:none;">
-                <input type="text" id="input-nick" placeholder="Sem apelido..." class="orka-input">
-                <button id="btn-save-nick" class="icon-btn-small success" title="Salvar"><span class="material-icons" style="font-size:1rem;">check</span></button>
-                <button id="btn-delete-nick" class="icon-btn-small danger" title="Remover Nick"><span class="material-icons" style="font-size:1rem;">delete</span></button>
-            </div>
-            
-            <button id="btn-add-nick" class="orka-btn orka-btn-primary" 
-                style="display:none; margin: 15px auto; width: auto; padding: 12px 30px; min-width: 150px; ">
-                Adicionar Nickname
-            </button>
-            <button id="btn-welcome-ready" class="orka-btn orka-btn-primary" style="display:none; width:100%; margin-top:15px; padding:15px;">
-                Tudo pronto!
-            </button>
-        </div>
-
-        <hr style="border:0; border-top:1px solid #333; margin: 20px 0;">
-
-        <div class="profile-section">
-            <label data-t="langLabel">Idioma / Language</label>
-            <div class="lang-selector">
-                <button class="lang-option selected" data-lang="pt-BR">
-                    🇧🇷 Português
-                </button>
-                <button class="lang-option" data-lang="en-US">
-                    🇺🇸 English
-                </button>
-            </div>
-            <p style="font-size:0.75rem; color:#666; margin-top:5px;" data-t="langDesc">
-                Jogos usarão esta preferência automaticamente.
-            </p>
-        </div>
-
-        <hr style="border:0; border-top:1px solid #333; margin: 20px 0;">
-
-        <div class="profile-section">
-            <label data-t="syncLabel">Sincronizar Dados (Cloud Save)</label>
-            <p style="font-size:0.75rem; color:#888; margin-bottom:10px;" data-t="syncDesc">
-                Registre-se para não perder seu progresso!
-            </p>
-
-            <div id="auth-logged-in" class="auth-container" style="display:none; background:#1a2e1a; border:1px solid #2e5c2e; padding:10px; border-radius:8px; justify-content:space-between;">
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <span class="material-icons" style="color:var(--status-correct);">cloud_done</span>
-                    <div>
-                        <p style="margin:0; font-size:0.85rem; color:#fff; font-weight:bold;">Sincronizado</p>
-                        <p id="display-email-auth" style="margin:0; font-size:0.7rem; color:#ccc;">...</p>
-                    </div>
+            <div class="profile-section">
+                <label data-t="nickLabel">Seu Apelido</label>
+                
+                <div id="view-nick-mode" class="nick-container">
+                    <span id="display-nick" class="nick-text">...</span>
+                    <button id="btn-edit-nick" class="icon-btn-small" title="Editar"><span class="material-icons" style="font-size:1rem;">edit</span></button>
                 </div>
-                <button id="btn-logout" class="icon-btn-small danger" title="Desconectar">
-                    <span class="material-icons">logout</span>
+
+                <div id="edit-nick-mode" class="nick-container" style="display:none;">
+                    <input type="text" id="input-nick" placeholder="Sem apelido..." class="orka-input">
+                    <button id="btn-save-nick" class="icon-btn-small success" title="Salvar"><span class="material-icons" style="font-size:1rem;">check</span></button>
+                    <button id="btn-delete-nick" class="icon-btn-small danger" title="Remover Nick"><span class="material-icons" style="font-size:1rem;">delete</span></button>
+                </div>
+                
+                <button id="btn-add-nick" class="orka-btn orka-btn-primary" 
+                    style="display:none; margin: 15px auto; width: auto; padding: 12px 30px; min-width: 150px; ">
+                    Adicionar Nickname
+                </button>
+                <button id="btn-welcome-ready" class="orka-btn orka-btn-primary" style="display:none; width:100%; margin-top:15px; padding:15px;">
+                    Tudo pronto!
                 </button>
             </div>
 
-            <div id="auth-step-email" class="auth-container">
-                <input type="email" id="input-email" placeholder="seu@email.com" class="orka-input-box">
-                <button id="btn-send-code" class="orka-btn-small">
-                    <span class="material-icons">send</span>
-                </button>
+            <hr style="border:0; border-top:1px solid #333; margin: 20px 0;">
+
+            <div class="profile-section">
+                <label data-t="langLabel">Idioma / Language</label>
+                <div class="lang-selector">
+                    <button class="lang-option selected" data-lang="pt-BR">🇧🇷 Português</button>
+                    <button class="lang-option" data-lang="en-US">🇺🇸 English</button>
+                </div>
+                <p style="font-size:0.75rem; color:#666; margin-top:5px;" data-t="langDesc">
+                    Jogos usarão esta preferência automaticamente.
+                </p>
             </div>
 
-            <div id="auth-step-otp" class="auth-container" style="display:none;">
-                <input type="text" id="input-otp" placeholder="Código (ex: 123456)" class="orka-input-box" maxlength="6">
-                <button id="btn-verify-code" class="orka-btn-small success">
-                    <span class="material-icons">check</span>
-                </button>
-                <button id="btn-cancel-otp" class="icon-btn-small danger" style="margin-left:5px;">
-                    <span class="material-icons">close</span>
-                </button>
+            <hr style="border:0; border-top:1px solid #333; margin: 20px 0;">
+
+            <div class="profile-section">
+                <label data-t="syncLabel">Sincronizar Dados (Cloud Save)</label>
+                <p style="font-size:0.75rem; color:#888; margin-bottom:10px;" data-t="syncDesc">
+                    Registre-se para não perder seu progresso!
+                </p>
+
+                <div id="auth-logged-in" class="auth-container" style="display:none; background:#1a2e1a; border:1px solid #2e5c2e; padding:10px; border-radius:8px; justify-content:space-between;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span class="material-icons" style="color:var(--status-correct);">cloud_done</span>
+                        <div>
+                            <p style="margin:0; font-size:0.85rem; color:#fff; font-weight:bold;">Sincronizado</p>
+                            <p id="display-email-auth" style="margin:0; font-size:0.7rem; color:#ccc;">...</p>
+                        </div>
+                    </div>
+                    <button id="btn-logout" class="icon-btn-small danger" title="Desconectar">
+                        <span class="material-icons">logout</span>
+                    </button>
+                </div>
+
+                <div id="auth-step-email" class="auth-container">
+                    <input type="email" id="input-email" placeholder="seu@email.com" class="orka-input-box">
+                    <button id="btn-send-code" class="orka-btn-small">
+                        <span class="material-icons">send</span>
+                    </button>
+                </div>
+
+                <div id="auth-step-otp" class="auth-container" style="display:none;">
+                    <input type="text" id="input-otp" placeholder="Código (ex: 123456)" class="orka-input-box" maxlength="6">
+                    <button id="btn-verify-code" class="orka-btn-small success">
+                        <span class="material-icons">check</span>
+                    </button>
+                    <button id="btn-cancel-otp" class="icon-btn-small danger" style="margin-left:5px;">
+                        <span class="material-icons">close</span>
+                    </button>
+                </div>
+                
+                <p id="auth-msg" style="font-size:0.75rem; margin-top:5px; height:15px;"></p>
             </div>
-            
-            <p id="auth-msg" style="font-size:0.75rem; margin-top:5px; height:15px;"></p>
         </div>
     </div>
 
-    <div id="modal-account" class="modal-overlay">
-        <div class="modal-content">
-            <h2 style="color:var(--orka-accent);">CONTA ORKA</h2>
-            <p style="font-size:0.9rem; color:#888; margin-bottom:20px;">
-                Crie uma conta para salvar seu progresso e bolos na nuvem.
-            </p>
-
-            <input type="email" id="acc-email" placeholder="Email" class="orka-input" style="margin-bottom:10px;">
-            <input type="password" id="acc-pass" placeholder="Senha (min 6)" class="orka-input" style="margin-bottom:20px;">
-
-            <button id="btn-register" class="orka-btn orka-btn-primary" style="width:100%; margin-bottom:10px;">
-                CRIAR CONTA & SALVAR PROGRESSO (+5🎂)
-            </button>
-
-            <button id="btn-login" class="orka-btn" style="width:100%; background:#333;">
-                JÁ TENHO CONTA (ENTRAR)
-            </button>
-            
-            <p style="font-size:0.8rem; color:#666; margin-top:15px; text-align:center;">
-                Ao entrar em outra conta, os dados atuais deste dispositivo serão substituídos pelos da conta.
-            </button>
-            
-            <button id="btn-close-acc" class="icon-btn" style="position:absolute; top:10px; right:10px; border:none;">
-                <span class="material-icons">close</span>
-            </button>
-        </div>
-    </div>
-
-</div>
-<script type="module" src="script.js"></script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>

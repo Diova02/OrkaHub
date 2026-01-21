@@ -41,27 +41,43 @@
         </div>
     </header>
 
-    <div id="game-wrapper">
+<div id="game-wrapper">
         <div id="game-stage">
             
             <div id="screen-menu" class="game-layer active">
-                <button id="btn-back-hub" class="icon-btn float-home-btn" title="Voltar ao Orka Hub">
-                    <img src="../../assets/icons/orka-logo.png" alt="Home" draggable="false">
-                </button>
+                <div class="float-btn-group">
+                    <button id="btn-back-hub" class="icon-btn float-home-btn" title="Voltar ao Orka Hub">
+                        <img src="../../assets/icons/orka-logo.png" alt="Home" draggable="false">
+                    </button>
+                    <button id="btn-float-calendar" class="icon-btn float-home-btn" title="Calendário">
+                        <span class="material-icons">calendar_today</span>
+                    </button>
+                </div>
                 
                 <h2 class="dynamic-title">🎯 EAGLE AIM 🦅</h2>
-                
+
                 <div id="daily-best-container" style="display:none; margin-bottom: 15px;">
                     <p style="font-size: 0.8rem; letter-spacing: 2px; color: #888;">MELHOR TEMPO DE HOJE</p>
                     <div class="best-score-display">00.000s</div>
                 </div>
-
+                
                 <div id="last-score-display" style="display:none; margin-bottom: 20px;">
                     <div class="big-score">00.000s</div>
-                    <button class="orka-btn small-btn" id="btn-ranking">🏆 PARTICIPAR DO RANKING</button>
-                    <button class="orka-btn small-btn icon-only" id="btn-share" title="Compartilhar Resultado">
-                        <span class="material-icons">share</span>
-                    </button>
+                    
+                    <div id="ranking-action-wrapper">
+                        <button class="orka-btn small-btn" id="btn-ranking">🏆 PARTICIPAR DO RANKING</button>
+                    </div>
+
+                    <div id="inline-ranking-container" style="display:none;" class="ranking-inline-box">
+                        <h4 style="color:var(--orka-accent); margin-bottom:10px;">TOP 10 DIÁRIO</h4>
+                        <div id="inline-ranking-list"></div>
+                    </div>
+
+                    <div style="margin-top: 10px;">
+                        <button class="orka-btn small-btn icon-only" id="btn-share" title="Compartilhar Resultado">
+                            <span class="material-icons">share</span>
+                        </button>
+                    </div>
                 </div>
                 <button id="btn-play" class="orka-btn orka-btn-primary big-play-btn">JOGAR</button>
             </div>

@@ -52,7 +52,11 @@ const els = {
     modalRanking: document.getElementById('modal-ranking'),
     modalNick: document.getElementById('modal-nick'),
     nickInput: document.getElementById('nick-input'),
-    saveNickBtn: document.getElementById('save-nick-btn')
+    saveNickBtn: document.getElementById('save-nick-btn'),
+    btnFloatCalendar: document.getElementById('btn-float-calendar'),
+    rankingWrapper: document.getElementById('ranking-action-wrapper'),
+    inlineRankingBox: document.getElementById('inline-ranking-container'),
+    inlineRankingList: document.getElementById('inline-ranking-list')
 };
 
 const I18N = {
@@ -156,6 +160,28 @@ async function init() {
     els.saveNickBtn.addEventListener('click', saveNicknameAndSubmit);
 
     setupCalendarButtons();
+
+    updateRankingUI();
+    
+    /*
+    // Verifica status do ranking para HOJE
+    checkRankingStatus();
+    
+    if (rankingMode === 'true' && state.bestTime) {
+        // Esconde botão, mostra lista inline direto
+        els.rankingWrapper.style.display = 'none';
+        els.inlineRankingBox.style.display = 'block';
+        loadLeaderboardInline(); // Nova função para carregar no box inline
+    }*/
+
+    // Listener Calendário Flutuante
+    if(els.btnFloatCalendar) {
+        els.btnFloatCalendar.addEventListener('click', () => {
+            state.calendarViewDate = new Date(state.currentDate);
+            refreshCalendarUI();
+            document.getElementById('modal-calendar').classList.add('active');
+        });
+    }
 }
 
 // =========================
@@ -371,20 +397,21 @@ function spawnWave(index) {
             }
 
             // LÓGICA DE VIDA (BLINDADO)
-            // Se for blindado, tem HP > 1 E NÃO foi perfect shot
             if (t.type === 'armored' && parseInt(el.dataset.hp) > 1 && !isPerfect) {
-                // Apenas danifica
                 el.dataset.hp = 1;
-                el.classList.remove('armored'); // Vira vermelho (normal)
-                el.style.transform = `translate(-50%, -50%) scale(${t.scale * 0.8})`; // Encolhe um pouco com impacto
+                el.classList.remove('armored'); 
+                el.style.transform = `translate(-50%, -50%) scale(${t.scale * 0.8})`; 
                 
-                OrkaAudio.play('hit_armor'); // (Sugestão: som metálico)
-                createVisualFX(clientX, clientY, false); // Splat azul/diferente?
-                return; // NÃO DESTRÓI AINDA!
+                OrkaAudio.play('hit_armor'); 
+                // AQUI: FX DE ARMADURA (Não destrói, só solta faísca)
+                createVisualFX(clientX, clientY, false, 'armored'); 
+                return; 
             }
 
             // Se chegou aqui: Destrói
-            createVisualFX(clientX, clientY, true);
+            // AQUI: Se era blindado e morreu, usa FX blindado, senão normal
+            const fxType = t.type === 'armored' ? 'armored' : 'normal';
+            createVisualFX(clientX, clientY, true, fxType);
             el.remove();
             
             state.targetsLeft--;
@@ -426,23 +453,31 @@ function handleMissClick(e) {
     setTimeout(() => flash.remove(), 150);
 }
 
-function createVisualFX(x, y, isHit) {
-    // 1. Mancha
-    const splat = document.createElement('div');
-    const type = 1 + Math.floor(Math.random() * 3);
-    splat.className = `splat splat-type-${type}`;
-    splat.style.left = x + 'px'; splat.style.top = y + 'px';
-    splat.style.transform = `translate(-50%, -50%) rotate(${Math.random()*360}deg)`;
-    els.splatLayer.appendChild(splat);
+function createVisualFX(x, y, isHit, variant = 'normal') {
+    // 1. Mancha (Splat)
+    if (isHit) { // Só cria mancha se for hit fatal
+        const splat = document.createElement('div');
+        const type = 1 + Math.floor(Math.random() * 3);
+        splat.className = `splat splat-type-${type}`;
+        // Adiciona classe variante
+        if (variant === 'armored') splat.classList.add('splat-armored');
+        
+        splat.style.left = x + 'px'; splat.style.top = y + 'px';
+        splat.style.transform = `translate(-50%, -50%) rotate(${Math.random()*360}deg)`;
+        els.splatLayer.appendChild(splat);
+    }
 
-    // 2. Respingos
+    // 2. Respingos (Droplets) - Sempre cria, mesmo se for só armor hit
     const dropletsCount = 4 + Math.floor(Math.random() * 3);
     for(let i=0; i<dropletsCount; i++) {
         const drop = document.createElement('div');
         drop.className = 'splat-droplet';
+        if (variant === 'armored') drop.classList.add('droplet-armored');
+        
         const angle = Math.random() * Math.PI * 2;
         const distance = 15 + Math.random() * 25; 
-        const size = 4 + Math.random() * 6;
+        const size = 3 + Math.random() * 5; // Levemente menor
+        
         drop.style.width = size + 'px'; drop.style.height = size + 'px';
         drop.style.left = (x + (Math.cos(angle) * distance)) + 'px';
         drop.style.top = (y + (Math.sin(angle) * distance)) + 'px';
@@ -457,7 +492,7 @@ function createVisualFX(x, y, isHit) {
     setTimeout(() => ripple.remove(), 500);
 }
 
-function finishGame() {
+async function finishGame() {
     state.isPlaying = false;
     cancelAnimationFrame(state.timerInterval);
     document.body.classList.remove('game-mode');
@@ -466,8 +501,9 @@ function finishGame() {
     const rawTime = Math.max(0, now - state.startTime + state.penaltyTime - state.bonusTime);
     state.finalTime = (rawTime / 1000).toFixed(3);
     
+    // Salva localmente primeiro
     saveDailyRecord(state.finalTime);
-    loadDailyRecord(); 
+    loadDailyRecord(); // Garante que state.bestTime está atualizado
     
     OrkaCloud.endSession({
         score: state.finalTime,
@@ -477,12 +513,27 @@ function finishGame() {
     
     els.finalScore.textContent = state.finalTime + 's';
     els.scoreDisplay.style.display = 'block';
+    els.btnPlay.innerHTML = `${T.play_again} <span class="material-icons" style="font-size: 1.1em; vertical-align: bottom; margin-left:5px;">movie</span>`;
     
-    // Atualiza botão com ícone de anúncio
-    els.btnPlay.innerHTML = 'JOGAR NOVAMENTE <span class="material-icons" style="font-size: 1.1em; vertical-align: bottom; margin-left:5px;">movie</span>';
     OrkaAudio.play('endgame');
-
     switchScreen('menu');
+
+    // === LÓGICA DE RANKING CORRIGIDA ===
+    const dateKey = getRankingKey(state.currentDate);
+    const hasJoined = localStorage.getItem(dateKey) === 'true';
+
+    if (hasJoined) {
+        // Cenario B: Update Passivo
+        // Se já participa, envia o score silenciosamente (o backend deve tratar se é recorde ou não)
+        // E atualiza a lista visualmente
+        await OrkaCloud.submitScore(GAME_ID, state.bestTime, state.currentDate);
+        loadLeaderboardInline(); 
+        OrkaFX.toast('Ranking atualizado!', 'success');
+    } else {
+        // Cenario A: Primeiro jogo do dia (ou bateu recorde mas ainda não quis entrar)
+        // Apenas chama a UI para fazer o botão aparecer
+        updateRankingUI();
+    }
 }
 
 function switchScreen(name) {
@@ -517,14 +568,12 @@ function refreshCalendarUI() {
     OrkaCalendar.render('calendar-grid', 'calendar-month-year', state.calendarViewDate, {
         minDate: MIN_DATE,
         onClick: (selectedDate) => {
-            state.currentDate = selectedDate;
-            updateDateDisplay();
-            loadDailyRecord();
-            els.scoreDisplay.style.display = 'none';
+            onDateChanged(selectedDate); // <--- Usa a nova função
             document.getElementById('modal-calendar').classList.remove('active');
         },
         getDayClass: (isoDate) => {
-            let classes = [];
+            // ... (Lógica de classes mantida)
+             let classes = [];
             if (isoDate === state.currentDate.toISOString().split('T')[0]) {
                 classes.push('active-date');
             }
@@ -535,27 +584,9 @@ function refreshCalendarUI() {
         }
     });
 }
-
 // =========================
 // 5. RANKING
 // =========================
-async function handleRankingClick() {
-    const currentNick = OrkaCloud.getNickname();
-    if (!currentNick) {
-        els.modalNick.classList.add('active');
-        els.nickInput.focus();
-    } else {
-        await submitAndOpenRanking();
-    }
-}
-
-async function saveNicknameAndSubmit() {
-    const name = els.nickInput.value.trim();
-    if (!name) return OrkaFX.shake('modal-nick');
-    await OrkaCloud.updateNickname(name);
-    els.modalNick.classList.remove('active');
-    await submitAndOpenRanking();
-}
 
 async function submitAndOpenRanking() {
     els.modalRanking.classList.add('active');
@@ -599,6 +630,11 @@ async function loadLeaderboardUI() {
     });
 }
 
+function getRankingKey(dateObj) {
+    const iso = dateObj.toISOString().split('T')[0];
+    return `eagleAim_ranking_joined_${iso}`;
+}
+
 function requestFullScreen() {
     const doc = window.document;
     const docEl = doc.documentElement;
@@ -620,6 +656,142 @@ async function shareResult() {
         OrkaFX.toast('Copiado para área de transferência!', 'success');
     } catch (err) {
         OrkaFX.toast('Erro ao copiar', 'error');
+    }
+}
+
+// =========================
+// NOVA LÓGICA DE RANKING (Button & Inline)
+// =========================
+async function handleRankingClick() {
+    const currentNick = OrkaCloud.getNickname();
+    if (!currentNick) {
+        els.modalNick.classList.add('active');
+        els.nickInput.focus();
+    } else {
+        await processRankingTransition();
+    }
+}
+async function processRankingTransition() {
+    const btn = els.btnRanking;
+    
+    // 1. Carregando
+    btn.disabled = true;
+    btn.innerHTML = `<span class="material-icons rotating" style="font-size:1.2em; vertical-align:middle;">refresh</span> ${T.loading || 'Carregando...'}`;
+    
+    // Envia score (usa a data atual do jogo)
+    if (state.bestTime) {
+        await OrkaCloud.submitScore(GAME_ID, state.bestTime, state.currentDate);
+    }
+    
+    // 2. Salva que participou NESTA data específica
+    localStorage.setItem(getRankingKey(state.currentDate), 'true');
+
+    // 3. Atualiza a UI para o estado "Joined"
+    // Isso vai esconder o botão e mostrar a lista inline automaticamente
+    updateRankingUI();
+}
+
+async function loadLeaderboardInline() {
+    els.inlineRankingList.innerHTML = '<div class="loading-spinner small"></div>';
+    
+    // Busca dados da data SELECIONADA (retroativo ou atual)
+    const data = await OrkaCloud.getLeaderboard(GAME_ID, state.currentDate);
+    
+    renderInlineRanking(data);
+}
+
+function renderInlineRanking(data) {
+    els.inlineRankingList.innerHTML = ''; 
+    if (data.length === 0) {
+        els.inlineRankingList.innerHTML = `<div style="text-align:center; color:#888; font-size:0.8rem;">Seja o primeiro hoje!</div>`;
+        return;
+    }
+
+    data.forEach((entry, index) => {
+        const div = document.createElement('div');
+        div.className = `ranking-row ${entry.isMe ? 'is-me' : ''}`;
+        div.innerHTML = `
+            <div class="rank-left">
+                <span class="rank-pos">#${index + 1}</span>
+                <img src="${entry.avatar}" class="rank-avatar">
+                <span class="rank-name">${entry.nickname}</span>
+            </div>
+            <span class="rank-score">${entry.score.toFixed(3)}s</span>
+        `;
+        els.inlineRankingList.appendChild(div);
+    });
+}
+
+// Atualize saveNicknameAndSubmit para chamar processRankingTransition
+async function saveNicknameAndSubmit() {
+    const name = els.nickInput.value.trim();
+    if (!name) return OrkaFX.shake('modal-nick');
+    await OrkaCloud.updateNickname(name);
+    els.modalNick.classList.remove('active');
+    await processRankingTransition(); // <--- Mudança aqui
+}
+
+function checkRankingStatus() {
+    const key = getRankingKey(state.currentDate);
+    const hasJoined = localStorage.getItem(key) === 'true';
+
+    if (hasJoined) {
+        // Já participou NESTE dia: Mostra lista direta
+        els.rankingWrapper.style.display = 'none';
+        els.inlineRankingBox.style.display = 'block';
+        loadLeaderboardInline();
+    } else {
+        // Não participou: Mostra botão
+        els.rankingWrapper.style.display = 'block';
+        els.rankingWrapper.classList.remove('collapsed');
+        els.inlineRankingBox.style.display = 'none';
+        
+        // Reset visual do botão
+        els.btnRanking.disabled = false;
+        els.btnRanking.textContent = "🏆 PARTICIPAR DO RANKING";
+        els.btnRanking.style.background = "";
+    }
+}
+
+function onDateChanged(newDate) {
+    state.currentDate = newDate;
+    updateDateDisplay();
+    
+    // Carrega o recorde local daquela data (define state.bestTime)
+    loadDailyRecord();
+    
+    // Com a data e o score atualizados, a UI decide se mostra botão, lista ou nada
+    updateRankingUI(); 
+}
+
+// Verifica o estado atual para a DATA SELECIONADA e ajusta a interface
+function updateRankingUI() {
+    const dateKey = getRankingKey(state.currentDate);
+    const hasJoined = localStorage.getItem(dateKey) === 'true';
+    
+    // Verificamos se existe um recorde local PARA ESSA DATA
+    // (A função loadDailyRecord já atualiza state.bestTime baseado na data, então podemos usar state.bestTime)
+    const hasScore = state.bestTime !== null && state.bestTime > 0;
+
+    if (hasJoined) {
+        // ESTADO 3: Já está no ranking -> Mostra lista inline
+        els.rankingWrapper.style.display = 'none';
+        els.inlineRankingBox.style.display = 'block';
+        loadLeaderboardInline(); // Recarrega a lista para garantir que está atualizada
+    } else if (hasScore) {
+        // ESTADO 2: Tem score, mas não entrou -> Mostra botão
+        els.rankingWrapper.style.display = 'block';
+        els.rankingWrapper.classList.remove('collapsed');
+        els.inlineRankingBox.style.display = 'none';
+        
+        // Reset visual do botão
+        els.btnRanking.disabled = false;
+        els.btnRanking.textContent = T.ranking_btn || "🏆 RANKING"; // Usa tradução ou fallback
+        els.btnRanking.style.background = "";
+    } else {
+        // ESTADO 1: Não tem score e não entrou -> Esconde tudo
+        els.rankingWrapper.style.display = 'none';
+        els.inlineRankingBox.style.display = 'none';
     }
 }
 

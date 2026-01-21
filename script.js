@@ -1,54 +1,56 @@
 import { OrkaCloud, supabase } from './core/scripts/orka-cloud.js';
-import { OrkaFX } from './core/scripts/orka-lib.js'; // Importando FX para o Toast
+import { OrkaFX } from './core/scripts/orka-lib.js'; 
 
 export const gamesList = [
     { id: 'zoo', type: 'daily', title: 'ORKA ZOO', descKey: 'game_zoo_desc', icon: 'zoo-logo.png', print: 'print-zoo.png', url: 'games/orkazoo/', releaseDate: '2026-01-05', active: true },
     { id: 'jinx', type: 'web', title: 'ORKA JINX', descKey: 'game_jinx_desc', icon: 'jinx-logo.png', print: 'print-jinx.png', url: 'games/orkajinx/', releaseDate: '2026-01-13', active: true },
     { id: 'eagle', type: 'web', title: 'EAGLE AIM', descKey: 'game_eagle_desc', icon: 'eagle-logo.png', print: 'print-eagle.png', url: 'games/eagleaim/', releaseDate: '2026-01-17', active: true },
-    // Jogos em breve (active: false)
+    // Jogos em breve
     { id: 'listit', type: 'soon', title: 'LISTIT', descKey: 'game_listit_desc', icon: null, print: null, url: '#', active: false },
     { id: 'disco', type: 'soon', title: 'DISCOMANIA', descKey: 'game_disco_desc', icon: null, print: null, url: '#', active: false },
     { id: 'firewall', type: 'soon', title: 'FIREWALL', descKey: 'game_firewall_desc', icon: null, print: null, url: '#', active: false }
 ];
 
-// --- DADOS DO HUB (TRADUÇÃO + JOGOS) ---
+// --- TRADUÇÕES CENTRALIZADAS ---
 export const translations = {
     'pt': {
+        // UI Geral
+        loaderTitle: "CARREGANDO...",
+        tabGames: "JOGOS", tabAbout: "SOBRE", tabAdmin: "ADMIN",
         dailyGames: "Jogos Diários", webGames: "Jogos Web", pnpGames: "PnP", soonGames: "Nos próximos episódios...",
-        profileBtn: "Configurar Perfil", emptyMsg: "Nada aqui ainda!",
-        profileTitle: "PERFIL", nickLabel: "Seu Apelido", langLabel: "Idioma / Language",
-        readyBtn: "Tudo pronto, {nick}!", addNick: "Adicionar Nickname",
-        profileTitle: "PERFIL",
-        nickLabel: "Seu Apelido",
-        langLabel: "Idioma / Language",
-        langDesc: "Jogos usarão esta preferência automaticamente.",
+        aboutTitle: "SOBRE A ORKA", aboutText: "Somos um estúdio focado em experiências web simples e divertidas.",
+        footerCopy: "© 2026 Orka Studio. Todos os direitos reservados.",
+        emptyMsg: "Nada aqui ainda!",
 
-        syncLabel: "Sincronizar / Login",
-        syncDesc: "Receba um código por e-mail para salvar seu progresso.",
+        // Perfil e Auth
+        profileBtn: "Configurar Perfil", profileTitle: "PERFIL", nickLabel: "Seu Apelido", langLabel: "Idioma / Language",
+        readyBtn: "Tudo pronto, {nick}!", addNick: "Adicionar Nickname",
+        langDesc: "Jogos usarão esta preferência automaticamente.",
+        syncLabel: "Sincronizar (Login)", syncDesc: "Receba um código por e-mail para salvar seu progresso.",
         authSent: "Código enviado! Cheque seu e-mail.",
         authSuccess: "Login realizado com sucesso!",
         authError: "Erro. Tente novamente.",
         
+        // Jogos
         game_zoo_desc: "Descubra o animal do dia.",
         game_jinx_desc: "Leia a mente alheia.",
         game_listit_desc: "Deduza a ordem do dia.",
         game_disco_desc: "Descubra a música do dia.",
         game_eagle_desc: "Atire o mais rápido que puder.",
-        game_firewall_desc: "Evolua seu poderoso canhão.",
+        game_firewall_desc: "Evolua seu poderoso canhão."
     },
     'en': {
+        loaderTitle: "LOADING...",
+        tabGames: "GAMES", tabAbout: "ABOUT", tabAdmin: "ADMIN",
         dailyGames: "Daily Games", webGames: "Web Games", pnpGames: "Print & Play", soonGames: "Coming Soon...",
-        profileBtn: "Profile Settings", emptyMsg: "Nothing here yet!",
-        profileTitle: "PROFILE", nickLabel: "Your Nickname", langLabel: "Language",
-        readyBtn: "All set, {nick}!", addNick: "Add Nickname",
-        profileTitle: "PROFILE",
-        nickLabel: "Nickname",
-        langLabel: "Language",
-        langDesc: "Games will use this preference automatically.",
+        aboutTitle: "ABOUT ORKA", aboutText: "We are a studio focused on simple and fun web experiences.",
+        footerCopy: "© 2026 Orka Studio. All rights reserved.",
+        emptyMsg: "Nothing here yet!",
 
-        
-        syncLabel: "Sync / Login",
-        syncDesc: "Get a code via email to save your progress.",
+        profileBtn: "Profile Settings", profileTitle: "PROFILE", nickLabel: "Your Nickname", langLabel: "Language",
+        readyBtn: "All set, {nick}!", addNick: "Add Nickname",
+        langDesc: "Games will use this preference automatically.",
+        syncLabel: "Sync (Login)", syncDesc: "Get a code via email to save your progress.",
         authSent: "Code sent! Check your email.",
         authSuccess: "Logged in successfully!",
         authError: "Error. Try again.",
@@ -57,8 +59,8 @@ export const translations = {
         game_jinx_desc: "Read other minds.",
         game_listit_desc: "Deduce the daily order.",
         game_disco_desc: "Guess the daily song.",
-        game_eagle_desc: "Shoots how fast you can.",
-        game_firewall_desc: "Grind your powerfull channon."
+        game_eagle_desc: "Shoot as fast as you can.",
+        game_firewall_desc: "Grind your powerful cannon."
     }
 };
 
@@ -66,7 +68,6 @@ export const translations = {
 const modal = document.getElementById('modal-profile');
 const btnOpen = document.getElementById('btn-profile');
 const btnClose = document.getElementById('btn-close-profile');
-
 const viewMode = document.getElementById('view-nick-mode');
 const editMode = document.getElementById('edit-nick-mode');
 const displayNick = document.getElementById('display-nick');
@@ -75,44 +76,56 @@ const btnEdit = document.getElementById('btn-edit-nick');
 const btnSave = document.getElementById('btn-save-nick');
 const btnDelete = document.getElementById('btn-delete-nick');
 const btnAdd = document.getElementById('btn-add-nick');
-
 const langBtns = document.querySelectorAll('.lang-option');
 const btnWelcome = document.getElementById('btn-welcome-ready');
 
-let welcomeBtn = null;
+let welcomeBtn = null; // Refatoração para evitar erros de undefined
 
-// --- FUNÇÕES ---
+// --- INICIALIZAÇÃO ---
 
-// Transforma loadProfileData em async para esperar o Cloud
 async function loadProfileData() {
-    // 1. CARREGAMENTO INICIAL (A MÁGICA ACONTECE AQUI)
-    // Isso garante que temos os dados reais do banco antes de decidir abrir o modal
     await OrkaCloud.init();
     const role = OrkaCloud.getRole() || 'user';
+    await OrkaCloud.startSession('orka_hub'); 
 
-    await OrkaCloud.startSession('orka_hub'); // <--- ISSO GERA O SESSION_ID
-
-    const currentNick = OrkaCloud.getNickname();
+    // 1. Aplica Idioma e Tradução IMEDIATAMENTE
     const currentLang = OrkaCloud.getLanguage();
-    const avatarUrl = OrkaCloud.getAvatarUrl();
+    applyHubTranslation(); // Atualiza toda a UI (Abas, Footer, Jogos)
 
+    // 2. Nickname
+    const currentNick = OrkaCloud.getNickname();
+    if (currentNick) {
+        displayNick.textContent = currentNick;
+        inputNick.value = currentNick;
+        viewMode.style.display = 'flex';
+        editMode.style.display = 'none';
+        if(btnAdd) btnAdd.style.display = 'none';
+    } else {
+        displayNick.textContent = '';
+        inputNick.value = '';
+        viewMode.style.display = 'none';
+        editMode.style.display = 'none';
+        if(btnAdd) btnAdd.style.display = 'block'; 
+
+        const hasSeenIntro = localStorage.getItem('orka_hub_intro_seen');
+        if (!hasSeenIntro) {
+            openModal(false); 
+            OrkaFX.toast("Welcome / Bem-vindo!", "info");
+            localStorage.setItem('orka_hub_intro_seen', 'true');
+        }
+    }
+
+    // 3. Avatar e Bolos
+    const avatarUrl = OrkaCloud.getAvatarUrl();
     const currentBolo = OrkaCloud.getBolo();
     const boloDisplay = document.getElementById('header-bolo-count');
     if (boloDisplay) boloDisplay.textContent = currentBolo;
 
-    // Reset visual
-    if(welcomeBtn) welcomeBtn.style.display = 'none';
-
-    // Imagem de avatar
     const imgElement = document.getElementById('user-avatar');
     const container = document.querySelector('.profile-avatar-box');
-
     if (avatarUrl) {
-        // Estado de Carregamento
         container.classList.add('loading');
         imgElement.style.display = 'none';
-        
-        // Inicia carregamento
         const tempImg = new Image();
         tempImg.src = avatarUrl;
         tempImg.onload = () => {
@@ -121,19 +134,13 @@ async function loadProfileData() {
             container.classList.remove('loading');
             document.getElementById('default-avatar-icon').style.display = 'none';
         };
-        tempImg.onerror = () => {
-            // Fallback se falhar
-            container.classList.remove('loading');
-            document.getElementById('default-avatar-icon').style.display = 'block';
-        };
     } else {
-        // Sem avatar definido
         container.classList.remove('loading');
         imgElement.style.display = 'none';
         document.getElementById('default-avatar-icon').style.display = 'block';
     }
 
-    // --- LÓGICA DE UI DE LOGIN ---
+    // 4. UI de Login (Apenas OTP)
     const currentEmail = OrkaCloud.getEmail();
     const loginContainer = document.getElementById('auth-logged-in');
     const emailInputContainer = document.getElementById('auth-step-email');
@@ -141,115 +148,64 @@ async function loadProfileData() {
     const emailDisplay = document.getElementById('display-email-auth');
 
     if (currentEmail) {
-        // MODO LOGADO
         if(loginContainer) loginContainer.style.display = 'flex';
         if(emailInputContainer) emailInputContainer.style.display = 'none';
-        if(otpContainer) otpContainer.style.display = 'none'; // Garante que fecha o OTP
+        if(otpContainer) otpContainer.style.display = 'none';
         if(emailDisplay) emailDisplay.textContent = currentEmail;
     } else {
-        // MODO ANÔNIMO
         if(loginContainer) loginContainer.style.display = 'none';
         if(emailInputContainer) emailInputContainer.style.display = 'flex';
-        // otpContainer mantém o estado que estava ou none
     }
 
-    // 3. Nickname & Lógica de Abertura Automática
-    if (currentNick) {
-        // Tem nick: Mostra normal
-        displayNick.textContent = currentNick;
-        inputNick.value = currentNick;
-        
-        viewMode.style.display = 'flex';
-        editMode.style.display = 'none';
-        if(btnAdd) btnAdd.style.display = 'none';
-    } else {
-        // Não tem nick: Prepara UI de "Novo"
-        displayNick.textContent = '';
-        inputNick.value = '';
-        
-        viewMode.style.display = 'none';
-        editMode.style.display = 'none';
-        if(btnAdd) btnAdd.style.display = 'block'; 
-
-        // LÓGICA DA PRIMEIRA VEZ (Check LocalStorage)
-        const hasSeenIntro = localStorage.getItem('orka_hub_intro_seen');
-        
-        if (!hasSeenIntro) {
-            openModal(false); // Abre
-            OrkaFX.toast("Bem vindo ao Orka Hub!", "info"); // Toast
-            localStorage.setItem('orka_hub_intro_seen', 'true'); // Marca como visto
-        }
-    }
-
-    applyHubTranslation();
-
-    // 4. Idioma
+    // 5. Botões de Idioma
     langBtns.forEach(btn => {
         if (btn.dataset.lang === currentLang) btn.classList.add('selected');
         else btn.classList.remove('selected');
     });
 
-    const btnLogout = document.getElementById('btn-logout');
-    if (btnLogout) {
-        btnLogout.addEventListener('click', async () => {
-            if(confirm("Deseja desconectar? Seus dados locais serão resetados.")) {
-                await OrkaCloud.logout();
-            }
-        });
-    }
-
-    const tabs = ["games", "about", "admin"];
-
-    // 🔐 Controle de permissão do Admin
-    if (role !== "admin") {
-    document.getElementById("tab-admin")?.remove();
-    document.getElementById("section-admin")?.remove();
-    }
-
-    // ⚙️ Lógica especial do admin
-    if (active === "admin" && role === "admin") {
-        console.log("👑 Modo Admin Ativado");
-        await loadAdminDashboard();
-    }
-    }
-
-    // 🧠 Delegação de eventos (UM listener)
-    document.getElementById("tabs").addEventListener("click", async (e) => {
-        const btn = e.target.closest(".tab-btn");
-        if (!btn) return;
-
-        await showTab(btn.dataset.tab);
-    });
-
-
-    async function showTab(active) {
-        document.querySelectorAll(".tab-btn").forEach(btn =>
-            btn.classList.toggle("active", btn.dataset.tab === active)
-        );
-
-        document.querySelectorAll(".tab-content").forEach(section =>
-            section.classList.toggle(
-            "active",
-            section.id === `section-${active}`
-            )
-        );
-
-        if (active === "admin" && role === "admin") {
-            await loadAdminDashboard();
+    // 6. Admin Tab Visibility
+    const btnAdmin = document.getElementById("tab-admin");
+    if (role === "admin") {
+        if(btnAdmin) btnAdmin.style.display = "block";
+    } else {
+        if(btnAdmin) btnAdmin.style.display = "none";
+        // Se estava na aba admin mas não é mais, volta para home
+        if(document.getElementById('section-admin').classList.contains('active')) {
+            showTab('games');
         }
     }
+}
 
-    // Esconde a tela de carregamento
-    const loader = document.getElementById('orka-loader');
-    if (loader) {
-        // Um pequeno delay para o usuário conseguir ler a frase (opcional)
-        setTimeout(() => {
-            loader.classList.add('hidden');
-        }, 1200); // 1,2 segundo de "charme"
+// --- LÓGICA DE ABAS ---
+document.getElementById("tabs").addEventListener("click", async (e) => {
+    const btn = e.target.closest(".tab-btn");
+    if (!btn) return;
+    await showTab(btn.dataset.tab);
+});
+
+async function showTab(activeId) {
+    // 1. Atualiza Botões
+    document.querySelectorAll(".tab-btn").forEach(btn =>
+        btn.classList.toggle("active", btn.dataset.tab === activeId)
+    );
+
+    // 2. Atualiza Seções
+    document.querySelectorAll(".tab-content").forEach(section => {
+        if (section.id === `section-${activeId}`) {
+            section.classList.add('active');
+        } else {
+            section.classList.remove('active');
+        }
+    });
+
+    // 3. Se for Admin, carrega dados
+    const role = OrkaCloud.getRole();
+    if (activeId === "admin" && role === "admin") {
+        await loadAdminDashboard();
     }
+}
 
-
-// Função para carregar Dashboard
+// --- ADMIN DASHBOARD ---
 async function loadAdminDashboard() {
     const { data, error } = await supabase.rpc('get_admin_dashboard_stats');
     if (error) return console.error(error);
@@ -261,39 +217,27 @@ async function loadAdminDashboard() {
     const tbody = document.querySelector('#adm-games-table tbody');
     tbody.innerHTML = '';
     
-    // Cruzamento de dados: ID do Banco + Nome do JS
     data.games_ranking.forEach(gameStat => {
-        // Busca o nome bonito na sua constante gamesList
         const gameInfo = gamesList.find(g => g.id === gameStat.game_id);
-        const title = gameInfo ? gameInfo.title : gameStat.game_id; // Fallback para o ID se não achar
-        
-        const row = `<tr>
-            <td>${title}</td>
-            <td>${gameStat.play_count}</td>
-            <td>${gameStat.unique_players}</td>
-        </tr>`;
+        const title = gameInfo ? gameInfo.title : gameStat.game_id;
+        const row = `<tr><td>${title}</td><td>${gameStat.play_count}</td><td>${gameStat.unique_players}</td></tr>`;
         tbody.innerHTML += row;
     });
 }
 
-// Botão da Faxina (Chama a RPC de limpeza manualmente)
 document.getElementById('btn-run-cleaner')?.addEventListener('click', async () => {
     if(!confirm("Limpar usuários fantasmas inativos?")) return;
     const { data, error } = await supabase.rpc('clean_ghost_users');
     alert(error ? "Erro: " + error.message : data);
-    loadAdminDashboard(); // Atualiza números
+    loadAdminDashboard();
 });
 
+document.getElementById('btn-refresh-adm')?.addEventListener('click', loadAdminDashboard);
+
+// --- MODAL & PERFIL ---
 function openModal(forceStay = false) {
     if (!modal) return;
     modal.classList.add('active');
-    if(btnClose) btnClose.style.display = 'flex'; 
-    modal.onclick = (e) => { 
-        if(e.target === modal) {
-            modal.classList.remove('active');
-            hideWelcomeButton(); // Some magicamente
-        }
-    };
 }
 
 function toggleEditMode(isEditing) {
@@ -311,28 +255,17 @@ async function saveNickname() {
     const newNick = inputNick.value.trim();
     if (newNick) {
         await OrkaCloud.updateNickname(newNick);
-        
         editMode.style.display = 'none';
         viewMode.style.display = 'none';
-        if(btnAdd) btnAdd.style.display = 'none';
-
-        // Usamos apenas o botão que já está no HTML (btnWelcome)
+        
         if (btnWelcome) {
             const lang = OrkaCloud.getLanguage().startsWith('en') ? 'en' : 'pt';
-            // Certifique-se que 'translations' está acessível ou use texto fixo
-            const msgTemplate = translations?.[lang]?.readyBtn || "Tudo pronto, {nick}!";
-            
+            const msgTemplate = translations[lang].readyBtn;
             btnWelcome.textContent = msgTemplate.replace('{nick}', newNick);
             btnWelcome.style.display = 'block';
-            
-            // Removemos event listeners antigos clonando o nó (hack rápido) ou apenas reatribuindo onclick
-            btnWelcome.onclick = () => { modal.classList.remove('active'); hideWelcomeButton();}
+            btnWelcome.onclick = () => { modal.classList.remove('active'); btnWelcome.style.display = 'none';}
         }
-
-        if (!localStorage.getItem('orka_language')) OrkaCloud.setLanguage('pt-BR');
-        
-        // Garante que não abre mais sozinho
-        localStorage.setItem('orka_hub_intro_seen', 'true');
+        loadProfileData();
     } else {
         await deleteNickname();
         loadProfileData();
@@ -345,14 +278,9 @@ async function deleteNickname() {
     loadProfileData();
 }
 
-// Eventos
-if (btnOpen) btnOpen.addEventListener('click', () => { 
-    // Força abrir mesmo se já viu intro, pois foi clique manual
-    openModal(false); 
-    loadProfileData(); // Recarrega dados para garantir frescor
-});
-
-if (btnClose) btnClose.addEventListener('click', () => { modal.classList.remove('active');  hideWelcomeButton()});
+// Event Listeners Gerais
+if (btnOpen) btnOpen.addEventListener('click', () => { openModal(false); loadProfileData(); });
+if (btnClose) btnClose.addEventListener('click', () => modal.classList.remove('active'));
 if (btnEdit) btnEdit.addEventListener('click', () => toggleEditMode(true));
 if (btnAdd) btnAdd.addEventListener('click', () => toggleEditMode(true));
 if (btnSave) btnSave.addEventListener('click', saveNickname);
@@ -367,81 +295,33 @@ langBtns.forEach(btn => {
     });
 });
 
-const btnRegister = document.getElementById('btn-register');
-// No script.js do Hub
-const btnLogin = document.getElementById('btn-login'); // Use o ID correto
-
-btnLogin.addEventListener('click', async () => {
-    const email = document.getElementById('seu-input-email').value;
-    
-    // 1. UI Feedback
-    btnLogin.disabled = true;
-    btnLogin.textContent = "Aguarde...";
-
-    // 2. Logout preventivo (Limpa sessão anônima para evitar conflitos)
-    await OrkaCloud.logout(); 
-
-    // 3. Tenta Logar
-    const { error } = await OrkaCloud.requestEmailLogin(email);
-
-    if (error) {
-        console.error("Supabase Error:", error);
-        
-        // Tratamento específico para o erro 429 (Rate Limit)
-        if (error.status === 429 || error.message.includes("security purposes")) {
-            alert("Muitas tentativas! Espere 60 segundos.");
-        } else {
-            alert("Erro: " + error.message);
-        }
-        
-        btnLogin.disabled = false;
-        btnLogin.textContent = "ENTRAR";
-    } else {
-        alert("Link mágico enviado! Cheque seu email.");
-        // Mantém desabilitado para evitar duplo clique
-        btnLogin.textContent = "Enviado!";
+document.getElementById('btn-logout')?.addEventListener('click', async () => {
+    if(confirm("Deseja desconectar?")) {
+        await OrkaCloud.logout();
+        loadProfileData();
     }
 });
 
-btnRegister.onclick = async () => {
-    const email = document.getElementById('acc-email').value;
-    const pass = document.getElementById('acc-pass').value;
-    
-    // Chama o OrkaCloud V3.3
-    const result = await OrkaCloud.registerAccount(email, pass);
-    
-    if (result.success) {
-        if (result.bonus) OrkaFX.toast("Conta criada! +5 Bolos 🎂", "success");
-        else OrkaFX.toast("Conta atualizada!", "success");
-        // Fecha modal
-    } else {
-        OrkaFX.toast(result.error, "error");
-    }
-};
-
+// --- TRADUÇÃO & RENDER ---
 function applyHubTranslation() {
-    // 1. Pega idioma (padrão 'pt' se 'pt-BR')
     const langFull = OrkaCloud.getLanguage() || 'pt-BR';
     const lang = langFull.startsWith('en') ? 'en' : 'pt';
     const t = translations[lang];
 
-    // 2. Traduz textos simples
+    // Traduz textos gerais (data-t)
     document.querySelectorAll('[data-t]').forEach(el => {
         const key = el.getAttribute('data-t');
         if (t[key]) el.textContent = t[key];
     });
 
-    // 3. Traduz atributos (ex: title do botão)
+    // Traduz atributos (title)
     document.querySelectorAll('[data-t-title]').forEach(el => {
         const key = el.getAttribute('data-t-title');
         if (t[key]) el.title = t[key];
     });
 
-    // 4. Re-renderiza jogos para atualizar descrições
     renderGames(lang);
 }
-
-// script.js (Versão Com Tag NOVO)
 
 function renderGames(lang) {
     ['daily', 'web', 'soon', 'pnp'].forEach(type => {
@@ -471,25 +351,19 @@ function renderGames(lang) {
         }
 
         const printSrc = game.print ? `assets/prints/${game.print}` : '';
-        
-        // --- LÓGICA DA TAG NOVO ---
         const isNew = checkIsNew(game.releaseDate);
         const tagHTML = (isNew && game.active) ? `<span class="tag-new">NOVO</span>` : '';
 
-        // Usamos uma div wrapper 'print-container' para segurar a tag no lugar certo
-        // A imagem ocupa 100% desse container
         const printHTML = game.active ? 
             `<div class="print-container">
-                <img src="${printSrc}" class="card-print" style="height:100%; border:none;" onerror="this.src='assets/icons/orka-logo.png'">
+                <img src="${printSrc}" class="card-print" style="height:100%; width:100%; object-fit:cover; border:none;" onerror="this.src='assets/icons/orka-logo.png'">
                 ${tagHTML}
              </div>` : 
             `<div class="card-print" style="display:flex; align-items:center; justify-content:center; color:#444; font-size:1.5rem;">🚧</div>`;
 
         const iconSrc = game.icon ? `assets/icons/${game.icon}` : '';
         const desc = t[game.descKey] || '...';
-        
-        const iconHTML = game.active ? 
-            `<img src="${iconSrc}" class="card-icon" onerror="this.style.background='#333'">` : '';
+        const iconHTML = game.active ? `<img src="${iconSrc}" class="card-icon">` : '';
 
         card.innerHTML = `
             ${printHTML}
@@ -508,158 +382,107 @@ function renderGames(lang) {
     });
 }
 
-// Helper function
 function checkIsNew(dateString) {
     if (!dateString) return false;
     const release = new Date(dateString);
     const now = new Date();
-    const diffTime = Math.abs(now - release);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-    return diffDays <= 7; // 7 dias
+    const diffDays = Math.ceil(Math.abs(now - release) / (1000 * 60 * 60 * 24)); 
+    return diffDays <= 7;
 }
 
-// ==================================================
-// CORREÇÃO DA SESSÃO "INÚTIL" (Adicione isso no final do arquivo)
-// ==================================================
-window.addEventListener('beforeunload', () => {
-    // Quando o usuário sai da página (fecha aba ou clica num jogo),
-    // encerramos a sessão do Hub imediatamente.
-    OrkaCloud.endSession({ reason: 'navigation_or_close' });
-});
-
-// Inicialização
-window.addEventListener('load', loadProfileData);
-
-// --- LÓGICA DE LOGIN (OTP) ---
-const stepEmail = document.getElementById('auth-step-email');
-const stepOtp = document.getElementById('auth-step-otp');
+// --- AUTH (OTP Flow) ---
 const inputEmail = document.getElementById('input-email');
 const inputOtp = document.getElementById('input-otp');
 const authMsg = document.getElementById('auth-msg');
-
-// 1. Enviar Código
-// script.js
 
 document.getElementById('btn-send-code').addEventListener('click', async () => {
     const email = inputEmail.value.trim();
     if (!email.includes('@')) {
         authMsg.textContent = "Email inválido.";
-        authMsg.style.color = "var(--status-wrong)";
         return;
     }
-
-    // Feedback visual
     const btn = document.getElementById('btn-send-code');
-    const originalIcon = btn.innerHTML;
-    btn.innerHTML = '<span class="material-icons orka-spin">refresh</span>'; // Ícone de loading
+    btn.innerHTML = '<span class="material-icons orka-spin">refresh</span>';
     btn.disabled = true;
+    authMsg.textContent = "Conectando...";
     
-    authMsg.textContent = "Conectando ao servidor...";
-    authMsg.style.color = "#888";
-
     try {
         const res = await OrkaCloud.requestEmailLogin(email);
-
         if (!res.error) {
-            stepEmail.style.display = 'none';
-            stepOtp.style.display = 'flex';
-            
+            document.getElementById('auth-step-email').style.display = 'none';
+            document.getElementById('auth-step-otp').style.display = 'flex';
             const lang = OrkaCloud.getLanguage().startsWith('en') ? 'en' : 'pt';
             authMsg.textContent = translations[lang].authSent;
             authMsg.style.color = "var(--status-correct)";
             inputOtp.focus();
         } else {
-            // Trata erros (inclusive o 503 se acontecer de novo)
-            console.warn("Erro Login:", res.error);
-            authMsg.textContent = "Erro no servidor. Tente novamente em 1 min.";
+            authMsg.textContent = "Erro no servidor.";
             authMsg.style.color = "var(--status-wrong)";
         }
-    } catch (e) {
-        authMsg.textContent = "Erro de conexão.";
-        authMsg.style.color = "var(--status-wrong)";
     } finally {
-        // Restaura o botão
-        btn.innerHTML = originalIcon;
+        btn.innerHTML = '<span class="material-icons">send</span>';
         btn.disabled = false;
     }
 });
 
-// 2. Verificar Código
 document.getElementById('btn-verify-code').addEventListener('click', async () => {
     const email = inputEmail.value.trim();
     const token = inputOtp.value.trim();
-
     authMsg.textContent = "Verificando...";
 
     const res = await OrkaCloud.verifyEmailLogin(email, token);
-
     if (!res.error) {
         const lang = OrkaCloud.getLanguage().startsWith('en') ? 'en' : 'pt';
         authMsg.textContent = translations[lang].authSuccess;
         authMsg.style.color = "var(--status-correct)";
-
+        
         if (res.isNewUser) {
-            // Se for novo, festa completa
-            OrkaFX.toast("Conta Sincronizada! +5 Bolos 🎂", "success");
+            OrkaFX.toast("+5 Bolos 🎂", "success");
             OrkaFX.confetti(); 
-        } else {
-            // Se já existia, só aviso discreto
-            OrkaFX.toast(translations[lang].authSuccess, "success");
         }
-
-        // Recarrega perfil visualmente
         await loadProfileData();
-
-        // Fecha modal após 1.5s
         setTimeout(() => {
-            document.getElementById('modal-profile').classList.remove('active');
-            // Reseta UI do Auth
-            stepEmail.style.display = 'flex';
-            stepOtp.style.display = 'none';
+            modal.classList.remove('active');
+            // Reseta visual auth
+            document.getElementById('auth-step-email').style.display = 'flex';
+            document.getElementById('auth-step-otp').style.display = 'none';
             inputOtp.value = '';
             authMsg.textContent = '';
         }, 1500);
-
     } else {
-        authMsg.textContent = "Código inválido ou expirado.";
+        authMsg.textContent = "Código inválido.";
         authMsg.style.color = "var(--status-wrong)";
     }
 });
 
-// 3. Cancelar / Voltar
 document.getElementById('btn-cancel-otp').addEventListener('click', () => {
-    stepEmail.style.display = 'flex';
-    stepOtp.style.display = 'none';
+    document.getElementById('auth-step-email').style.display = 'flex';
+    document.getElementById('auth-step-otp').style.display = 'none';
     authMsg.textContent = "";
 });
 
-// --- MENSAGENS DE CARREGAMENTO ---
+// --- LOADER ---
 const loadingMessages = [
     "Seja bem-vindo(a) ao universo Orka!",
-    "Beba água! Hidratação dá XP.",
+    "Beba água! Hidratação dá mais XP.",
     "Nossos duendes estão polindo os pixels...",
     "Ouvi falar que o criador da Orka é um gatinho...",
     "Carregando texturas de alta definição (mentira)...",
-    "Organizando o deck de cartas...",
+    "Organizando os decks de cartas...",
     "Calibrando a mira da águia...",
     "Alimentando os animais do zoológico..."
 ];
 
-// Função para pegar frase aleatória
-function setRandomLoadingMessage() {
-    const msgElement = document.getElementById('loader-msg');
-    if (msgElement) {
-        const randomIndex = Math.floor(Math.random() * loadingMessages.length);
-        msgElement.textContent = loadingMessages[randomIndex];
-    }
-}
+document.getElementById('loader-msg').textContent = loadingMessages[Math.floor(Math.random() * loadingMessages.length)];
 
-// Chame isso imediatamente para o usuário já ver a frase
-setRandomLoadingMessage();
+window.addEventListener('load', () => {
+    loadProfileData();
+    setTimeout(() => {
+        document.getElementById('orka-loader').classList.add('hidden');
+    }, 1200);
+});
 
-// Função auxiliar para resetar o botão
-function hideWelcomeButton() {
-    if (btnWelcome) {
-        btnWelcome.style.display = 'none';
-    }
-}
+// Encerramento de sessão limpo
+window.addEventListener('pagehide', () => { // 'pagehide' é mais seguro que 'beforeunload' moderno
+    OrkaCloud.endSession({ reason: 'close' });
+});
