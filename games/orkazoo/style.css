@@ -78,11 +78,6 @@ button:disabled { background: #333; opacity: 0.5; }
 }
 .end-summary-box h3 { margin-top: 0; font-size: 1.5rem; letter-spacing: 1px; }
 
-/* CALENDÁRIO VISUAL (ATUALIZADO) */
-.calendar-modal { max-width: 400px; }
-.calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-.calendar-header button { background: none; border: 1px solid #333; color: white; padding: 5px 10px; cursor: pointer; border-radius: 4px; }
-
 /* MODAIS & TOASTS */
 .animal-reveal-img { width: 100%; max-width: 300px; height: auto; border-radius: 8px; margin: 15px auto; display: block; }
 .modal-btn { margin-top: 20px; padding: 10px 30px; background: white; color: black; border: none; font-weight: bold; cursor: pointer; border-radius: 20px; }

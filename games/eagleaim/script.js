@@ -1,14 +1,17 @@
 import { OrkaCloud } from '../../core/scripts/orka-cloud.js';
-import { OrkaFX, OrkaMath, OrkaDate, OrkaStorage, OrkaAudio, OrkaCalendar, Utils } from '../../core/scripts/orka-lib.js';
+import { OrkaFX, OrkaMath, OrkaDate, OrkaStorage, OrkaAudio, OrkaCalendar, Utils, OrkaTutorial } from '../../core/scripts/orka-lib.js';
 
 // =========================
 // CONFIGURAÇÕES
 // =========================
 const GAME_ID = 'eagle_aim';
-const MIN_DATE = '2026-01-01'; // Data de lançamento
+const MIN_DATE = '2026-01-01'; 
 const PENALTY_MS = 1000; 
 const PERFECT_BONUS_MS = 500;
 const TOTAL_WAVES = 3;
+
+// Configuração de Pontos (1º ao 10º)
+const RANK_POINTS = { 0: 10, 1: 7, 2: 5, 3: 4, 4: 3, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1 };
 
 let state = {
     currentDate: new Date(),
@@ -23,7 +26,7 @@ let state = {
     levelData: null,
     finalTime: 0,
     bestTime: null,
-    calendarViewDate: new Date()
+    lastRunTime: null 
 };
 
 const screens = {
@@ -40,72 +43,28 @@ const els = {
     splatLayer: document.getElementById('splat-layer'),
     countText: document.getElementById('countdown-text'),
     dateDisplay: document.getElementById('date-display'),
-    scoreDisplay: document.getElementById('last-score-display'),
-    dailyBestContainer: document.getElementById('daily-best-container'),
-    dailyBestValue: document.querySelector('.best-score-display'),
-    finalScore: document.querySelector('.big-score'),
+    
+    // Menu Elements
+    podiumContainer: document.getElementById('podium-container'),
+    dashAvatar: document.getElementById('dash-avatar'),
+    dashNick: document.getElementById('dash-nick'),
+    dashGlobalPts: document.getElementById('dash-global-pts'),
+    dashBestToday: document.getElementById('dash-best-today'),
+    dashLastRun: document.getElementById('dash-last-run'),
+    inlineRankingList: document.getElementById('inline-ranking-list'),
+    
     btnPlay: document.getElementById('btn-play'),
-    // Ranking elements
-    btnRanking: document.getElementById('btn-ranking'),
-    rankingList: document.getElementById('ranking-list'),
-    rankingDate: document.getElementById('ranking-date-title'),
-    modalRanking: document.getElementById('modal-ranking'),
+    btnShare: document.getElementById('btn-share'),
+    
+    // Botões Flutuantes (Restore)
+    btnBackHub: document.getElementById('btn-back-hub'),
+    btnFloatCalendar: document.getElementById('btn-float-calendar'),
+
+    // Modais e Outros
     modalNick: document.getElementById('modal-nick'),
     nickInput: document.getElementById('nick-input'),
-    saveNickBtn: document.getElementById('save-nick-btn'),
-    btnFloatCalendar: document.getElementById('btn-float-calendar'),
-    rankingWrapper: document.getElementById('ranking-action-wrapper'),
-    inlineRankingBox: document.getElementById('inline-ranking-container'),
-    inlineRankingList: document.getElementById('inline-ranking-list')
+    saveNickBtn: document.getElementById('save-nick-btn')
 };
-
-const I18N = {
-    'pt-BR': {
-        play: 'JOGAR',
-        play_again: 'JOGAR NOVAMENTE',
-        ranking_btn: '🏆 RANKING',
-        loading: 'Carregando...',
-        wave: 'ONDA',
-        aim: 'AIM!',
-        ready_title: 'PRONTO?',
-        best_today: 'MELHOR TEMPO DE HOJE',
-        sending: '🚀 Enviando score...',
-        loading_rank: 'Carregando ranking...',
-        be_first: 'Seja o primeiro a pontuar hoje!',
-        modal_nick_title: 'COMO DEVEMOS TE CHAMAR?',
-        save_btn: 'SALVAR E ENTRAR',
-        back_home: 'Voltar ao Hub',
-        perfect: 'PERFECT!',
-        error: 'ERRO!',
-        penalty: 'PENALIDADE!',
-        rotate: 'POR FAVOR, VIRE SEU DISPOSITIVO',
-        rotate_sub: 'Este jogo requer a tela na horizontal'
-    },
-    'en-US': {
-        play: 'PLAY',
-        play_again: 'PLAY AGAIN',
-        ranking_btn: '🏆 LEADERBOARD',
-        loading: 'Loading...',
-        wave: 'WAVE',
-        aim: 'AIM!',
-        ready_title: 'READY?',
-        best_today: 'TODAY\'S BEST',
-        sending: '🚀 Submitting score...',
-        loading_rank: 'Loading leaderboard...',
-        be_first: 'Be the first to score today!',
-        modal_nick_title: 'WHAT SHOULD WE CALL YOU?',
-        save_btn: 'SAVE AND ENTER',
-        back_home: 'Back to Hub',
-        perfect: 'PERFECT!',
-        error: 'MISS!',
-        penalty: 'PENALTY!',
-        rotate: 'PLEASE ROTATE DEVICE',
-        rotate_sub: 'This game requires landscape mode'
-    }
-};
-
-let currentLang = 'pt-BR'; // Padrão
-let T = I18N['pt-BR']; // Atalho para os textos atuais
 
 // =========================
 // 1. INICIALIZAÇÃO
@@ -118,75 +77,87 @@ async function init() {
     
     // 🔊 CARREGAMENTO DOS SONS
     OrkaAudio.loadAll({
-        'shoot': '../../assets/sounds/shoot.mp3',   // Som mecânico de gatilho/disparo leve
-        //'hit': '../../assets/sounds/table-smash.mp3',   // Um "POP" ou vidro quebrando satisfatório
-        'miss': '../../assets/sounds/glass-shrink.mp3',    // Um "Buzz" ou som grave
-        'aim': '../../assets/sounds/eagle.mp3', // Som de impacto ou "Carregar arma"
-        'wave': '../../assets/sounds/recharge.mp3', // Um whoosh de vento
-        'endgame': '../../assets/sounds/last-impact.mp3', // Fim das ondas
-        'record': '../../assets/sounds/crowd-applause.mp3', // Pequena vinheta de vitória
-        'precise': '../../assets/sounds/shine.mp3', //Perfect hit
+        'shoot': '../../assets/sounds/shoot.mp3',
+        'miss': '../../assets/sounds/glass-shrink.mp3',
+        'aim': '../../assets/sounds/eagle.mp3',
+        'wave': '../../assets/sounds/recharge.mp3',
+        'endgame': '../../assets/sounds/last-impact.mp3',
+        'record': '../../assets/sounds/crowd-applause.mp3',
+        'precise': '../../assets/sounds/shine.mp3',
         'tick': '../../assets/sounds/beep.mp3',
         'hit_armor': '../../assets/sounds/hit-armor.mp3'
+    });
+
+    OrkaTutorial.checkAndShow(GAME_ID, {
+        title: 'BEM-VINDO AO EAGLE AIM 🦅',
+        btnText: 'ENTENDI, BORA!',
+        steps: [
+            '🎯 <b>PRECISÃO É TUDO:</b> Toque nos alvos o mais rápido possível. Cuidado: toques fora (miss click) adicionam <b>+1s</b> de penalidade!',
+            '🦅 <b>PERFECT SHOT:</b> Acertar exatamente no centro do alvo garante um bônus de <b>-0.5s</b> no seu tempo final.',
+            '📅 <b>DESAFIO DIÁRIO:</b> Todo dia à meia-noite, uma nova fase é gerada usando a data como "semente". Todos os jogadores enfrentam exatamente a mesma sequência de alvos.',
+            '🏆 <b>PONTUAÇÃO & RANKING:</b> Seu objetivo é ter o menor tempo. Ficar no <b>Top 10 Diário</b> te dá pontos para subir no Ranking da Temporada (visualizado no menu).'
+        ]
     });
 
     loadDailyRecord();
 
     els.btnPlay.addEventListener('click', () => {
-        // DETECÇÃO DE MOBILE (Simples e eficaz)
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        
-        // Só pede fullscreen se for celular
-        if (isMobile) {
-            requestFullScreen(); 
+        if (isMobile && document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().catch(() => {});
         }
         startCountdown();
     });
         
-    // Miss Click (Fundo transparente)
     els.missLayer.addEventListener('mousedown', (e) => handleMissClick(e));
     els.missLayer.addEventListener('touchstart', (e) => { e.preventDefault(); handleMissClick(e.touches[0]); });
-    //Compartilhar resultado
-    els.btnShare = document.getElementById('btn-share');
+    
     els.btnShare.addEventListener('click', shareResult);
     
-    // 🔊 SOM DE TIRO GENÉRICO (Ao clicar em qualquer lugar do stage)
     document.getElementById('game-stage').addEventListener('mousedown', () => {
         if(state.isPlaying) OrkaAudio.play('shoot', 0.3);
     });
 
-    // Listeners de Ranking
-    els.btnRanking.addEventListener('click', handleRankingClick);
     els.saveNickBtn.addEventListener('click', saveNicknameAndSubmit);
 
-    setupCalendarButtons();
+    // Navegação Extra (Floating Buttons)
+    if(els.btnBackHub) els.btnBackHub.addEventListener('click', () => window.location.href = '../../index.html');
+    if(els.btnFloatCalendar) els.btnFloatCalendar.addEventListener('click', () => {
+        document.getElementById('calendar-btn').click(); // Apenas clica no botão principal
+    });
 
-    updateRankingUI();
-    
-    /*
-    // Verifica status do ranking para HOJE
-    checkRankingStatus();
-    
-    if (rankingMode === 'true' && state.bestTime) {
-        // Esconde botão, mostra lista inline direto
-        els.rankingWrapper.style.display = 'none';
-        els.inlineRankingBox.style.display = 'block';
-        loadLeaderboardInline(); // Nova função para carregar no box inline
-    }*/
+    // --- NOVO SISTEMA DE CALENDÁRIO ---
+    OrkaCalendar.bind({
+        triggerBtn: 'calendar-btn',
+        modalId: 'modal-calendar',
+        gridId: 'calendar-grid',
+        titleId: 'calendar-month-year',
+        prevBtn: 'prev-month',
+        nextBtn: 'next-month'
+    }, {
+        minDate: MIN_DATE,
+        
+        // Garante que o calendário abra no mês do jogo atual
+        getCurrentDate: () => state.currentDate, 
+        
+        onSelect: (d) => {
+            state.currentDate = d;
+            updateDateDisplay();
+            loadDailyRecord();
+            loadLeaderboardInline(); // Atualiza ranking do dia selecionado
+            Utils.toggleModal('modal-calendar', false);
+        }
+    });
 
-    // Listener Calendário Flutuante
-    if(els.btnFloatCalendar) {
-        els.btnFloatCalendar.addEventListener('click', () => {
-            state.calendarViewDate = new Date(state.currentDate);
-            refreshCalendarUI();
-            document.getElementById('modal-calendar').classList.add('active');
-        });
-    }
+    refreshDashboardUI(); 
+    loadSeasonRankings(); 
+    loadLeaderboardInline(); 
 }
 
 // =========================
-// 2. STORAGE E DATA
+// 2. LÓGICA DE DADOS & DASHBOARD
 // =========================
+
 function getStorageKey() {
     const iso = state.currentDate.toISOString().split('T')[0];
     return `eagleAim_record_${iso}`;
@@ -196,34 +167,135 @@ function loadDailyRecord() {
     const record = OrkaStorage.load(getStorageKey());
     if (record) {
         state.bestTime = parseFloat(record);
-        els.dailyBestValue.textContent = state.bestTime.toFixed(3) + 's';
-        els.dailyBestContainer.style.display = 'block';
-        els.btnPlay.innerHTML = 'JOGAR NOVAMENTE <span class="material-icons" style="font-size: 1.1em; vertical-align: bottom; margin-left:5px;">movie</span>';
     } else {
         state.bestTime = null;
-        els.dailyBestContainer.style.display = 'none';
-        els.btnPlay.textContent = "JOGAR";
     }
+    refreshDashboardUI();
 }
 
 function saveDailyRecord(newTime) {
     const timeFloat = parseFloat(newTime);
+    state.lastRunTime = timeFloat;
+    
     if (!state.bestTime || timeFloat < state.bestTime) {
         state.bestTime = timeFloat;
         OrkaStorage.save(getStorageKey(), timeFloat);
-        
         OrkaFX.confetti(); 
-        OrkaAudio.play('record'); // 🔊 SOM DE RECORDE
+        OrkaAudio.play('record');
     }
 }
 
-function updateDateDisplay() {
-    const options = { weekday: 'long', day: 'numeric', month: 'long' };
-    els.dateDisplay.textContent = state.currentDate.toLocaleDateString('pt-BR', options).toUpperCase();
+function refreshDashboardUI() {
+    els.dashNick.textContent = OrkaCloud.getNickname() || 'Visitante';
+    els.dashAvatar.src = OrkaCloud.getAvatarUrl();
+    
+    if (state.bestTime) {
+        els.dashBestToday.textContent = state.bestTime.toFixed(3) + 's';
+        els.dashBestToday.style.color = '#facc15';
+    } else {
+        els.dashBestToday.textContent = '--.--';
+        els.dashBestToday.style.color = '#666';
+    }
+
+    if (state.lastRunTime) {
+        els.dashLastRun.textContent = state.lastRunTime.toFixed(3) + 's';
+    } else {
+        els.dashLastRun.textContent = '--.--';
+    }
 }
 
 // =========================
-// 3. LÓGICA DO JOGO
+// 3. PONTUAÇÃO GLOBAL & PÓDIO
+// =========================
+
+async function loadSeasonRankings() {
+    els.podiumContainer.innerHTML = '<div class="loading-spinner small"></div>';
+    
+    try {
+        const globalScores = {};
+        const daysToCheck = 7; 
+        const today = new Date();
+        const promises = [];
+
+        for (let i = 0; i < daysToCheck; i++) {
+            const d = new Date(today);
+            d.setDate(today.getDate() - i);
+            if (d >= new Date(MIN_DATE)) {
+                promises.push(OrkaCloud.getLeaderboard(GAME_ID, d));
+            }
+        }
+
+        const results = await Promise.all(promises);
+
+        results.forEach(dailyList => {
+            if (!dailyList) return;
+            dailyList.forEach((entry, index) => {
+                const pts = RANK_POINTS[index] || 0;
+                if (pts > 0) {
+                    const key = entry.nickname; 
+                    if (!globalScores[key]) {
+                        globalScores[key] = { 
+                            nickname: entry.nickname, 
+                            avatar: entry.avatar, 
+                            points: 0,
+                            isMe: entry.isMe
+                        };
+                    }
+                    globalScores[key].points += pts;
+                }
+            });
+        });
+
+        const sortedPlayers = Object.values(globalScores)
+            .filter(p => p.points > 0)
+            .sort((a, b) => b.points - a.points);
+
+        renderPodium(sortedPlayers.slice(0, 5));
+        
+        const myEntry = sortedPlayers.find(p => p.isMe) || sortedPlayers.find(p => p.nickname === OrkaCloud.getNickname());
+        const myPoints = myEntry ? myEntry.points : 0;
+        els.dashGlobalPts.textContent = `${myPoints} pts`;
+
+    } catch (e) {
+        console.error("Erro ao carregar season:", e);
+        els.podiumContainer.innerHTML = '<small style="color:#d33">Falha ao carregar pódio</small>';
+    }
+}
+
+function renderPodium(players) {
+    els.podiumContainer.innerHTML = '';
+    
+    if (!players || players.length === 0) {
+        els.podiumContainer.innerHTML = '<small style="color:#666; margin:auto;">Início de Temporada. Jogue para pontuar!</small>';
+        return;
+    }
+
+    // Renderiza na ordem direta (Já vem ordenado por pontos do loadSeasonRankings)
+    players.forEach((p, index) => {
+        const rank = index + 1;
+        const div = document.createElement('div');
+        
+        // Define classe de cor
+        let rankClass = 'rank-other';
+        if (rank === 1) rankClass = 'rank-1';
+        else if (rank === 2) rankClass = 'rank-2';
+        else if (rank === 3) rankClass = 'rank-3';
+
+        div.className = `podium-item ${rankClass}`;
+        
+        // HTML Estruturado: Posição > Avatar > Nick > Pontos
+        div.innerHTML = `
+            <span class="rank-badge">${rank}º</span>
+            <img src="${p.avatar}" class="podium-avatar" onerror="this.src='../../assets/icons/orka-logo.png'">
+            <span class="podium-nick">${p.nickname}</span>
+            <div class="podium-pts">${p.points}<small>PTS</small></div>
+        `;
+        els.podiumContainer.appendChild(div);
+    });
+}
+
+// =========================
+// 4. LÓGICA DO JOGO (Core)
 // =========================
 
 function generateDailyLevel(dateInput) {
@@ -234,35 +306,24 @@ function generateDailyLevel(dateInput) {
     for (let w = 0; w < TOTAL_WAVES; w++) {
         const wave = { targets: [] };
         const count = 3 + (2 * w) + Math.floor(rng() * 1.5); 
-
         for (let i = 0; i < count; i++) {
-            // Definição do Tipo (Baseado na dificuldade/onda)
-            // Onda 0: 100% normal
-            // Onda 1: 20% movel
-            // Onda 2: 30% movel, 10% blindado
             let type = 'normal';
             const roll = rng();
-            
             if (w > 0 && roll > 0.7) type = 'moving';
             if (w > 1 && roll > 0.7) type = 'armored';
 
-            // Configuração de Movimento (se for móvel)
             let moveConfig = null;
             if (type === 'moving') {
                 moveConfig = {
-                    axis: rng() > 0.5 ? 'X' : 'Y', // Horizontal ou Vertical
-                    speed: 2 + (rng() * 2) + 's', // 2s a 4s
-                    range: 20 + (rng() * 30) // Amplitude do movimento em %
+                    axis: rng() > 0.5 ? 'X' : 'Y',
+                    speed: 2 + (rng() * 2) + 's',
+                    range: 20 + (rng() * 30)
                 };
             }
-
             wave.targets.push({
                 id: `w${w}-t${i}`,
-                x: 15 + (rng() * 70), // Margem segura
-                y: 15 + (rng() * 70),
-                scale: 0.9 + (rng() * 0.3),
-                type: type,      // 'normal', 'moving', 'armored'
-                move: moveConfig // null ou objeto
+                x: 15 + (rng() * 70), y: 15 + (rng() * 70),
+                scale: 0.9 + (rng() * 0.3), type: type, move: moveConfig
             });
         }
         level.waves.push(wave);
@@ -274,27 +335,25 @@ function startCountdown() {
     switchScreen('countdown');
     OrkaCloud.startSession(GAME_ID);
     state.levelData = generateDailyLevel(state.currentDate);
-    els.splatLayer.innerHTML = ''; // Limpa manchas
+    els.splatLayer.innerHTML = ''; 
     
     let count = 3;
     els.countText.textContent = count;
     els.countText.style.color = '#facc15';
-    OrkaAudio.play('tick'); // <--- Toca no "3"
+    OrkaAudio.play('tick');
     
     const interval = setInterval(() => {
         count--;
         if (count > 0) {
             els.countText.textContent = count;
             els.countText.style.transform = 'scale(1.5)';
-            OrkaAudio.play('tick'); // <--- Toca no "1 e 2"
+            OrkaAudio.play('tick');
             setTimeout(() => els.countText.style.transform = 'scale(1)', 100);
         } else if (count === 0) {
             els.countText.textContent = "AIM!";
             els.countText.style.color = '#ffffff';
             document.body.classList.add('game-mode');
-            
-            OrkaAudio.play('aim'); // 🔊 SOM "AIM!"
-            
+            OrkaAudio.play('aim');
         } else {
             clearInterval(interval);
             startGame();
@@ -309,7 +368,6 @@ function startGame() {
     state.penaltyTime = 0;
     state.bonusTime = 0;
     state.startTime = performance.now();
-    
     spawnWave(0);
     state.timerInterval = requestAnimationFrame(updateTimerLoop);
 }
@@ -330,8 +388,7 @@ function spawnWave(index) {
     state.waveIndex = index;
     els.wave.textContent = `ONDA ${index + 1}/${TOTAL_WAVES}`;
     els.targets.innerHTML = ''; 
-    
-    OrkaAudio.play('wave'); // 🔊 SOM DE GATILHO
+    OrkaAudio.play('wave');
     
     const waveData = state.levelData.waves[index];
     state.targetsLeft = waveData.targets.length;
@@ -339,29 +396,16 @@ function spawnWave(index) {
     waveData.targets.forEach((t, i) => {
         const el = document.createElement('div');
         el.className = 'target';
-        
-        // Aplica Classes Especiais
-        if (t.type === 'armored') {
-            el.classList.add('armored');
-            el.dataset.hp = 2; // Vida extra
-        }
-        
+        if (t.type === 'armored') { el.classList.add('armored'); el.dataset.hp = 2; }
         if (t.type === 'moving') {
             el.classList.add('moving');
-            // Lógica Determinística de Movimento via CSS Var
-            // Precisamos ajustar o keyframe dinamicamente ou usar valores fixos
-            // Simplificação: Vamos usar style inline para animar
             const animName = t.move.axis === 'X' ? 'moveHorizontal' : 'moveVertical';
-            el.style.animationName = animName;
-            el.style.animationDuration = t.move.speed;
+            el.style.animationName = animName; el.style.animationDuration = t.move.speed;
         }
-
-        // Posicionamento
-        el.style.left = t.x + '%';
-        el.style.top = t.y + '%';
-        el.style.transform = `translate(-50%, -50%) scale(0)`; // Estado inicial
+        el.style.left = t.x + '%'; el.style.top = t.y + '%';
+        el.style.transform = `translate(-50%, -50%) scale(0)`;
         
-        // Efeito de entrada escalonado
+        // Timeout para criar efeito "pop" sequencial
         setTimeout(() => {
             if(state.isPlaying) el.style.transform = `translate(-50%, -50%) scale(${t.scale})`;
         }, i * 50);
@@ -369,122 +413,76 @@ function spawnWave(index) {
         const hitHandler = (e) => {
             const clientX = e.clientX || e.changedTouches[0].clientX;
             const clientY = e.clientY || e.changedTouches[0].clientY;
-
-            e.preventDefault(); 
-            e.stopPropagation(); // Impede miss click
+            e.preventDefault(); e.stopPropagation();
             if (!state.isPlaying) return;
             
-            OrkaAudio.play('shoot'); // 🔊 SOM DE TIRO
+            OrkaAudio.play('shoot');
             createVisualFX(clientX, clientY, true);
 
-            // Lógica Perfect Shot
             const rect = el.getBoundingClientRect();
             const centerX = rect.left + rect.width / 2;
             const centerY = rect.top + rect.height / 2;
             const dist = Math.hypot(clientX - centerX, clientY - centerY);
-            const isPerfect = dist < (rect.width / 2) * 0.25;
             
             if (dist < (rect.width / 2) * 0.25) { 
                 state.bonusTime += PERFECT_BONUS_MS;
                 OrkaFX.toast(`PERFECT! -${(PERFECT_BONUS_MS/1000)}s`, 'success');
                 OrkaAudio.play('precise');
-                
-                // Flash Verde
-                const flash = document.createElement('div');
-                flash.className = 'perfect-flash';
-                document.body.appendChild(flash);
-                setTimeout(() => flash.remove(), 200);
+                const flash = document.createElement('div'); flash.className = 'perfect-flash';
+                document.body.appendChild(flash); setTimeout(() => flash.remove(), 200);
             }
 
-            // LÓGICA DE VIDA (BLINDADO)
-            if (t.type === 'armored' && parseInt(el.dataset.hp) > 1 && !isPerfect) {
-                el.dataset.hp = 1;
-                el.classList.remove('armored'); 
+            if (t.type === 'armored' && parseInt(el.dataset.hp) > 1) {
+                el.dataset.hp = 1; el.classList.remove('armored'); 
                 el.style.transform = `translate(-50%, -50%) scale(${t.scale * 0.8})`; 
-                
-                OrkaAudio.play('hit_armor'); 
-                // AQUI: FX DE ARMADURA (Não destrói, só solta faísca)
-                createVisualFX(clientX, clientY, false, 'armored'); 
+                OrkaAudio.play('hit_armor'); createVisualFX(clientX, clientY, false, 'armored'); 
                 return; 
             }
-
-            // Se chegou aqui: Destrói
-            // AQUI: Se era blindado e morreu, usa FX blindado, senão normal
             const fxType = t.type === 'armored' ? 'armored' : 'normal';
             createVisualFX(clientX, clientY, true, fxType);
             el.remove();
-            
             state.targetsLeft--;
-            if (state.targetsLeft <= 0) {
-                setTimeout(() => spawnWave(state.waveIndex + 1), 100);
-            }
+            if (state.targetsLeft <= 0) setTimeout(() => spawnWave(state.waveIndex + 1), 100);
         };
-
         el.addEventListener('mousedown', hitHandler);
         el.addEventListener('touchstart', hitHandler);
         els.targets.appendChild(el);
     });
 }
 
-// Listener do Botão Voltar
-    document.getElementById('btn-back-hub').addEventListener('click', () => {
-        // Sai do Fullscreen se estiver (opcional, navegadores fazem auto)
-        if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
-        // Redireciona
-        window.location.href = '../../index.html';
-    });
-
 function handleMissClick(e) {
     if (!state.isPlaying) return;
-    
-    // Tenta pegar coordenadas para o splat (se houver)
-    const clientX = e.clientX || e.changedTouches?.[0]?.clientX;
-    const clientY = e.clientY || e.changedTouches?.[0]?.clientY;
-    
-    OrkaAudio.play('miss'); // 🔊 SOM DE ERRO
+    OrkaAudio.play('miss');
     state.penaltyTime += PENALTY_MS;
-    
     OrkaFX.shake('game-wrapper');
     OrkaFX.toast('+1s ERRO!', 'error');
-    
-    const flash = document.createElement('div');
-    flash.className = 'penalty-flash';
-    document.body.appendChild(flash);
-    setTimeout(() => flash.remove(), 150);
+    const flash = document.createElement('div'); flash.className = 'penalty-flash';
+    document.body.appendChild(flash); setTimeout(() => flash.remove(), 150);
 }
 
 function createVisualFX(x, y, isHit, variant = 'normal') {
-    // 1. Mancha (Splat)
-    if (isHit) { // Só cria mancha se for hit fatal
+    if (isHit) {
         const splat = document.createElement('div');
         const type = 1 + Math.floor(Math.random() * 3);
         splat.className = `splat splat-type-${type}`;
-        // Adiciona classe variante
         if (variant === 'armored') splat.classList.add('splat-armored');
-        
         splat.style.left = x + 'px'; splat.style.top = y + 'px';
         splat.style.transform = `translate(-50%, -50%) rotate(${Math.random()*360}deg)`;
         els.splatLayer.appendChild(splat);
     }
-
-    // 2. Respingos (Droplets) - Sempre cria, mesmo se for só armor hit
     const dropletsCount = 4 + Math.floor(Math.random() * 3);
     for(let i=0; i<dropletsCount; i++) {
         const drop = document.createElement('div');
         drop.className = 'splat-droplet';
         if (variant === 'armored') drop.classList.add('droplet-armored');
-        
         const angle = Math.random() * Math.PI * 2;
         const distance = 15 + Math.random() * 25; 
-        const size = 3 + Math.random() * 5; // Levemente menor
-        
+        const size = 3 + Math.random() * 5;
         drop.style.width = size + 'px'; drop.style.height = size + 'px';
         drop.style.left = (x + (Math.cos(angle) * distance)) + 'px';
         drop.style.top = (y + (Math.sin(angle) * distance)) + 'px';
         els.splatLayer.appendChild(drop);
     }
-    
-    // 3. Ripple
     const ripple = document.createElement('div');
     ripple.className = 'touch-ripple';
     ripple.style.left = x + 'px'; ripple.style.top = y + 'px';
@@ -501,38 +499,22 @@ async function finishGame() {
     const rawTime = Math.max(0, now - state.startTime + state.penaltyTime - state.bonusTime);
     state.finalTime = (rawTime / 1000).toFixed(3);
     
-    // Salva localmente primeiro
     saveDailyRecord(state.finalTime);
-    loadDailyRecord(); // Garante que state.bestTime está atualizado
     
-    OrkaCloud.endSession({
-        score: state.finalTime,
-        wave: TOTAL_WAVES,
-        perfect_bonus: state.bonusTime
-    });
-    
-    els.finalScore.textContent = state.finalTime + 's';
-    els.scoreDisplay.style.display = 'block';
-    els.btnPlay.innerHTML = `${T.play_again} <span class="material-icons" style="font-size: 1.1em; vertical-align: bottom; margin-left:5px;">movie</span>`;
-    
+    OrkaCloud.endSession({ score: state.finalTime, wave: TOTAL_WAVES, perfect_bonus: state.bonusTime });
     OrkaAudio.play('endgame');
+    
+    els.btnPlay.textContent = 'JOGAR NOVAMENTE';
     switchScreen('menu');
 
-    // === LÓGICA DE RANKING CORRIGIDA ===
-    const dateKey = getRankingKey(state.currentDate);
-    const hasJoined = localStorage.getItem(dateKey) === 'true';
-
-    if (hasJoined) {
-        // Cenario B: Update Passivo
-        // Se já participa, envia o score silenciosamente (o backend deve tratar se é recorde ou não)
-        // E atualiza a lista visualmente
+    const currentNick = OrkaCloud.getNickname();
+    if (currentNick) {
         await OrkaCloud.submitScore(GAME_ID, state.bestTime, state.currentDate);
-        loadLeaderboardInline(); 
         OrkaFX.toast('Ranking atualizado!', 'success');
+        loadLeaderboardInline(); 
+        refreshDashboardUI(); 
     } else {
-        // Cenario A: Primeiro jogo do dia (ou bateu recorde mas ainda não quis entrar)
-        // Apenas chama a UI para fazer o botão aparecer
-        updateRankingUI();
+        els.modalNick.classList.add('active'); 
     }
 }
 
@@ -541,169 +523,28 @@ function switchScreen(name) {
     screens[name].classList.add('active');
 }
 
-// =========================
-// 4. CALENDÁRIO OTIMIZADO
-// =========================
-function setupCalendarButtons() {
-    const btn = document.getElementById('calendar-btn');
-    const modal = document.getElementById('modal-calendar');
-    
-    btn.addEventListener('click', () => {
-        state.calendarViewDate = new Date(state.currentDate);
-        refreshCalendarUI();
-        modal.classList.add('active');
-    });
-
-    document.getElementById('prev-month').addEventListener('click', () => {
-        state.calendarViewDate.setMonth(state.calendarViewDate.getMonth() - 1);
-        refreshCalendarUI();
-    });
-    document.getElementById('next-month').addEventListener('click', () => {
-        state.calendarViewDate.setMonth(state.calendarViewDate.getMonth() + 1);
-        refreshCalendarUI();
-    });
+function updateDateDisplay() {
+    const options = { weekday: 'long', day: 'numeric', month: 'long' };
+    els.dateDisplay.textContent = state.currentDate.toLocaleDateString('pt-BR', options).toUpperCase();
 }
 
-function refreshCalendarUI() {
-    OrkaCalendar.render('calendar-grid', 'calendar-month-year', state.calendarViewDate, {
-        minDate: MIN_DATE,
-        onClick: (selectedDate) => {
-            onDateChanged(selectedDate); // <--- Usa a nova função
-            document.getElementById('modal-calendar').classList.remove('active');
-        },
-        getDayClass: (isoDate) => {
-            // ... (Lógica de classes mantida)
-             let classes = [];
-            if (isoDate === state.currentDate.toISOString().split('T')[0]) {
-                classes.push('active-date');
-            }
-            if (OrkaStorage.load(`eagleAim_record_${isoDate}`)) {
-                classes.push('win');
-            }
-            return classes.join(' ');
-        }
-    });
-}
-// =========================
-// 5. RANKING
-// =========================
-
-async function submitAndOpenRanking() {
-    els.modalRanking.classList.add('active');
-    els.rankingList.innerHTML = '<div style="padding:20px; text-align:center;">🚀 Enviando score...</div>';
-    
-    if (state.bestTime) {
-        await OrkaCloud.submitScore(GAME_ID, state.bestTime, state.currentDate);
-    }
-    await loadLeaderboardUI();
-}
-
-async function loadLeaderboardUI() {
-    // Formata data localmente dependendo da língua
-    const dateOptions = { weekday: 'long', day: 'numeric', month: 'long' };
-    els.rankingDate.textContent = state.currentDate.toLocaleDateString(currentLang, dateOptions);
-    
-    els.rankingList.innerHTML = `<div style="padding:20px; text-align:center;">${T.loading_rank}</div>`;
-    
-    const data = await OrkaCloud.getLeaderboard(GAME_ID, state.currentDate);
-    
-    els.rankingList.innerHTML = ''; 
-    if (data.length === 0) {
-        els.rankingList.innerHTML = `<div style="padding:20px; text-align:center; color:#666;">${T.be_first}</div>`;
-        return;
-    }
-
-    data.forEach((entry, index) => {
-        const div = document.createElement('div');
-        div.className = `ranking-row ${entry.isMe ? 'is-me' : ''}`;
-        
-        // Renderiza Avatar + Nome + Score
-        div.innerHTML = `
-            <div class="rank-left">
-                <span class="rank-pos">#${index + 1}</span>
-                <img src="${entry.avatar}" alt="Avatar" class="rank-avatar" onerror="this.src='../../assets/icons/orka-logo.png'">
-                <span class="rank-name">${entry.nickname}</span>
-            </div>
-            <span class="rank-score">${entry.score.toFixed(3)}s</span>
-        `;
-        els.rankingList.appendChild(div);
-    });
-}
-
-function getRankingKey(dateObj) {
-    const iso = dateObj.toISOString().split('T')[0];
-    return `eagleAim_ranking_joined_${iso}`;
-}
-
-function requestFullScreen() {
-    const doc = window.document;
-    const docEl = doc.documentElement;
-
-    const request = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
-    
-    if (request && !doc.fullscreenElement) {
-        // Tenta entrar em fullscreen (pode falhar se o usuário negar, mas tentamos)
-        request.call(docEl).catch(err => console.log("Fullscreen bloqueado ou cancelado"));
-    }
-}
-
-async function shareResult() {
-    const dateStr = state.currentDate.toLocaleDateString('pt-BR');
-    const text = `🦅 EAGLE AIM | ${dateStr}\n⏱️ Tempo: ${state.finalTime}s\n\nConsegue me superar?\nJogue em: orka-hub.vercel.app/games/eagleaim/`;
-    
-    try {
-        await navigator.clipboard.writeText(text);
-        OrkaFX.toast('Copiado para área de transferência!', 'success');
-    } catch (err) {
-        OrkaFX.toast('Erro ao copiar', 'error');
-    }
-}
-
-// =========================
-// NOVA LÓGICA DE RANKING (Button & Inline)
-// =========================
-async function handleRankingClick() {
-    const currentNick = OrkaCloud.getNickname();
-    if (!currentNick) {
-        els.modalNick.classList.add('active');
-        els.nickInput.focus();
-    } else {
-        await processRankingTransition();
-    }
-}
-async function processRankingTransition() {
-    const btn = els.btnRanking;
-    
-    // 1. Carregando
-    btn.disabled = true;
-    btn.innerHTML = `<span class="material-icons rotating" style="font-size:1.2em; vertical-align:middle;">refresh</span> ${T.loading || 'Carregando...'}`;
-    
-    // Envia score (usa a data atual do jogo)
-    if (state.bestTime) {
-        await OrkaCloud.submitScore(GAME_ID, state.bestTime, state.currentDate);
-    }
-    
-    // 2. Salva que participou NESTA data específica
-    localStorage.setItem(getRankingKey(state.currentDate), 'true');
-
-    // 3. Atualiza a UI para o estado "Joined"
-    // Isso vai esconder o botão e mostrar a lista inline automaticamente
-    updateRankingUI();
+async function saveNicknameAndSubmit() {
+    const name = els.nickInput.value.trim();
+    if (!name) return OrkaFX.shake('modal-nick');
+    await OrkaCloud.updateNickname(name);
+    els.modalNick.classList.remove('active');
+    refreshDashboardUI();
+    if(state.bestTime) await OrkaCloud.submitScore(GAME_ID, state.bestTime, state.currentDate);
+    loadLeaderboardInline();
 }
 
 async function loadLeaderboardInline() {
     els.inlineRankingList.innerHTML = '<div class="loading-spinner small"></div>';
-    
-    // Busca dados da data SELECIONADA (retroativo ou atual)
     const data = await OrkaCloud.getLeaderboard(GAME_ID, state.currentDate);
     
-    renderInlineRanking(data);
-}
-
-function renderInlineRanking(data) {
     els.inlineRankingList.innerHTML = ''; 
     if (data.length === 0) {
-        els.inlineRankingList.innerHTML = `<div style="text-align:center; color:#888; font-size:0.8rem;">Seja o primeiro hoje!</div>`;
+        els.inlineRankingList.innerHTML = `<div style="text-align:center; color:#888; font-size:0.8rem; padding:20px;">Seja o primeiro a pontuar hoje!</div>`;
         return;
     }
 
@@ -722,77 +563,14 @@ function renderInlineRanking(data) {
     });
 }
 
-// Atualize saveNicknameAndSubmit para chamar processRankingTransition
-async function saveNicknameAndSubmit() {
-    const name = els.nickInput.value.trim();
-    if (!name) return OrkaFX.shake('modal-nick');
-    await OrkaCloud.updateNickname(name);
-    els.modalNick.classList.remove('active');
-    await processRankingTransition(); // <--- Mudança aqui
-}
-
-function checkRankingStatus() {
-    const key = getRankingKey(state.currentDate);
-    const hasJoined = localStorage.getItem(key) === 'true';
-
-    if (hasJoined) {
-        // Já participou NESTE dia: Mostra lista direta
-        els.rankingWrapper.style.display = 'none';
-        els.inlineRankingBox.style.display = 'block';
-        loadLeaderboardInline();
-    } else {
-        // Não participou: Mostra botão
-        els.rankingWrapper.style.display = 'block';
-        els.rankingWrapper.classList.remove('collapsed');
-        els.inlineRankingBox.style.display = 'none';
-        
-        // Reset visual do botão
-        els.btnRanking.disabled = false;
-        els.btnRanking.textContent = "🏆 PARTICIPAR DO RANKING";
-        els.btnRanking.style.background = "";
-    }
-}
-
-function onDateChanged(newDate) {
-    state.currentDate = newDate;
-    updateDateDisplay();
-    
-    // Carrega o recorde local daquela data (define state.bestTime)
-    loadDailyRecord();
-    
-    // Com a data e o score atualizados, a UI decide se mostra botão, lista ou nada
-    updateRankingUI(); 
-}
-
-// Verifica o estado atual para a DATA SELECIONADA e ajusta a interface
-function updateRankingUI() {
-    const dateKey = getRankingKey(state.currentDate);
-    const hasJoined = localStorage.getItem(dateKey) === 'true';
-    
-    // Verificamos se existe um recorde local PARA ESSA DATA
-    // (A função loadDailyRecord já atualiza state.bestTime baseado na data, então podemos usar state.bestTime)
-    const hasScore = state.bestTime !== null && state.bestTime > 0;
-
-    if (hasJoined) {
-        // ESTADO 3: Já está no ranking -> Mostra lista inline
-        els.rankingWrapper.style.display = 'none';
-        els.inlineRankingBox.style.display = 'block';
-        loadLeaderboardInline(); // Recarrega a lista para garantir que está atualizada
-    } else if (hasScore) {
-        // ESTADO 2: Tem score, mas não entrou -> Mostra botão
-        els.rankingWrapper.style.display = 'block';
-        els.rankingWrapper.classList.remove('collapsed');
-        els.inlineRankingBox.style.display = 'none';
-        
-        // Reset visual do botão
-        els.btnRanking.disabled = false;
-        els.btnRanking.textContent = T.ranking_btn || "🏆 RANKING"; // Usa tradução ou fallback
-        els.btnRanking.style.background = "";
-    } else {
-        // ESTADO 1: Não tem score e não entrou -> Esconde tudo
-        els.rankingWrapper.style.display = 'none';
-        els.inlineRankingBox.style.display = 'none';
-    }
+async function shareResult() {
+    const dateStr = state.currentDate.toLocaleDateString('pt-BR');
+    const text = `🦅 EAGLE AIM | ${dateStr}\n⏱️ Tempo: ${state.bestTime || '--'}s\n\n_Entre no pódio ficando entre os melhores nos últimos 7 dias!_\n\nJogue agora: orka-hub.vercel.app/games/eagleaim/`;
+    try { await navigator.clipboard.writeText(text); OrkaFX.toast('Copiado!', 'success'); } catch (e) {}
 }
 
 init();
+
+document.getElementById('btn-close-calendar')?.addEventListener('click', () => {
+    Utils.toggleModal('modal-calendar', false);
+});

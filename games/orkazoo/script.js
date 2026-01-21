@@ -141,7 +141,6 @@ let gameState = {
 let startTime = null;
 let endTime = null;
 let currentLang = 'pt';
-let calendarMonth = new Date();
 
 const gridBody = document.getElementById("grid-body");
 const attemptDisplay = document.getElementById("attempt-count");
@@ -201,6 +200,23 @@ async function initGame(dateInput = new Date()) {
     });
 
     loadProgress();
+
+    OrkaCalendar.bind({
+        triggerBtn: 'calendar-btn',
+        modalId: 'modal-calendar',
+        gridId: 'calendar-grid',
+        titleId: 'calendar-month-year',
+        prevBtn: 'prev-month',
+        nextBtn: 'next-month'
+    }, {
+        minDate: START_DATE.toISOString().split('T')[0],
+        currentDate: gameState.currentDate, // Para abrir focado no dia do jogo atual
+        onSelect: (d) => { 
+            initGame(d); 
+            Utils.toggleModal('modal-calendar', false); // Lib fecha o modal ou você fecha aqui
+        }
+    });
+
 }
 
 function resetGameUI() {
@@ -505,21 +521,7 @@ function fillEndModal(win) {
 // ==========================================
 // 7. CALENDÁRIO & CURIOSIDADES
 // ==========================================
-document.getElementById('calendar-btn').addEventListener('click', () => {
-    calendarMonth = new Date(gameState.currentDate);
-    updateCalendar();
-    Utils.toggleModal('modal-calendar', true);
-});
-document.getElementById('prev-month').addEventListener('click', () => { calendarMonth.setMonth(calendarMonth.getMonth() - 1); updateCalendar(); });
-document.getElementById('next-month').addEventListener('click', () => { calendarMonth.setMonth(calendarMonth.getMonth() + 1); updateCalendar(); });
 
-function updateCalendar() {
-    OrkaCalendar.render('calendar-grid', 'calendar-month-year', calendarMonth, {
-        minDate: START_DATE.toISOString().split('T')[0],
-        onClick: (d) => { initGame(d); Utils.toggleModal('modal-calendar', false); },
-        getDayClass: (iso) => OrkaStorage.load('orka_calendar_global', {})[iso] || ''
-    });
-}
 
 document.getElementById("tip-btn").addEventListener("click", () => {
     const tipIndex = OrkaDate.getDailyIndex(START_DATE, curiositiesDB.length);

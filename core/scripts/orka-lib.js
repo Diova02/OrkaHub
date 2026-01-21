@@ -256,34 +256,97 @@ export const Utils = {
 };
 
 // =========================
-// 6. UI MODULES (Calendário)
+// 6. MÓDULO UI: CALENDÁRIO (V2.0 - Gerenciado)
 // =========================
+
+/**
+ * COMO IMPLEMENTAR O CALENDÁRIO:
+ * ------------------------------
+ * 1. No HTML, crie a estrutura do modal com os IDs necessários:
+ * - Botão que abre: id="btn-calendar"
+ * - Modal container: id="modal-calendar"
+ * - Grid vazio: id="calendar-grid"
+ * - Título do mês: id="calendar-title"
+ * - Botões prev/next: id="btn-prev", id="btn-next" (Adicione class="calendar-nav-btn")
+ * * 2. No JS do jogo, chame o bind apenas uma vez:
+ * OrkaCalendar.bind({
+ * triggerBtn: 'btn-calendar',
+ * modalId: 'modal-calendar',
+ * gridId: 'calendar-grid',
+ * titleId: 'calendar-title',
+ * prevBtn: 'btn-prev',
+ * nextBtn: 'btn-next'
+ * }, {
+ * minDate: '2024-01-01',
+ * getCurrentDate: () => gameState.dataAtual, // Função que retorna a data do jogo
+ * onSelect: (date) => { iniciarJogo(date); fecharModal(); }
+ * });
+ */
 export const OrkaCalendar = {
-    render: (containerId, labelId, dateRef, config = {}) => {
-        const grid = document.getElementById(containerId);
-        const label = document.getElementById(labelId);
+    state: {
+        viewDate: new Date(),
+        config: null
+    },
+
+    bind: (map, config = {}) => {
+        const trigger = document.getElementById(map.triggerBtn);
+        const prev = document.getElementById(map.prevBtn);
+        const next = document.getElementById(map.nextBtn);
+        
+        OrkaCalendar.state.config = { ...map, ...config };
+        
+        // Abrir Calendário
+        if (trigger) {
+            trigger.addEventListener('click', () => {
+                // Pega a data atual do jogo (se for função) ou usa hoje
+                let target = new Date();
+                if (typeof config.getCurrentDate === 'function') {
+                    target = config.getCurrentDate();
+                } else if (config.currentDate) {
+                    target = config.currentDate;
+                }
+                
+                OrkaCalendar.state.viewDate = new Date(target);
+                OrkaCalendar.update();
+                Utils.toggleModal(map.modalId, true);
+            });
+        }
+
+        // Navegação
+        if (prev) prev.onclick = () => OrkaCalendar.changeMonth(-1);
+        if (next) next.onclick = () => OrkaCalendar.changeMonth(1);
+    },
+
+    changeMonth: (delta) => {
+        OrkaCalendar.state.viewDate.setMonth(OrkaCalendar.state.viewDate.getMonth() + delta);
+        OrkaCalendar.update();
+    },
+
+    update: () => {
+        const { gridId, titleId } = OrkaCalendar.state.config;
+        const { minDate = '2024-01-01', onSelect } = OrkaCalendar.state.config;
+        
+        const grid = document.getElementById(gridId);
+        const label = document.getElementById(titleId);
         if(!grid || !label) return;
 
         grid.innerHTML = "";
         
-        const year = dateRef.getFullYear();
-        const month = dateRef.getMonth();
+        const view = OrkaCalendar.state.viewDate;
+        const year = view.getFullYear();
+        const month = view.getMonth();
         
-        // Capitaliza a primeira letra do mês
-        const monthName = dateRef.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+        const monthName = view.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
         label.textContent = monthName.charAt(0).toUpperCase() + monthName.slice(1);
 
         const firstDay = new Date(year, month, 1).getDay();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
         const todayStr = new Date().toISOString().split('T')[0];
 
-        const { 
-            minDate = '2024-01-01', 
-            onClick = null,
-            getDayClass = null 
-        } = config;
+        // Carrega status global (win/lose)
+        const history = OrkaStorage.load('orka_calendar_global', {});
 
-        // Espaços vazios antes do dia 1
+        // Dias vazios
         for(let i=0; i<firstDay; i++) {
             const div = document.createElement('div');
             div.className = 'calendar-day empty';
@@ -298,22 +361,15 @@ export const OrkaCalendar = {
             
             const isoDate = new Date(year, month, d).toISOString().split('T')[0];
             
-            // Classes customizadas (ex: 'win', 'lose')
-            if (getDayClass) {
-                const extraClass = getDayClass(isoDate);
-                if (extraClass) {
-                    const classes = extraClass.trim().split(/\s+/);
-                    if (classes[0]) div.classList.add(...classes);
-                }
-            }
+            if (history[isoDate]) div.classList.add(history[isoDate]);
 
-            // Lógica de Bloqueio (Futuro ou antes do lançamento)
+            // Validação de data
             if (isoDate < minDate || isoDate > todayStr) {
                 div.classList.add('disabled');
             } else {
                 div.onclick = () => {
                     if(div.classList.contains('disabled')) return;
-                    if(onClick) onClick(new Date(year, month, d));
+                    if(onSelect) onSelect(new Date(year, month, d));
                 };
             }
             grid.appendChild(div);

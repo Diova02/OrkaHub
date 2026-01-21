@@ -41,7 +41,7 @@
         </div>
     </header>
 
-<div id="game-wrapper">
+    <div id="game-wrapper">
         <div id="game-stage">
             
             <div id="screen-menu" class="game-layer active">
@@ -54,32 +54,56 @@
                     </button>
                 </div>
                 
-                <h2 class="dynamic-title">🎯 EAGLE AIM 🦅</h2>
-
-                <div id="daily-best-container" style="display:none; margin-bottom: 15px;">
-                    <p style="font-size: 0.8rem; letter-spacing: 2px; color: #888;">MELHOR TEMPO DE HOJE</p>
-                    <div class="best-score-display">00.000s</div>
-                </div>
-                
-                <div id="last-score-display" style="display:none; margin-bottom: 20px;">
-                    <div class="big-score">00.000s</div>
+                <div class="menu-grid-container">
                     
-                    <div id="ranking-action-wrapper">
-                        <button class="orka-btn small-btn" id="btn-ranking">🏆 PARTICIPAR DO RANKING</button>
+                    <div id="global-podium-section">
+                        <small class="section-label">TOP 5 MELHORES - ÚLTIMOS 7 DIAS</small>
+                        <div id="podium-container" class="loading-placeholder">
+                            Carregando Pódio...
+                        </div>
                     </div>
 
-                    <div id="inline-ranking-container" style="display:none;" class="ranking-inline-box">
-                        <h4 style="color:var(--orka-accent); margin-bottom:10px;">TOP 10 DIÁRIO</h4>
-                        <div id="inline-ranking-list"></div>
+                    <div id="player-dashboard">
+                        <div class="dash-left">
+                            <div class="avatar-wrapper">
+                                <img id="dash-avatar" src="../../assets/icons/orka-logo.png" alt="User">
+                            </div>
+                            <div class="user-info">
+                                <span id="dash-nick">Visitante</span>
+                                <span id="dash-global-pts" class="global-pts-badge">0 pts</span>
+                            </div>
+                        </div>
+                        <div class="dash-divider"></div>
+                        <div class="dash-right">
+                            <div class="stat-box">
+                                <small>HOJE (BEST)</small>
+                                <span id="dash-best-today">--.--</span>
+                            </div>
+                            <div class="stat-box">
+                                <small>ÚLTIMA RUN</small>
+                                <span id="dash-last-run">--.--</span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div style="margin-top: 10px;">
-                        <button class="orka-btn small-btn icon-only" id="btn-share" title="Compartilhar Resultado">
+                    <div id="daily-ranking-section">
+                        <small class="section-label">RANKING DO DIA (TOP 10)</small>
+                        <div id="daily-scroll-box">
+                            <div id="inline-ranking-list">
+                                <div class="loading-spinner small"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="menu-actions">
+                        <button id="btn-play" class="orka-btn orka-btn-primary big-play-btn">JOGAR</button>
+                        <button id="btn-share" class="orka-btn icon-only-btn" title="Compartilhar">
                             <span class="material-icons">share</span>
                         </button>
-                    </div>
+                        </div>
+
                 </div>
-                <button id="btn-play" class="orka-btn orka-btn-primary big-play-btn">JOGAR</button>
+
             </div>
 
             <div id="screen-countdown" class="game-layer">
@@ -97,31 +121,18 @@
     </div>
 
     <div id="modal-calendar" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-header compact-header">
-                <h3 id="calendar-month-year">Janeiro 2026</h3>
-                <div class="calendar-nav">
-                    <button id="prev-month" class="icon-btn"><span class="material-icons">chevron_left</span></button>
-                    <button id="next-month" class="icon-btn"><span class="material-icons">chevron_right</span></button>
-                </div>
-            </div>
-            <div class="calendar-grid" id="calendar-grid"></div>
-            <button class="orka-btn" onclick="document.getElementById('modal-calendar').classList.remove('active')">FECHAR</button>
-        </div>
-    </div>
-
-    <div id="modal-ranking" class="modal-overlay">
-        <div class="modal-content ranking-content">
-            <h2 style="color: var(--orka-accent); margin-bottom: 5px;">TOP 10 DIÁRIO</h2>
-            <p id="ranking-date-title" style="font-size: 0.9rem; color: #888; margin-bottom: 20px;">...</p>
+        <div class="modal-content calendar-modal">
             
-            <div id="ranking-list" class="ranking-list">
-                <div class="loading-spinner">Carregando...</div>
+            <div class="calendar-header">
+                <button id="prev-month" class="calendar-nav-btn">&lt;</button>
+                
+                <span id="calendar-month-year" class="calendar-title">Mês/Ano</span>
+                
+                <button id="next-month" class="calendar-nav-btn">&gt;</button>
             </div>
-
-            <div class="modal-footer">
-                <button class="orka-btn" onclick="document.getElementById('modal-ranking').classList.remove('active')">FECHAR</button>
-            </div>
+            
+            <div id="calendar-grid" class="calendar-grid"></div>
+            <button id="btn-close-calendar" class="orka-btn" style="margin-top:15px">FECHAR</button>
         </div>
     </div>
 
