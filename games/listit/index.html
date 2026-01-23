@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>List-it | Orka Hub</title>
+    <link rel="stylesheet" href="../../core/styles/orka-base.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+
+    <header>
+        <div class="header-content">
+            <div class="left-group">
+                <a href="../../index.html" class="home-link">
+                    <img src="../../assets/icons/orka-logo.png" alt="Orka" class="orka-logo">
+                </a>
+            </div>
+            <div class="title-group">
+                <h1>LIST-IT</h1>
+                <div id="date-display" class="date-display">...</div>
+            </div>
+            <div class="right-group">
+                <button id="btn-tutorial" class="icon-btn"><span class="material-icons">help_outline</span></button>
+                <button id="btn-calendar" class="icon-btn"><span class="material-icons">calendar_today</span></button>
+            </div>
+        </div>
+    </header>
+
+    <main class="game-container">
+        
+        <section class="prompt-area">
+            <div class="prompt-badge">DESAFIO DO DIA</div>
+            <h2 id="daily-prompt" class="prompt-text">Carregando...</h2>
+            <div class="prompt-sub" id="prompt-sub">Ordene corretamente</div>
+        </section>
+
+        <div id="grid-container" class="grid-container">
+            </div>
+
+        <div class="controls-area">
+            <div id="feedback-msg" class="feedback-msg"></div>
+            
+            <div class="action-row">
+                <div class="attempts-indicator">
+                    <span id="dot-1" class="dot active"></span>
+                    <span id="dot-2" class="dot"></span>
+                </div>
+                <button id="btn-submit" class="orka-btn orka-btn-primary orka-btn-xl">
+                    CONFIRMAR ORDEM
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <div id="modal-result" class="modal-overlay">
+        <div class="modal-content">
+            <h2 id="result-title">RESULTADO</h2>
+            <p id="result-message" style="margin-bottom: 20px; color: #ccc;"></p>
+            <div class="share-area">
+                <button id="btn-share" class="orka-btn orka-btn-primary">COMPARTILHAR</button>
+                <button id="btn-close-result" class="orka-btn">FECHAR</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-calendar" class="modal-overlay">
+        <div class="modal-content calendar-wrapper">
+            <div class="calendar-header">
+                <button id="btn-prev" class="calendar-nav-btn"><span class="material-icons">chevron_left</span></button>
+                <span id="calendar-title" class="calendar-title">Mês</span>
+                <button id="btn-next" class="calendar-nav-btn"><span class="material-icons">chevron_right</span></button>
+            </div>
+            <div id="calendar-grid" class="calendar-grid"></div>
+            <button class="orka-btn" onclick="document.getElementById('modal-calendar').classList.remove('active')" style="margin-top:15px; width:100%">FECHAR</button>
+        </div>
+    </div>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>

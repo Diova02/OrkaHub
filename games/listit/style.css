@@ -1,0 +1,321 @@
+/* Layout Global */
+.game-container {
+    width: 100%;
+    max-width: 600px; /* Um pouco mais largo para acomodar o grid */
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    flex: 1;
+    margin-bottom: 40px;
+}
+
+/* Prompt Styles */
+.prompt-area {
+    text-align: center;
+    background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid var(--orka-border);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.prompt-badge {
+    display: inline-block;
+    background: var(--orka-accent);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: bold;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.prompt-text {
+    margin: 0;
+    font-size: 1.3rem;
+    color: #fff;
+    line-height: 1.3;
+}
+
+.prompt-sub {
+    margin-top: 5px;
+    color: #888;
+    font-size: 0.9rem;
+}
+
+/* GRID SYSTEM (O Coração Visual) */
+/* --- GRID SYSTEM: 2 LINHAS (4 Colunas x 2 Linhas) --- */
+.grid-container {
+    display: grid;
+    /* Força sempre 4 colunas para manter as 2 linhas com 8 itens */
+    grid-template-columns: repeat(4, 1fr); 
+    gap: 12px;
+    user-select: none;
+    position: relative;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* --- CARD QUADRADO (1:1) --- */
+.card-slot {
+    aspect-ratio: 1 / 1; /* Garante o quadrado perfeito */
+    position: relative;
+    border-radius: 12px; /* Bordas mais arredondadas */
+    background: #1a1a1a;
+    border: 2px solid var(--orka-border);
+    overflow: hidden;
+    cursor: grab;
+    
+    /* Centralização de conteúdo (texto) */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 4px;
+    
+    /* Prepara a animação suave */
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                box-shadow 0.2s ease, 
+                border-color 0.2s ease;
+}
+
+/* Garante que a imagem preencha o quadrado sem distorcer */
+.card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Corta o excesso para manter o quadrado */
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    border-radius: 10px; /* Um pouco menos que o slot para encaixar */
+}
+
+/* --- ESTADO DRAGGING (ANIMAÇÃO) --- */
+.card-slot.dragging {
+    opacity: 1; /* Mantém visibilidade total */
+    z-index: 100;
+    cursor: grabbing;
+    
+    /* Efeito de "Levantar" a carta */
+    transform: scale(1.15) rotate(5deg); 
+    border-color: var(--orka-accent);
+    background: #222;
+    
+    /* Sombra profunda para dar profundidade */
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.6), 
+                0 0 15px rgba(0, 85, 255, 0.3); 
+}
+
+/* Ajuste Responsivo para telas muito pequenas (opcional, mas recomendado) */
+@media (max-width: 380px) {
+    .grid-container {
+        gap: 8px; /* Reduz o espaçamento em celulares muito pequenos */
+    }
+    .card-text {
+        font-size: 0.75rem; /* Diminui o texto se necessário */
+    }
+}
+
+@media (min-width: 500px) {
+    .grid-container {
+        grid-template-columns: repeat(4, 1fr); /* Desktop/Tablet: 4 colunas */
+    }
+}
+
+/* CARD 1:1 */
+/* --- CARD 1:1 --- */
+.card-slot {
+    aspect-ratio: 1 / 1;
+    position: relative;
+    border-radius: 12px;
+    background: #1a1a1a;
+    border: 2px solid var(--orka-border);
+    overflow: hidden;
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    transition: transform 0.2s, border-color 0.2s, opacity 0.2s;
+}
+
+/* Imagem de Fundo (Cobre tudo) */
+.card-image {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    position: absolute; top: 0; left: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Texto no Rodapé (Sempre visível) */
+.card-text {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 6px 4px;
+    background: linear-gradient(0deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 100%);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: bold;
+    z-index: 2; /* Fica acima da imagem */
+    pointer-events: none;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* --- ESTADOS DE DRAG (Polimento Visual) --- */
+
+/* 1. O card que está sendo arrastado (Visual do "Fantasma" no cursor) */
+.card-slot.dragging {
+    opacity: 1; 
+    cursor: grabbing;
+}
+
+/* 2. O BURACO onde o card estava (Fica no grid) */
+.card-slot.drag-source {
+    opacity: 0.2;
+    border: 2px dashed #555;
+    background: #000;
+    filter: grayscale(100%);
+}
+
+/* 3. O ALVO que será substituído (Destaque) */
+.card-slot.drag-over {
+    border-color: var(--orka-accent);
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(0, 85, 255, 0.4);
+    z-index: 10;
+}
+
+/* Estados de Feedback (Verde/Vermelho) */
+.card-slot.correct {
+    border-color: var(--status-correct);
+    cursor: default;
+}
+.card-slot.correct::after {
+    /* Ícone de check/cadeado */
+    content: 'lock'; font-family: 'Material Icons';
+    position: absolute; top: 5px; right: 5px;
+    font-size: 1rem; color: var(--status-correct); z-index: 10;
+    text-shadow: 0 2px 4px rgba(0,0,0,1);
+}
+
+.card-slot.wrong {
+    border-color: var(--status-wrong);
+    animation: shake 0.4s ease-in-out;
+}
+
+/* Overlay de Resposta (Fim de Jogo) */
+.result-overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+    opacity: 0;
+    animation: fadeIn 0.5s forwards;
+    flex-direction: column;
+}
+
+.result-value {
+    color: #fff;
+    font-weight: 800;
+    font-size: 1.1rem;
+    text-align: center;
+}
+.result-label {
+    font-size: 0.7rem; color: #ccc; margin-top: 4px;
+}
+
+/* Controles e Dots */
+.controls-area {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.feedback-msg {
+    text-align: center;
+    height: 20px;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.action-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.attempts-indicator {
+    display: flex; gap: 8px;
+}
+.dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    background: #333; border: 1px solid #444;
+    transition: all 0.3s;
+}
+.dot.active { background: var(--orka-accent); box-shadow: 0 0 8px var(--orka-accent); }
+.dot.success { background: var(--status-correct); border-color: var(--status-correct); }
+.dot.fail { background: var(--status-wrong); border-color: var(--status-wrong); }
+
+/* Animations */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px) rotate(-2deg); }
+    75% { transform: translateX(4px) rotate(2deg); }
+}
+
+
+/* --- CALENDÁRIO: Status Extra --- */
+/* O orka-base.css já tem .win e .lose, adicionamos o playing */
+.calendar-day.playing {
+    border: 2px solid #d4a017; /* Dourado/Amarelo */
+    color: #d4a017;
+    background: rgba(212, 160, 23, 0.1);
+}
+
+/* --- OVERLAY DE RESPOSTA (Correção para exibir valores) --- */
+.result-overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.85); /* Fundo escuro semi-transparente */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10; /* Garante que fique acima da imagem e do texto */
+    opacity: 0;
+    animation: fadeIn 0.5s forwards;
+    pointer-events: none; /* Permite clicar no card se necessário */
+    padding: 5px;
+}
+
+.result-value {
+    color: #fff;
+    font-weight: 800;
+    font-size: 1.1rem;
+    text-align: center;
+    text-shadow: 0 2px 4px black;
+}
+
+.result-label {
+    font-size: 0.75rem;
+    color: var(--orka-accent);
+    margin-top: 4px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+@keyframes fadeIn { to { opacity: 1; } }

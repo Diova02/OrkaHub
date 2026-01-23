@@ -1,10 +1,17 @@
+//Game data
 import animalsDB from './animais.js';
 import curiositiesDB from './curiosidades.js';
+import { dictionary } from './trad.js';
+
+//Orka APIs
 import { 
     OrkaFX, OrkaDate, OrkaStorage, Utils, 
     OrkaI18n, OrkaAutocomplete, OrkaTutorial, OrkaCalendar 
 } from '../../core/scripts/orka-lib.js';
-import { OrkaCloud } from '../../core/scripts/orka-cloud.js';
+
+// 1. IMPORTAÇÃO DA NOVA ARQUITETURA
+import { OrkaGameManager } from '../../core/scripts/orka-game-manager.js'; 
+import { OrkaCloud } from '../../core/scripts/orka-cloud.js'; // Ainda usada para loads específicos
 
 // ==========================================
 // 1. CONFIGURAÇÃO & DADOS
@@ -14,121 +21,16 @@ const MAX_ATTEMPTS = 10;
 const START_DATE = new Date("2025-12-01T00:00:00");
 const POP_SCALE = ["Extinto","Dezenas", "Centenas", "Milhares", "Milhões", "Bilhões", "Trilhões"];
 
-// Dicionário de Tradução COMPLETO
-const dictionary = {
-    pt: {
-        gameTitle: "Orka Zoo",
-        guessPlaceholder: "Digite um animal...",
-        btnGuess: "CHUTAR", // Botão principal
-        attempts: "Tentativas", 
-        global: "Global",
-        yrs: "anos",
-        
-        // Mensagens de Estado Inicial (Vazio)
-        startMsg: "Tudo começa com um chute...",
-        startSub: "Digite o nome de um animal para iniciar a caçada!",
-        tipBtn: "LEGAL",
-        tipTitle: "CURIOSIDADE DO DIA",
+// --- INSTÂNCIA DO GERENTE (O Novo Cérebro) ---
+const Game = new OrkaGameManager({
+    gameId: GAME_ID,
+    enforceLogin: true,      // Garante que ninguém jogue sem Nickname
+    heartbeatInterval: 60000 // Salva sessão a cada 1 minuto
+});
 
-        // Cabeçalho da Tabela (IMPORTANTE: O HTML precisa ter data-t com essas chaves)
-        hAnimal: "Animal",
-        hWeight: "Peso",
-        hDiet: "Dieta",
-        hHabitat: "Habitat",
-        hContinent: "Continente",
-        hClass: "Classe",
-        hPop: "Pop.",
-        hLife: "Vida",
-        hCycle: "Ciclo",
-
-        // Tutorial (Texto mais claro)
-        tutTitle: "COMO JOGAR",
-        tut1: "O objetivo é descobrir o <strong>animal secreto</strong> do dia.",
-        tut2: "<span style='color:#2e8b57'>🟩 VERDE:</span> A característica está exata.",
-        tut3: "<span style='color:#e4b00f'>🟨 AMARELO:</span> Parcialmente correto (ex: acerta um dos habitats).",
-        tut4: "Setas (↑ ↓) indicam se o valor (peso, população) é maior ou menor.",
-        tut5: "Você tem 10 tentativas. Boa sorte!",
-        tutBtn: "BORA JOGAR!",
-
-        // Fim de Jogo & Toast
-        winTitle: "VITÓRIA!", loseTitle: "FIM DE JOGO", 
-        winMsg: "Você descobriu o animal!", loseMsg: "Acabaram as tentativas.",
-        toastErrList: "Animal não encontrado!", toastErrDup: "Você já tentou esse animal!", 
-        toastWin: "Parabéns! Você venceu!", toastLose: "Fim de jogo!",
-        tomorrow: "Volte amanhã para novos desafios!",
-        shareMsg: "Resultado copiado!",
-        didYouKnow: "Você sabia? ",
-        animalFound: "Você acertou <strong>{animal}</strong> em {attempts} tentativa(s).", 
-        animalReveal: "O animal era <strong>{animal}</strong>."
-    },
-    en: {
-        gameTitle: "Orka Zoo",
-        guessPlaceholder: "Type an animal...",
-        btnGuess: "GUESS",
-        attempts: "Attempts", 
-        global: "Global",
-        yrs: "yrs",
-
-        // Empty State
-        startMsg: "It all starts with a guess...",
-        startSub: "Type an animal name to begin the hunt!",
-        tipBtn: "COOL",
-        tipTitle: "CURIOSITY OF THE DAY",
-
-        // Table Headers
-        hAnimal: "Animal",
-        hWeight: "Weight",
-        hDiet: "Diet",
-        hHabitat: "Habitat",
-        hContinent: "Continent",
-        hClass: "Class",
-        hPop: "Pop.",
-        hLife: "Life",
-        hCycle: "Cycle",
-
-        // Tutorial
-        tutTitle: "HOW TO PLAY",
-        tut1: "Your goal is to find the <strong>secret animal</strong> of the day.",
-        tut2: "<span style='color:#2e8b57'>🟩 GREEN:</span> Exact match.",
-        tut3: "<span style='color:#e4b00f'>🟨 YELLOW:</span> Partial match (e.g. correct habitat).",
-        tut4: "Arrows (↑ ↓) indicate higher or lower values.",
-        tut5: "You have 10 attempts. Good luck!",
-        tutBtn: "LET'S PLAY!",
-
-        // End Game & Toast
-        winTitle: "VICTORY!", loseTitle: "GAME OVER", 
-        winMsg: "You found the animal!", loseMsg: "Out of attempts.",
-        toastErrList: "Animal not found!", toastErrDup: "Already guessed that!", 
-        toastWin: "Congrats! You won!", toastLose: "Game Over!",
-        tomorrow: "Come back tomorrow for new challenges!",
-        shareMsg: "Copied to clipboard!",
-        didYouKnow: "Did you know? ",
-        animalFound: "You guessed <strong>{animal}</strong> in {attempts} attempt(s).", 
-        animalReveal: "The animal was <strong>{animal}</strong>."
-    }
-};
-
-// Mapas de Dados (Lógica Interna)
-const enMap = {
-    "Mamifero": "Mammal", "Ave": "Bird", "Reptil": "Reptile", "Anfibio": "Amphibian", "Peixe": "Fish", "Inseto": "Insect", "Aracnideo": "Arachnid", "Molusco": "Mollusk", "Crustaceo": "Crustacean",
-    "terrestre": "Terrestrial", "aquatico": "Aquatic", "aereo": "Aerial",
-    "Carnivoro": "Carnivore", "Herbivoro": "Herbivore", "Onivoro": "Omnivore", "Insetivoro": "Insectivore", "Piscivoro": "Piscivore", "Nectarivoro": "Nectarivore", "Hematofago": "Hematophage",
-    "Africa": "Africa", "Asia": "Asia", "Europa": "Europe", "America": "Americas", "Oceania": "Oceania", "Antartida": "Antarctica",
-    "Extinto": "Extinct", "Anelideo": "Annelid", "Detritivoro": "Detritivore", "Filtrador":"Filter Feeder", "Hematofago":"Hematophagous",
-    "Porifero":"Porifera", "Tardigrado":"Tardigrade", "Cnidario":"Cnidaria", "Equinodermo":"Echinodermata",
-    "Diurno": "Diurnal", "Noturno": "Nocturnal", "Crepuscular": "Crepuscular", "Catemeral": "Cathemeral"
-};
-
-const ptCorrections = {
-    "terrestre": "Terrestre", "aquatico": "Aquático", "aereo": "Aéreo",
-    "America": "América", "Africa": "África", "Asia": "Ásia", "Antartida": "Antártida", "Oceania": "Oceania", "Europa": "Europa",
-    "Mamifero": "Mamífero", "Reptil": "Réptil", "Anfibio": "Anfíbio", "Aracnideo": "Aracnídeo", "Crustaceo": "Crustáceo",
-    "Carnivoro": "Carnívoro", "Herbivoro": "Herbívoro", "Onivoro": "Onívoro", "Insetivoro": "Insetívoro", "Piscivoro": "Piscívoro", 
-    "Nectarivoro": "Nectarívoro", "Hematofago": "Hematófago", "Filtrador":"Filtrador",
-    "Extinto": "Extinto", "Anelideo": "Anelídeo", "Detritivoro": "Detritívoro",
-    "Diurno": "Diurno", "Noturno": "Noturno", "Crepuscular": "Crepuscular", "Catemeral": "Catemeral"
-};
-
+// Mapas de Dados (Mantido idêntico)
+const enMap = { "Mamifero": "Mammal", "Ave": "Bird", "Reptil": "Reptile", "Anfibio": "Amphibian", "Peixe": "Fish", "Inseto": "Insect", "Aracnideo": "Arachnid", "Molusco": "Mollusk", "Crustaceo": "Crustacean", "terrestre": "Terrestrial", "aquatico": "Aquatic", "aereo": "Aerial", "Carnivoro": "Carnivore", "Herbivoro": "Herbivore", "Onivoro": "Omnivore", "Insetivoro": "Insectivore", "Piscivoro": "Piscivore", "Nectarivoro": "Nectarivore", "Hematofago": "Hematophage", "Africa": "Africa", "Asia": "Asia", "Europa": "Europe", "America": "Americas", "Oceania": "Oceania", "Antartida": "Antarctica", "Extinto": "Extinct", "Anelideo": "Annelid", "Detritivoro": "Detritivore", "Filtrador":"Filter Feeder", "Hematofago":"Hematophagous", "Porifero":"Porifera", "Tardigrado":"Tardigrade", "Cnidario":"Cnidaria", "Equinodermo":"Echinodermata", "Diurno": "Diurnal", "Noturno": "Nocturnal", "Crepuscular": "Crepuscular", "Catemeral": "Cathemeral" };
+const ptCorrections = { "terrestre": "Terrestre", "aquatico": "Aquático", "aereo": "Aéreo", "America": "América", "Africa": "África", "Asia": "Ásia", "Antartida": "Antártida", "Oceania": "Oceania", "Europa": "Europa", "Mamifero": "Mamífero", "Reptil": "Réptil", "Anfibio": "Anfíbio", "Aracnideo": "Aracnídeo", "Crustaceo": "Crustáceo", "Carnivoro": "Carnívoro", "Herbivoro": "Herbívoro", "Onivoro": "Onívoro", "Insetivoro": "Insetívoro", "Piscivoro": "Piscívoro", "Nectarivoro": "Nectarívoro", "Hematofago": "Hematófago", "Filtrador":"Filtrador", "Extinto": "Extinto", "Anelideo": "Anelídeo", "Detritivoro": "Detritívoro", "Diurno": "Diurno", "Noturno": "Noturno", "Crepuscular": "Crepuscular", "Catemeral": "Catemeral" };
 const CHECKPOINTS = [];
 const SPECIAL_DAYS = {};
 
@@ -152,23 +54,16 @@ const dateDisplay = document.getElementById("date-display");
 const summaryBox = document.getElementById("page-end-summary");
 
 // ==========================================
-// 3. INICIALIZAÇÃO
+// 3. INICIALIZAÇÃO (REFATORADO)
 // ==========================================
 async function initGame(dateInput = new Date()) {
-    // 1. Cloud & Lang
-    await OrkaCloud.init();
+    // 1. Inicializa via Game Manager (Resolve Auth, Nickname, Proteção e Sessão)
+    const { profile } = await Game.init();
     
-    // IMPORTANTE: Aqui garantimos que se o Cloud retornar 'en-US', pegamos 'en'.
-    // E se não tiver nada, força 'pt'.
-    const cloudLang = OrkaCloud.getLanguage() || 'pt-BR';
+    // 2. Configura Idioma (Pega do profile retornado pelo Manager)
+    const cloudLang = profile?.language || 'pt-BR';
     const langCode = cloudLang.startsWith('en') ? 'en' : 'pt';
-    
-    // Inicializa I18n com o dicionário
     currentLang = OrkaI18n.init(dictionary, langCode);
-
-    // 2. Sessão
-    const isToday = new Date().toDateString() === dateInput.toDateString();
-    if (isToday) await OrkaCloud.startSession(GAME_ID);
 
     // 3. Setup Lógica
     resetGameUI();
@@ -191,49 +86,27 @@ async function initGame(dateInput = new Date()) {
     );
 
     // 5. Tutorial
-    OrkaTutorial.checkAndShow('orkaZooTutorialV4', { // Mudei a chave para V4 para forçar aparecer para você testar
+    OrkaTutorial.checkAndShow('orkaZooTutorialV4', { 
         title: OrkaI18n.t('tutTitle'),
-        steps: [
-            OrkaI18n.t('tut1'),
-            OrkaI18n.t('tut2'),
-            OrkaI18n.t('tut3'),
-            OrkaI18n.t('tut4'),
-            OrkaI18n.t('tut5')
-        ],
+        steps: [ OrkaI18n.t('tut1'), OrkaI18n.t('tut2'), OrkaI18n.t('tut3'), OrkaI18n.t('tut4'), OrkaI18n.t('tut5') ],
         btnText: OrkaI18n.t('tutBtn')
     });
 
-    loadProgress();
+    await loadProgress(); // Agora usa loadSave da V5 internamente
 
     OrkaCalendar.bind({
-        triggerBtn: 'calendar-btn',       
-        modalId: 'modal-calendar',        
-        gridId: 'calendar-grid',          
-        titleId: 'calendar-month-year',   
-        prevBtn: 'prev-month',            
-        nextBtn: 'next-month'             
+        triggerBtn: 'calendar-btn', modalId: 'modal-calendar', gridId: 'calendar-grid', titleId: 'calendar-month-year', prevBtn: 'prev-month', nextBtn: 'next-month'             
     }, {
         minDate: '2026-01-01',            
-        
         getCurrentDate: () => gameState.currentDate, 
-        
-        // --- CORREÇÃO AQUI ---
         getDayClass: (isoDate) => {
-            // 1. Ajuste a chave para bater com getStorageKey() ('orkaZoo_' e não 'orka_zoo_daily_')
             const key = `orkaZoo_${isoDate}`; 
             const data = OrkaStorage.load(key);
-            
             if (!data) return ''; 
-
-            // 2. Ajuste a lógica para ler as propriedades que você realmente salva (win/over)
-            // Em saveProgress você salva: { win: true/false, over: true/false ... }
             if (data.win) return 'win';
             if (data.over) return 'lose';
-            
-            // Se existe dados mas não acabou (over=false), está jogando
             return 'playing'; 
         },
-
         onSelect: (date) => {
             gameState.currentDate = date; 
             initGame(date);           
@@ -254,7 +127,6 @@ function resetGameUI() {
     attemptDisplay.textContent = "0";
     Utils.toggleModal('modal-end', false);
     
-    // Mostra o Empty State (Mensagem inicial)
     const emptyState = document.getElementById("empty-state");
     if(emptyState) emptyState.style.display = "block";
     
@@ -271,15 +143,10 @@ function getTargetByDate(dateObj) {
         const special = animalsDB.find(a => a.nome.pt === SPECIAL_DAYS[dateKey]);
         if (special) return special;
     }
-
     let activeDbSize = animalsDB.length;
     for (const check of CHECKPOINTS) {
-        if (dateObj < new Date(check.date)) {
-            activeDbSize = check.limit;
-            break; 
-        }
+        if (dateObj < new Date(check.date)) { activeDbSize = check.limit; break; }
     }
-    
     const totalDays = OrkaDate.getIndexByDate(dateObj, START_DATE, 9999999);
     const index = totalDays % activeDbSize;
     return animalsDB[index] || animalsDB[animalsDB.length - 1];
@@ -291,27 +158,16 @@ function processGuessFromInput(data) {
     let guessObj = null;
     if (typeof data === 'string') {
         const val = Utils.normalize(data);
-        guessObj = animalsDB.find(a => 
-            Utils.normalize(a.nome.pt) === val || Utils.normalize(a.nome.en) === val
-        );
+        guessObj = animalsDB.find(a => Utils.normalize(a.nome.pt) === val || Utils.normalize(a.nome.en) === val);
     } else {
         guessObj = data;
     }
 
-    if (!guessObj) { 
-        OrkaFX.toast(OrkaI18n.t("toastErrList"), "error"); 
-        OrkaFX.shake("guess-input"); 
-        return; 
-    }
-    if (gameState.guessedNames.has(guessObj.nome.pt)) { 
-        OrkaFX.toast(OrkaI18n.t("toastErrDup"), "error"); 
-        OrkaFX.shake("guess-input"); 
-        return; 
-    }
+    if (!guessObj) { OrkaFX.toast(OrkaI18n.t("toastErrList"), "error"); OrkaFX.shake("guess-input"); return; }
+    if (gameState.guessedNames.has(guessObj.nome.pt)) { OrkaFX.toast(OrkaI18n.t("toastErrDup"), "error"); OrkaFX.shake("guess-input"); return; }
 
     if (!startTime) startTime = Date.now();
 
-    // Esconde msg inicial
     const emptyState = document.getElementById("empty-state");
     if(emptyState) emptyState.style.display = "none";
 
@@ -323,6 +179,14 @@ function processGuessFromInput(data) {
     saveProgress();
     OrkaAutocomplete.clear("guess-input");
 
+    // NOVO: Checkpoint do Game Manager
+    // Isso garante que se o user sair agora, sabemos que ele tentou X vezes e qual foi o último score
+    Game.checkpoint({
+        attempts: gameState.attemptsCount, // ISSO vai aparecer no metadata agora
+        last_guess: guessObj.nome.pt,
+        current_status: 'guessing'
+    });
+    
     if (guessObj.nome.pt === gameState.targetAnimal.nome.pt) {
         endGame(true);
     } else if (gameState.attemptsCount >= MAX_ATTEMPTS) {
@@ -398,48 +262,37 @@ function getStorageKey() {
 }
 
 async function saveProgress() {
-    // 1. Prepara os dados REAIS baseados no seu gameState atual
-    // AQUI ESTAVA O ERRO: Usamos 'gameState' e não 'state'
     const dataParaSalvar = {
-        guessed: Array.from(gameState.guessedNames), // Converte o Set de chutes para Lista
+        guessed: Array.from(gameState.guessedNames),
         over: gameState.isGameOver,
         win: gameState.isGameOver && Array.from(gameState.guessedNames).pop() === gameState.targetAnimal.nome.pt,
         startT: startTime,
         endT: endTime,
-        attempts: gameState.attemptsCount // Útil ter o contador salvo explícito
+        attempts: gameState.attemptsCount
     };
 
-    // 2. Salva Localmente (Backup/Offline)
     OrkaStorage.save(getStorageKey(), dataParaSalvar);
     OrkaStorage.updateCalendarStatus(gameState.currentDate, dataParaSalvar.win ? 'win' : (dataParaSalvar.over ? 'lose' : 'playing'));
 
-    // 3. Salva na Nuvem (A CADA CHUTE)
-    // Removemos o 'if (gameState.isGameOver)' para salvar o progresso parcial também
+    // ATUALIZADO: Chama saveGame (V5) ao invés de saveGameProgress (V4)
     const cloudId = getCloudGameId();
-    
-    //console.log(`☁️ Salvando progresso parcial em: ${cloudId}`); // (Opcional: Debug)
-    await OrkaCloud.saveGameProgress(cloudId, dataParaSalvar);
+    await OrkaCloud.saveGame(cloudId, dataParaSalvar);
 }
 
 async function loadProgress() {
-    // 1. Gera o ID específico para a data que estamos vendo no calendário
     const cloudId = getCloudGameId();
+    
+    // ATUALIZADO: Chama loadSave (V5)
+    let data = await OrkaCloud.loadSave(cloudId);
 
-    // 2. Tenta buscar na nuvem usando esse ID específico
-    let data = await OrkaCloud.loadGameSave(cloudId, null);
-
-    // 3. Fallback para LocalStorage (se não achar na nuvem)
     if (!data) {
         data = OrkaStorage.load(getStorageKey());
-        
-        // Migração Silenciosa: Se achou local mas não na nuvem, sobe pra nuvem
         if (data && data.over) {
             console.log(`☁️ Migrando save de ${cloudId} para nuvem...`);
-            OrkaCloud.saveGameProgress(cloudId, data);
+            OrkaCloud.saveGame(cloudId, data);
         }
     }
 
-    // 4. Se tiver dados (da nuvem ou local), restaura o jogo
     if (data) {
         startTime = data.startT;
         endTime = data.endT;
@@ -449,7 +302,6 @@ async function loadProgress() {
              if(emptyState) emptyState.style.display = "none";
         }
 
-        // Limpa o grid antes de desenhar para evitar duplicatas ao trocar de data
         gridBody.innerHTML = "";
         gameState.guessedNames.clear();
         gameState.attemptsCount = 0;
@@ -470,12 +322,8 @@ async function loadProgress() {
             gameState.isGameOver = true;
             document.getElementById("guess-input").disabled = true;
             document.getElementById("submit-btn").disabled = true;
-            
-            // Só revela o animal se perdeu (se ganhou, o último chute já é o animal)
             if (!data.win) renderRow(gameState.targetAnimal, true);
             
-            // O modal só deve abrir automaticamente se for o dia de HOJE.
-            // Se estou navegando no calendário, não quero popups na cara.
             const isToday = gameState.currentDate.toDateString() === new Date().toDateString();
             fillEndModal(data.win); 
             if (isToday) Utils.toggleModal('modal-end', true);
@@ -500,18 +348,28 @@ async function endGame(win) {
     fillEndModal(win);
     
     const isToday = gameState.currentDate.toDateString() === new Date().toDateString();
+    
+    // REFATORADO: O Game Manager cuida da lógica de "Bolo" e "Beacon"
     if (win) { 
         OrkaFX.confetti(); 
         if (isToday) {
-            await OrkaCloud.addBolo(1); 
+            // Se for hoje, o triggerWin tenta pegar recompensa e salvar leaderboard
+            // (No Zoo, 'score' não conta muito pra leaderboard global, mas mandamos attempts)
+            Game.endGame('win', { 
+                animal: gameState.targetAnimal.nome.pt, 
+                attempts: gameState.attemptsCount 
+            });
             OrkaFX.toast(OrkaI18n.t('toastWin') + " (+1 🎂)", "success");
         } else {
+            // Se for dia passado, só fecha sessão sem tentar recompensa
+            Game.endGame('win', { note: 'past_date' });
             OrkaFX.toast(OrkaI18n.t('toastWin'), "success");
         }
     } else { 
+        Game.endGame('lose', { attempts: gameState.attemptsCount });
         OrkaFX.toast(OrkaI18n.t('toastLose'), "error"); 
     }
-    OrkaCloud.endSession({ win, animal: gameState.targetAnimal.nome.pt, attempts: gameState.attemptsCount });
+    
     setTimeout(() => { Utils.toggleModal('modal-end', true); }, 1500);
 }
 
@@ -544,7 +402,6 @@ function fillEndModal(win) {
 // ==========================================
 // 7. CALENDÁRIO & CURIOSIDADES
 // ==========================================
-
 
 document.getElementById("tip-btn").addEventListener("click", () => {
     const tipIndex = OrkaDate.getDailyIndex(START_DATE, curiositiesDB.length);
@@ -584,11 +441,10 @@ function tryLoadImage(img, name, formats, idx) {
 }
 
 window.shareResult = function() {
-    OrkaCloud.track('share_result', 'conversion', { win: gameState.isGameOver });
+    OrkaCloud.trackEvent('share_result', { win: gameState.isGameOver });
     const dateStr = gameState.currentDate.toLocaleDateString('pt-BR');
     const attemptStr = gameState.isGameOver && gameState.guessedNames.has(gameState.targetAnimal.nome.pt) ? gameState.attemptsCount : "X";
     let text = `🦁 Orka Zoo ${dateStr}\n${OrkaI18n.t('attempts')}: ${attemptStr}/10\n\n`;
-    
     gameState.guessedNames.forEach(name => {
         const guess = animalsDB.find(a => a.nome.pt === name);
         if(guess) {
@@ -609,6 +465,6 @@ window.shareResult = function() {
 };
 
 window.closeModal = (id) => Utils.toggleModal(id, false);
-window.addEventListener('beforeunload', () => OrkaCloud.endSession({ reason: 'tab_closed' }));
+// REMOVIDO: window.onbeforeunload (O GameManager já cuida disso)
 
 initGame();

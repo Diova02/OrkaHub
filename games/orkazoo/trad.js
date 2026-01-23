@@ -1,48 +1,20 @@
-export default {
+export const dictionary = {
     pt: {
-        attempts: "Tentativas", guess: "Chutar", animal: "Animal", weight: "Peso", diet: "Dieta", habitat: "Habitat", continent: "Continente", class: "Classe", pop: "Pop.",
-        // TUTORIAL RECEPTIVO ATUALIZADO
-        howToPlay: "BEM-VINDO AO ORKA ZOO!", 
-        tut1: "Seu objetivo é descobrir o animal secreto do dia em 10 tentativas.",
-        tut2: "🟩 VERDE: Atributo exato.\n🟨 AMARELO: Parcialmente correto.",
-        tut3: "Setas (↑ ↓) indicam se o peso ou população é maior ou menor.",
-        tut4: "Teste seus conhecimentos de zoologia e divirta-se!",
-        start: "COMEÇAR DESAFIO", close: "FECHAR",
-        // FIM TUTORIAL
+        gameTitle: "Orka Zoo", guessPlaceholder: "Digite um animal...", btnGuess: "CHUTAR", attempts: "Tentativas", global: "Global", yrs: "anos",
+        startMsg: "Tudo começa com um chute...", startSub: "Digite o nome de um animal para iniciar a caçada!", tipBtn: "LEGAL", tipTitle: "CURIOSIDADE DO DIA",
+        hAnimal: "Animal", hWeight: "Peso", hDiet: "Dieta", hHabitat: "Habitat", hContinent: "Continente", hClass: "Classe", hPop: "Pop.", hLife: "Vida", hCycle: "Ciclo",
+        tutTitle: "COMO JOGAR", tut1: "O objetivo é descobrir o <strong>animal secreto</strong> do dia.", tut2: "<span style='color:#2e8b57'>🟩 VERDE:</span> A característica está exata.", tut3: "<span style='color:#e4b00f'>🟨 AMARELO:</span> Parcialmente correto (ex: acerta um dos habitats).", tut4: "Setas (↑ ↓) indicam se o valor (peso, população) é maior ou menor.", tut5: "Você tem 10 tentativas. Boa sorte!", tutBtn: "BORA JOGAR!",
         winTitle: "VITÓRIA!", loseTitle: "FIM DE JOGO", winMsg: "Você descobriu o animal!", loseMsg: "Acabaram as tentativas.",
-        animalFound: "Você acertou <strong>{animal}</strong> em {attempts} tentativa(s).", animalReveal: "O animal era <strong>{animal}</strong>.",
-        toastErrList: "Animal não encontrado!", toastErrDup: "Você já tentou esse animal!", toastWin: "Parabéns! Você venceu!", toastLose: "Fim de jogo!",
-        global: "Global", tomorrow: "Volte amanhã para novos desafios!",
-        share: "COMPARTILHAR", shareMsg: "Resultado copiado!",
-        startMsg: "Tudo começa com um chute...",
-        startSub: "Digite um animal para começar!",
-        time: "Tempo",
-        tipTitle: "CURIOSIDADE DO DIA",
-        tipBtn: "LEGAL!",
-        didYouKnow: "Você sabia? ", // Espaço intencional
-        lifespan: "Vida", cycle: "Ciclo", 
-        yrs: "anos"
+        toastErrList: "Animal não encontrado!", toastErrDup: "Você já tentou esse animal!", toastWin: "Parabéns! Você venceu!", toastLose: "Fim de jogo!", tomorrow: "Volte amanhã para novos desafios!", shareMsg: "Resultado copiado!", didYouKnow: "Você sabia? ", animalFound: "Você acertou <strong>{animal}</strong> em {attempts} tentativa(s).", animalReveal: "O animal era <strong>{animal}</strong>.",
+        close: "FECHAR"
     },
     en: {
-        attempts: "Attempts", guess: "Guess", animal: "Animal", weight: "Weight", diet: "Diet", habitat: "Habitat", continent: "Continent", class: "Class", pop: "Pop.",
-        howToPlay: "WELCOME TO ORKA ZOO!", 
-        tut1: "Your goal is to find the secret animal of the day in 10 attempts.",
-        tut2: "🟩 GREEN: Exact match.\n🟨 YELLOW: Partial match.",
-        tut3: "Arrows (↑ ↓) indicate higher or lower values.",
-        tut4: "Test your zoology skills and have fun!",
-        start: "START CHALLENGE", close: "CLOSE",
+        gameTitle: "Orka Zoo", guessPlaceholder: "Type an animal...", btnGuess: "GUESS", attempts: "Attempts", global: "Global", yrs: "yrs",
+        startMsg: "It all starts with a guess...", startSub: "Type an animal name to begin the hunt!", tipBtn: "COOL", tipTitle: "CURIOSITY OF THE DAY",
+        hAnimal: "Animal", hWeight: "Weight", hDiet: "Diet", hHabitat: "Habitat", hContinent: "Continent", hClass: "Class", hPop: "Pop.", hLife: "Life", hCycle: "Cycle",
+        tutTitle: "HOW TO PLAY", tut1: "Your goal is to find the <strong>secret animal</strong> of the day.", tut2: "<span style='color:#2e8b57'>🟩 GREEN:</span> Exact match.", tut3: "<span style='color:#e4b00f'>🟨 YELLOW:</span> Partial match (e.g. correct habitat).", tut4: "Arrows (↑ ↓) indicate higher or lower values.", tut5: "You have 10 attempts. Good luck!", tutBtn: "LET'S PLAY!",
         winTitle: "VICTORY!", loseTitle: "GAME OVER", winMsg: "You found the animal!", loseMsg: "Out of attempts.",
-        animalFound: "You guessed <strong>{animal}</strong> in {attempts} attempt(s).", animalReveal: "The animal was <strong>{animal}</strong>.",
-        toastErrList: "Animal not found!", toastErrDup: "Already guessed that!", toastWin: "Congrats! You won!", toastLose: "Game Over!",
-        global: "Global", tomorrow: "Come back tomorrow for new challenges!",
-        share: "SHARE", shareMsg: "Copied to clipboard!",
-        startMsg: "It all starts with a guess...",
-        startSub: "Type an animal to start!",
-        time: "Time",
-        tipTitle: "CURIOSITY OF THE DAY",
-        tipBtn: "COOL",
-        didYouKnow: "Did you know? ", // Espaço intencional
-        lifespan: "Life", cycle: "Cycle",
-        yrs: "yrs"
+        toastErrList: "Animal not found!", toastErrDup: "Already guessed that!", toastWin: "Congrats! You won!", toastLose: "Game Over!", tomorrow: "Come back tomorrow for new challenges!", shareMsg: "Copied to clipboard!", didYouKnow: "Did you know? ", animalFound: "You guessed <strong>{animal}</strong> in {attempts} attempt(s).", animalReveal: "The animal was <strong>{animal}</strong>.",
+        close: "CLOSE"
     }
 };

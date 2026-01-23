@@ -1,7 +1,20 @@
-import { OrkaCloud, supabase } from '../../core/scripts/orka-cloud.js';
+import { OrkaGameManager } from '../../core/scripts/orka-game-manager.js';
+import { OrkaCloud } from '../../core/scripts/orka-cloud.js';
 import { OrkaFX, OrkaUI, OrkaI18n, OrkaAutocomplete, Utils } from '../../core/scripts/orka-lib.js';
 import Traducao from './trad.js';
 import { palavrasPT, palavrasEN } from './palavras.js';
+
+// --- INSTÂNCIA DO GERENTE ---
+const GAME_ID = 'orka-jinx';
+const Game = new OrkaGameManager({
+    gameId: GAME_ID,
+    enforceLogin: true, // Garante que tem Nick e Avatar antes de entrar
+    heartbeatInterval: 60000 
+});
+
+// Acesso ao Supabase para Realtime (via getter seguro)
+const supabase = OrkaCloud.getClient ? OrkaCloud.getClient() : null;
+if (!supabase) console.error("FATAL: OrkaCloud V5 precisa exportar getClient() para jogos multiplayer!");
 
 // --- ESTADO ---
 let state = {
@@ -9,7 +22,7 @@ let state = {
     roomCode: null,
     playerId: null,
     nickname: 'Anonimo',
-    avatar: 'default', // NOVO: Guarda o avatar local
+    avatar: 'default', 
     isHost: false,
     hostId: null,
     language: 'pt-BR',
@@ -34,25 +47,18 @@ const inputs = {
 const modalVictory = document.getElementById('modal-victory');
 const btnPlayAgain = document.getElementById('btn-play-again');
 
-// --- INICIALIZAÇÃO CORRIGIDA ---
+// --- INICIALIZAÇÃO PADRONIZADA (V5) ---
+
 async function init() {
-    // 1. PRIMEIRO: Inicializa o Cloud para pegar perfil
-    await OrkaCloud.init();
+    // 1. O Manager resolve Auth, Nick, Avatar e Sessão
+    const { profile, user } = await Game.init();
     
-    // 2. AGORA é seguro pegar os dados
-    state.playerId = OrkaCloud.getUserId();
-    state.nickname = OrkaCloud.getNickname() || 'Anonimo';
+    state.playerId = user.id;
+    state.nickname = profile.nickname;
+    state.avatar = profile.profile_image || 'default'; // V5 usa profile_image
     
-    // Tenta pegar o avatar da URL do Cloud (ex: ../../assets/avatars/fox.png) ou só o nome (fox)
-    // O OrkaCloud V4 retorna a URL completa no getAvatarUrl, vamos extrair ou usar direto se for salvar URL
-    // Vamos assumir que salvaremos a URL completa no banco para facilitar
-    state.avatar = OrkaCloud.getAvatarUrl(); 
-
-    // 3. Inicia a Sessão do Jogo
-    await OrkaCloud.startSession('orkajinx');
-
-    // 4. Configurações de Língua
-    const cloudLang = OrkaCloud.getLanguage() || 'pt-BR';
+    // 2. Configurações de Língua
+    const cloudLang = profile.language || 'pt-BR';
     const langCode = cloudLang.startsWith('en') ? 'en' : 'pt';
     OrkaI18n.init(Traducao, langCode);
     setInternalLang(cloudLang);
@@ -60,6 +66,7 @@ async function init() {
 
     setupAutocomplete();
 
+    // Entra direto se tiver código na URL
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
     if (code) { inputs.roomCode.value = code; joinRoom(code); }
@@ -98,19 +105,32 @@ function setInternalLang(fullLang) {
     if (btnEn) btnEn.style.cssText = fullLang === 'en-US' ? active : inactive;
 
     setupAutocomplete();
-    OrkaCloud.setLanguage(fullLang);
+    // Atualiza preferência no perfil global via V5
+    OrkaCloud.updateProfile({ language: fullLang });
 }
 
 // --- LÓGICA DE SALA ---
+
 document.getElementById('btn-create').addEventListener('click', async () => {
-    if(!state.playerId) return OrkaFX.toast("Conectando...", "info"); // Proteção extra
+    if(!state.playerId) return OrkaFX.toast("Conectando...", "info");
 
     const code = Math.random().toString(36).substring(2, 6).toUpperCase();
     const { data, error } = await supabase.from('jinx_rooms')
-        .insert({ code, language: state.language, status: 'waiting', used_words: [], current_round: 1, time_limit: 90, round_start_time: new Date() })
+        .insert({ 
+            code, 
+            language: state.language, 
+            status: 'waiting', 
+            used_words: [], 
+            current_round: 1, 
+            time_limit: 90, 
+            round_start_time: new Date() 
+        })
         .select().single();
     
     if (error) return OrkaFX.toast(OrkaI18n.t('errCreate'), 'error');
+    
+    // Checkpoint: Criou sala
+    Game.checkpoint({ action: 'create_room', room_code: code });
     enterRoom(data);
 });
 
@@ -127,6 +147,8 @@ document.getElementById('btn-leave').addEventListener('click', () => {
 async function joinRoom(code) {
     const { data, error } = await supabase.from('jinx_rooms').select('*').eq('code', code).single();
     if (error || !data) return OrkaFX.toast(OrkaI18n.t('errNotFound'), 'error');
+    
+    Game.checkpoint({ action: 'join_room', room_code: code });
     enterRoom(data);
 }
 
@@ -139,14 +161,14 @@ async function enterRoom(roomData) {
     const shortLang = roomData.language.startsWith('en') ? 'en' : 'pt';
     OrkaI18n.init(Traducao, shortLang);
     
-    // --- ATUALIZAÇÃO: ENVIANDO AVATAR ---
-    // Certifique-se que a tabela jinx_room_players tem a coluna 'avatar' (text)
-    // Se não tiver, o Supabase vai ignorar ou dar erro, mas o código segue.
+    // Avatar Full URL (O V5 já tratou se é default ou custom)
+    const avatarUrl = state.avatar.includes('/') ? state.avatar : `../../assets/avatars/${state.avatar}.png`;
+
     await supabase.from('jinx_room_players').upsert({
         room_id: state.roomId, 
         player_id: state.playerId, 
         nickname: state.nickname, 
-        profile_image: state.avatar, // Envia a URL do avatar
+        profile_image: avatarUrl, 
         last_word: ''
     }, { onConflict: 'player_id, room_id' });
 
@@ -157,25 +179,34 @@ async function enterRoom(roomData) {
 
 async function leaveRoomLogic() {
     if (!state.roomId) return;
+    
+    Game.checkpoint({ action: 'leave_room' });
+
     if (state.isHost) {
+        // Host deleta a sala (idealmente deveria migrar host, mas deletar é mais seguro pra MVP)
         await supabase.from('jinx_rooms').delete().eq('id', state.roomId);
     } else {
         await supabase.from('jinx_room_players').delete().eq('player_id', state.playerId);
     }
-    window.location.href = 'index.html'; 
+    
+    // Encerra sessão do jogo atual e volta pro hub
+    Game.endGame('abandoned');
+    window.location.href = '../../index.html'; 
 }
 
-window.onbeforeunload = () => {
-    OrkaCloud.endSession({ reason: 'tab_closed' });
+// O Manager cuida do beacon, mas precisamos limpar a sala no DB
+window.addEventListener('beforeunload', () => {
     if (state.roomId) {
         const table = state.isHost ? 'jinx_rooms' : 'jinx_room_players';
         const key = state.isHost ? 'id' : 'player_id';
         const val = state.isHost ? state.roomId : state.playerId;
+        // Tenta limpar (fetch keepalive seria melhor aqui também, mas supabase js client já tenta)
         supabase.from(table).delete().eq(key, val).then();
     }
-};
+});
 
 // --- REALTIME ---
+
 function subscribeToRoom() {
     const channel = supabase.channel(`room:${state.roomId}`);
     channel
@@ -215,7 +246,7 @@ function handlePlayerChange(payload) {
         if (pExists) {
             state.players = state.players.filter(p => p.id !== payload.old.id);
             OrkaFX.toast(`${pExists.nickname} ${OrkaI18n.t('left')}`, 'default');
-            if(payload.old.player_id === state.playerId) window.location.href = 'index.html';
+            if(payload.old.player_id === state.playerId) window.location.href = '../../index.html';
         }
     }
     determineHost(); renderPlayers(); checkMyStatus(); checkGameLogic(); 
@@ -225,7 +256,7 @@ function handlePlayerChange(payload) {
 function handleRoomChange(payload) {
     if (payload.eventType === 'DELETE') {
         OrkaFX.toast(OrkaI18n.t('roomClosed'), 'warning');
-        setTimeout(() => window.location.href = 'index.html', 2000);
+        setTimeout(() => window.location.href = '../../index.html', 2000);
         return;
     }
     handleRoomUpdate(payload.new);
@@ -300,11 +331,11 @@ async function resetRound() {
     const promises = state.players.map(p => supabase.from('jinx_room_players').update({ is_ready: false, last_word: p.current_word || '', current_word: '' }).eq('id', p.id));
     await Promise.all(promises);
     await supabase.from('jinx_rooms').update({ used_words: state.usedWords, current_round: nextRound, round_start_time: new Date() }).eq('id', state.roomId);
+    
+    Game.checkpoint({ action: 'next_round', round: nextRound });
 }
 
-// --- FUNÇÃO DE RESET QUE FALTAVA (CORREÇÃO ERRO 2) ---
 async function resetGameRoom() {
-    // Ação do Host para jogar novamente do zero
     if (state.players.length < 2) return OrkaFX.toast("Esperando jogadores...", "warning");
 
     await supabase.from('jinx_rooms')
@@ -317,6 +348,8 @@ async function resetGameRoom() {
             .eq('id', p.id)
     );
     await Promise.all(updatePromises);
+    
+    Game.checkpoint({ action: 'reset_game' });
 }
 
 async function sendWord() {
@@ -345,10 +378,22 @@ async function sendWord() {
     await supabase.from('jinx_room_players')
         .update({ is_ready: true, current_word: finalWord })
         .eq('player_id', state.playerId).eq('room_id', state.roomId);
+        
+    // Checkpoint pessoal: Palavra enviada
+    Game.checkpoint({ action: 'word_sent', word_length: finalWord.length });
 }
 
 async function finishGame(winningWord) {
-    OrkaCloud.endSession({ win: true, rounds: state.round, players: state.players.length, role: state.isHost?'host':'guest' });
+    // Vitória no Jinx!
+    // Aqui usamos 'win' para Analytics, mas Jinx não tem Daily Reward nem Leaderboard pessoal
+    // então o Game.endGame serve mais para fechar a sessão com sucesso.
+    Game.endGame('win', { 
+        rounds_played: state.round, 
+        players_count: state.players.length,
+        role: state.isHost ? 'host' : 'guest',
+        winning_word: winningWord
+    });
+    
     await supabase.from('jinx_rooms').update({ status: 'finished', used_words: state.usedWords }).eq('id', state.roomId);
     showEndModal('win', winningWord);
 }
@@ -356,7 +401,7 @@ async function finishGame(winningWord) {
 function showEndModal(type, word = null) {
     clearInterval(state.timerInterval);
     const timerDisplay = document.getElementById('timer-display');
-    if(timerDisplay) timerDisplay.classList.remove('panic'); // Remove pânico
+    if(timerDisplay) timerDisplay.classList.remove('panic'); 
 
     const icon = modalVictory.querySelector('.victory-icon');
     const title = modalVictory.querySelector('.victory-title');
@@ -398,14 +443,11 @@ function updateVictoryModalUI() {
     }
 }
 
-// --- TIMER CORRIGIDO (Melhoria 1) ---
 function startLocalTimer() {
     if (state.timerInterval) clearInterval(state.timerInterval);
-    
-    // MELHORIA 1: Se for rodada 1, não inicia timer
     if (state.round === 1) {
          const timerDisplay = document.getElementById('timer-display');
-         if(timerDisplay) timerDisplay.innerText = "00:00"; // Ou "--:--"
+         if(timerDisplay) timerDisplay.innerText = "00:00"; 
          return;
     }
 
@@ -424,16 +466,15 @@ function startLocalTimer() {
             timerDisplay.innerText = "00:00";
             timerDisplay.classList.add('panic');
             
-            // Trava Inputs
             if (!inputs.word.disabled) {
                 inputs.word.disabled = true;
                 OrkaFX.shake('game-app');
             }
             
-            // Só o Host avisa o servidor que acabou
             if (state.isHost && !isTimeoutProcessing) {
                 isTimeoutProcessing = true;
                 supabase.from('jinx_rooms').update({ status: 'timeout' }).eq('id', state.roomId).then();
+                Game.endGame('lose', { reason: 'timeout' }); // Registra derrota por tempo
             }
         } else {
             const totalSeconds = Math.ceil(diff / 1000);
@@ -445,7 +486,6 @@ function startLocalTimer() {
     }, 250);
 }
 
-// --- RENDER COM AVATAR (Melhoria 2) ---
 function renderPlayers() {
     const grid = document.getElementById('players-grid');
     if (!grid) return; grid.innerHTML = '';
@@ -483,7 +523,7 @@ function renderPlayers() {
         if (isReady) { cardClass += ' ready'; if (!allReady) displayWord = OrkaI18n.t('youAreReady'); }
         if (allReady) { displayWord = p.current_word || ''; cardClass += ' revealed'; if (isWin) cardClass += ' winner'; }
 
-        // AVATAR: Se tiver URL salva, usa img, senão usa ícone
+        // Render Avatar
         const avatarHtml = p.profile_image && p.profile_image.includes('/') 
             ? `<img src="${p.profile_image}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`
             : `<span class="material-icons" style="color:#666; font-size:32px;">${isReady ? 'check_circle' : 'person'}</span>`;

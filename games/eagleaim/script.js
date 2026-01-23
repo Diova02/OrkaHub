@@ -1,5 +1,6 @@
 import { OrkaCloud } from '../../core/scripts/orka-cloud.js';
-import { OrkaFX, OrkaMath, OrkaDate, OrkaStorage, OrkaAudio, OrkaCalendar, Utils, OrkaTutorial } from '../../core/scripts/orka-lib.js';
+import { OrkaGameManager } from '../../core/scripts/orka-game-manager.js'; // NOVO IMPORT
+import { OrkaFX, OrkaMath, OrkaStorage, OrkaAudio, OrkaCalendar, Utils, OrkaTutorial } from '../../core/scripts/orka-lib.js';
 
 // =========================
 // CONFIGURAÇÕES
@@ -12,6 +13,13 @@ const TOTAL_WAVES = 3;
 
 // Configuração de Pontos (1º ao 10º)
 const RANK_POINTS = { 0: 10, 1: 7, 2: 5, 3: 4, 4: 3, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1 };
+
+// --- INSTÂNCIA DO GERENTE (O Novo Cérebro) ---
+const Game = new OrkaGameManager({
+    gameId: GAME_ID,
+    enforceLogin: true,       // Garante nick
+    heartbeatInterval: 30000  // Salva sessão a cada 30s
+});
 
 let state = {
     currentDate: new Date(),
@@ -26,7 +34,8 @@ let state = {
     levelData: null,
     finalTime: 0,
     bestTime: null,
-    lastRunTime: null 
+    lastRunTime: null,
+    profile: null // Guarda perfil localmente
 };
 
 const screens = {
@@ -67,12 +76,14 @@ const els = {
 };
 
 // =========================
-// 1. INICIALIZAÇÃO
+// 1. INICIALIZAÇÃO (REFATORADA)
 // =========================
 async function init() {
-    await OrkaCloud.init();
+    // 1. Inicializa via Game Manager (Resolve Auth, Nickname, Proteção e Sessão)
+    const { profile } = await Game.init();
+    state.profile = profile;
+
     state.currentDate.setHours(0,0,0,0);
-    state.calendarViewDate = new Date(state.currentDate); 
     updateDateDisplay();
     
     // 🔊 CARREGAMENTO DOS SONS
@@ -99,7 +110,7 @@ async function init() {
         ]
     });
 
-    loadDailyRecord();
+    loadDailyRecord(); // Carrega do LocalStorage primeiro (instantâneo)
 
     els.btnPlay.addEventListener('click', () => {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -126,7 +137,7 @@ async function init() {
         document.getElementById('calendar-btn').click(); // Apenas clica no botão principal
     });
 
-   // --- NOVO SISTEMA DE CALENDÁRIO ---
+   // --- CALENDÁRIO ---
     OrkaCalendar.bind({
         triggerBtn: 'calendar-btn',
         modalId: 'modal-calendar',
@@ -137,15 +148,10 @@ async function init() {
     }, {
         minDate: MIN_DATE,
         getCurrentDate: () => state.currentDate,
-        
-        // --- A MÁGICA ACONTECE AQUI ---
-        // Essa função roda para cada dia do mês. 
-        // Se existir um recorde salvo para aquele dia, retorna a classe 'win' (verde).
         getDayClass: (isoDate) => {
             const hasRecord = OrkaStorage.load(`eagleAim_record_${isoDate}`);
             return hasRecord ? 'win' : ''; 
         },
-        
         onSelect: (d) => {
             state.currentDate = d;
             updateDateDisplay();
@@ -170,6 +176,7 @@ function getStorageKey() {
 }
 
 function loadDailyRecord() {
+    // Tenta carregar local (mais rápido)
     const record = OrkaStorage.load(getStorageKey());
     if (record) {
         state.bestTime = parseFloat(record);
@@ -179,10 +186,12 @@ function loadDailyRecord() {
     refreshDashboardUI();
 }
 
+// ATENÇÃO: Esta função agora salva localmente E prepara o terreno pro Cloud
 function saveDailyRecord(newTime) {
     const timeFloat = parseFloat(newTime);
     state.lastRunTime = timeFloat;
     
+    // Se for recorde do dia
     if (!state.bestTime || timeFloat < state.bestTime) {
         state.bestTime = timeFloat;
         OrkaStorage.save(getStorageKey(), timeFloat);
@@ -192,8 +201,12 @@ function saveDailyRecord(newTime) {
 }
 
 function refreshDashboardUI() {
-    els.dashNick.textContent = OrkaCloud.getNickname() || 'Visitante';
-    els.dashAvatar.src = OrkaCloud.getAvatarUrl();
+    const user = OrkaCloud.getProfile(); // Pega do estado V5
+    els.dashNick.textContent = user?.nickname || 'Visitante';
+    // O novo Cloud não expõe getAvatarUrl() diretamente como helper, mas podemos reconstruir ou pegar do profile
+    // Ajuste V5: o avatar vem no profile.image
+    const avatarSlug = user?.image || 'default';
+    els.dashAvatar.src = `../../assets/avatars/${avatarSlug}.png`;
     
     if (state.bestTime) {
         els.dashBestToday.textContent = state.bestTime.toFixed(3) + 's';
@@ -223,10 +236,13 @@ async function loadSeasonRankings() {
         const today = new Date();
         const promises = [];
 
+        // V5: loadSave e getLeaderboard continuam funcionando via OrkaCloud
+        // A lógica de "Temporada" ainda é client-side por enquanto (como planejado no roadmap futuro)
         for (let i = 0; i < daysToCheck; i++) {
             const d = new Date(today);
             d.setDate(today.getDate() - i);
             if (d >= new Date(MIN_DATE)) {
+                // Ajuste V5: Passa data como objeto Date direto
                 promises.push(OrkaCloud.getLeaderboard(GAME_ID, d));
             }
         }
@@ -256,9 +272,11 @@ async function loadSeasonRankings() {
             .filter(p => p.points > 0)
             .sort((a, b) => b.points - a.points);
 
-        renderPodium(sortedPlayers.slice(0, 5));
+        renderPodium(sortedPlayers.slice(0, 10));
         
-        const myEntry = sortedPlayers.find(p => p.isMe) || sortedPlayers.find(p => p.nickname === OrkaCloud.getNickname());
+        // Ajuste V5: getProfile() substitui getNickname() direto
+        const currentNick = OrkaCloud.getProfile()?.nickname;
+        const myEntry = sortedPlayers.find(p => p.isMe) || sortedPlayers.find(p => p.nickname === currentNick);
         const myPoints = myEntry ? myEntry.points : 0;
         els.dashGlobalPts.textContent = `${myPoints} pts`;
 
@@ -276,12 +294,10 @@ function renderPodium(players) {
         return;
     }
 
-    // Renderiza na ordem direta (Já vem ordenado por pontos do loadSeasonRankings)
     players.forEach((p, index) => {
         const rank = index + 1;
         const div = document.createElement('div');
         
-        // Define classe de cor
         let rankClass = 'rank-other';
         if (rank === 1) rankClass = 'rank-1';
         else if (rank === 2) rankClass = 'rank-2';
@@ -289,10 +305,12 @@ function renderPodium(players) {
 
         div.className = `podium-item ${rankClass}`;
         
-        // HTML Estruturado: Posição > Avatar > Nick > Pontos
+        // Ajuste Avatar URL se vier completo ou slug
+        const avatarSrc = p.avatar.includes('/') ? p.avatar : `../../assets/avatars/${p.avatar}.png`;
+
         div.innerHTML = `
             <span class="rank-badge">${rank}º</span>
-            <img src="${p.avatar}" class="podium-avatar" onerror="this.src='../../assets/icons/orka-logo.png'">
+            <img src="${avatarSrc}" class="podium-avatar" onerror="this.src='../../assets/icons/orka-logo.png'">
             <span class="podium-nick">${p.nickname}</span>
             <div class="podium-pts">${p.points}<small>PTS</small></div>
         `;
@@ -339,7 +357,15 @@ function generateDailyLevel(dateInput) {
 
 function startCountdown() {
     switchScreen('countdown');
-    OrkaCloud.startSession(GAME_ID);
+    
+    // V5: Inicia Sessão já foi feito no init(), mas para cada partida podemos
+    // mandar um "checkpoint" de início ou criar nova sessão se o design permitir.
+    // Como o Manager V5 cria UMA sessão por visita, vamos usar checkpoints.
+    Game.checkpoint({ 
+        status: 'countdown_started', 
+        attempt_date: new Date() 
+    });
+
     state.levelData = generateDailyLevel(state.currentDate);
     els.splatLayer.innerHTML = ''; 
     
@@ -374,6 +400,10 @@ function startGame() {
     state.penaltyTime = 0;
     state.bonusTime = 0;
     state.startTime = performance.now();
+    
+    // V5: Checkpoint de início de jogo
+    Game.checkpoint({ status: 'game_started', wave: 0 });
+
     spawnWave(0);
     state.timerInterval = requestAnimationFrame(updateTimerLoop);
 }
@@ -391,6 +421,13 @@ function spawnWave(index) {
         finishGame();
         return;
     }
+    
+    // V5: Checkpoint de progresso
+    Game.checkpoint({ 
+        wave_completed: index, 
+        current_time: els.timer.textContent 
+    });
+
     state.waveIndex = index;
     els.wave.textContent = `ONDA ${index + 1}/${TOTAL_WAVES}`;
     els.targets.innerHTML = ''; 
@@ -411,7 +448,6 @@ function spawnWave(index) {
         el.style.left = t.x + '%'; el.style.top = t.y + '%';
         el.style.transform = `translate(-50%, -50%) scale(0)`;
         
-        // Timeout para criar efeito "pop" sequencial
         setTimeout(() => {
             if(state.isPlaying) el.style.transform = `translate(-50%, -50%) scale(${t.scale})`;
         }, i * 50);
@@ -496,6 +532,9 @@ function createVisualFX(x, y, isHit, variant = 'normal') {
     setTimeout(() => ripple.remove(), 500);
 }
 
+// =========================
+// 5. FIM DE JOGO (MIGRAÇÃO CRÍTICA)
+// =========================
 async function finishGame() {
     state.isPlaying = false;
     cancelAnimationFrame(state.timerInterval);
@@ -505,17 +544,33 @@ async function finishGame() {
     const rawTime = Math.max(0, now - state.startTime + state.penaltyTime - state.bonusTime);
     state.finalTime = (rawTime / 1000).toFixed(3);
     
+    // Salva recorde local (UI instantânea)
     saveDailyRecord(state.finalTime);
     
-    OrkaCloud.endSession({ score: state.finalTime, wave: TOTAL_WAVES, perfect_bonus: state.bonusTime });
+    // Toca som
     OrkaAudio.play('endgame');
     
+    // V5: O EndGame faz tudo (Beacon, Analytics, Recompensa)
+    // O 'score' aqui é o tempo (quanto menor melhor, mas o manager envia como está)
+    // Se o jogo fosse de pontos (maior melhor), funcionaria igual.
+    // Nota: Como Eagle Aim é "Menor Tempo", certifique-se que o Leaderboard no Supabase está ordenado ASC.
+    // Se ainda não estiver, precisaremos ajustar a view ou a query.
+    await Game.endGame('win', { 
+        score: parseFloat(state.finalTime), // Importante converter pra float
+        wave: TOTAL_WAVES,
+        penalties: state.penaltyTime,
+        perfect_bonus: state.bonusTime
+    });
+
     els.btnPlay.textContent = 'JOGAR NOVAMENTE';
     switchScreen('menu');
 
-    const currentNick = OrkaCloud.getNickname();
-    if (currentNick) {
-        await OrkaCloud.submitScore(GAME_ID, state.bestTime, state.currentDate);
+    // V5: Perfil vem do Cloud
+    const profile = OrkaCloud.getProfile();
+    if (profile && profile.nickname) {
+        // Envia Score explicitamente para atualizar ranking IMEDIATO na UI
+        // (O Game.endGame já envia, mas aqui garantimos o refresh visual)
+        await OrkaCloud.submitScore(GAME_ID, state.bestTime); 
         OrkaFX.toast('Ranking atualizado!', 'success');
         loadLeaderboardInline(); 
         refreshDashboardUI(); 
@@ -537,15 +592,19 @@ function updateDateDisplay() {
 async function saveNicknameAndSubmit() {
     const name = els.nickInput.value.trim();
     if (!name) return OrkaFX.shake('modal-nick');
-    await OrkaCloud.updateNickname(name);
+    
+    // V5: updateProfile
+    await OrkaCloud.updateProfile({ nickname: name });
+    
     els.modalNick.classList.remove('active');
     refreshDashboardUI();
-    if(state.bestTime) await OrkaCloud.submitScore(GAME_ID, state.bestTime, state.currentDate);
+    if(state.bestTime) await OrkaCloud.submitScore(GAME_ID, state.bestTime);
     loadLeaderboardInline();
 }
 
 async function loadLeaderboardInline() {
     els.inlineRankingList.innerHTML = '<div class="loading-spinner small"></div>';
+    // V5: getLeaderboard continua funcionando
     const data = await OrkaCloud.getLeaderboard(GAME_ID, state.currentDate);
     
     els.inlineRankingList.innerHTML = ''; 
@@ -557,10 +616,14 @@ async function loadLeaderboardInline() {
     data.forEach((entry, index) => {
         const div = document.createElement('div');
         div.className = `ranking-row ${entry.isMe ? 'is-me' : ''}`;
+        
+        // Ajuste Avatar
+        const avatarSrc = entry.avatar.includes('/') ? entry.avatar : `../../assets/avatars/${entry.avatar}.png`;
+
         div.innerHTML = `
             <div class="rank-left">
                 <span class="rank-pos">#${index + 1}</span>
-                <img src="${entry.avatar}" class="rank-avatar">
+                <img src="${avatarSrc}" class="rank-avatar">
                 <span class="rank-name">${entry.nickname}</span>
             </div>
             <span class="rank-score">${entry.score.toFixed(3)}s</span>

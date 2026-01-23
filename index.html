@@ -10,6 +10,8 @@
     <link rel="icon" type="image/png" href="../../assets/icons/orka-logo.png">
 
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
     <div id="orka-loader">
@@ -56,21 +58,63 @@
     <main>
         <section id="section-admin" class="tab-content">
             <div class="admin-dashboard">
-                <h2>Orka Command Center</h2>
+                <div class="admin-header">
+                    <div>
+                        <h2>Orka Command Center 🚀</h2>
+                        <span class="admin-subtitle">Analytics em Tempo Real</span>
+                    </div>
+                    <div class="admin-controls">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-admin-data">
+                            <span class="slider"></span>
+                            <span class="label-text">Ocultar Admins</span>
+                        </label>
+                        <button id="btn-generate-report" class="orka-btn-small">
+                            <span class="material-icons">picture_as_pdf</span> Relatório Semanal
+                        </button>
+                    </div>
+                </div>
+
                 <div class="stats-grid" id="admin-stats-grid">
-                    <div class="stat-card"><h3>Jogadores</h3><p id="adm-total-users">...</p></div>
-                    <div class="stat-card"><h3>Ativos (24h)</h3><p id="adm-active">...</p></div>
-                    <div class="stat-card"><h3>Sessões</h3><p id="adm-sessions">...</p></div>
+                    <div class="stat-card">
+                        <h3>👥 Jogadores</h3>
+                        <p id="adm-users">...</p>
+                        <small id="adm-users-label">Total Registrado</small>
+                    </div>
+                    <div class="stat-card">
+                        <h3>🎮 Sessões</h3>
+                        <p id="adm-sessions">...</p>
+                        <small id="adm-sessions-label">Total Plays</small>
+                    </div>
+                    <div class="stat-card highlight">
+                        <h3>⏳ Tempo em Jogo</h3>
+                        <p id="adm-game-time">...</p>
+                        <small>Engajamento Real</small>
+                    </div>
+                    <div class="stat-card lowlight">
+                        <h3>🏠 Tempo no Hub</h3>
+                        <p id="adm-hub-time">...</p>
+                        <small>Navegação</small>
+                    </div>
                 </div>
                 
-                <h3>Desempenho dos Jogos</h3>
-                <table class="orka-table" id="adm-games-table">
-                    <thead><tr><th>Jogo</th><th>Sessões</th><th>Jogadores Únicos</th></tr></thead>
-                    <tbody></tbody>
-                </table>
-                
-                <div style="margin-top:20px; text-align:right;">
-                    <button id="btn-run-cleaner" class="orka-btn" style="background:#cc3333;">🧹 Rodar Faxina</button>
+                <h3 style="margin-top:30px;">Performance por Jogo</h3>
+                <div style="overflow-x:auto;">
+                    <table class="orka-table" id="adm-games-table">
+                        <thead>
+                            <tr>
+                                <th>Jogo</th>
+                                <th>Plays</th>
+                                <th>Jogadores</th>
+                                <th>Tempo Total</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <div class="admin-footer-actions">
+                    <button id="btn-run-cleaner" class="orka-btn danger-btn">🧹 Limpar Fantasmas</button>
                     <button id="btn-refresh-adm" class="orka-btn">🔄 Atualizar</button>
                 </div>
             </div>
