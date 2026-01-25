@@ -8,8 +8,8 @@ export const gamesList = [
     { id: 'zoo', type: 'daily', title: 'ORKA ZOO', descKey: 'game_zoo_desc', icon: 'zoo-logo.png', print: 'print-zoo.png', url: 'games/orkazoo/', releaseDate: '2026-01-05', active: true },
     { id: 'jinx', type: 'web', title: 'ORKA JINX', descKey: 'game_jinx_desc', icon: 'jinx-logo.png', print: 'print-jinx.png', url: 'games/orkajinx/', releaseDate: '2026-01-13', active: true },
     { id: 'eagle', type: 'daily', title: 'EAGLE AIM', descKey: 'game_eagle_desc', icon: 'eagle-logo.png', print: 'print-eagle.png', url: 'games/eagleaim/', releaseDate: '2026-01-17', active: true },
-    { id: 'listit', type: 'daily', title: 'LISTIT', descKey: 'game_listit_desc', icon: null, print: null, url: 'games/listit/', active: true, adminOnly: true },
-    // Em breve
+    { id: 'listit', type: 'daily', title: 'LISTIT', descKey: 'game_listit_desc', icon: 'listit-logo.png', print: 'print-listit.png', url: 'games/listit/', releaseDate: '2026-01-25', active: true},
+    // Em breve - usar adminOnly: true para testar!
     { id: 'disco', type: 'soon', title: 'DISCOMANIA', descKey: 'game_disco_desc', icon: null, print: null, url: '#', active: false },
     { id: 'firewall', type: 'soon', title: 'FIREWALL', descKey: 'game_firewall_desc', icon: null, print: null, url: '#', active: false }
 ];

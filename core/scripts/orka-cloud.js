@@ -143,32 +143,37 @@ async function updateSession(sessionId, payload) {
     await supabase.from('sessions').update(payload).eq('id', sessionId);
 }
 
+// core/scripts/orka-cloud.js
+
 function endSessionBeacon(sessionId, finalPayload) {
     if (!sessionId) return;
     
-    // URL para atualizar a sessão específica
     const url = `${CONFIG.url}/rest/v1/sessions?id=eq.${sessionId}`;
-    
     const body = JSON.stringify({
         ...finalPayload,
         ended_at: new Date().toISOString()
     });
 
-    // A mágica: keepalive: true mantém a requisição viva mesmo se a aba fechar
-    fetch(url, {
-        method: 'PATCH',
-        headers: {
-            'apikey': CONFIG.key,
-            'Authorization': `Bearer ${CONFIG.key}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=minimal'
-        },
-        body: body,
-        keepalive: true 
-    }).catch(err => {
-        // Silencioso em produção, mas útil ver no console agora
-        console.warn("OrkaCloud: Erro ao finalizar sessão (Keepalive)", err);
-    });
+    const headers = {
+        'apikey': CONFIG.key,
+        'Authorization': `Bearer ${CONFIG.key}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+    };
+
+    // TENTATIVA 1: Beacon API (Ideal para mobile/fechar aba)
+    const blob = new Blob([body], { type: 'application/json' });
+    const beaconSuccess = navigator.sendBeacon(url, blob);
+
+    // TENTATIVA 2: Se o Beacon falhar (ou não for suportado), usa Fetch Keepalive
+    if (!beaconSuccess) {
+        fetch(url, {
+            method: 'PATCH',
+            headers: headers,
+            body: body,
+            keepalive: true
+        }).catch(e => console.warn("OrkaCloud: Erro ao finalizar sessão (Keepalive)", err));
+    }
 }
 
 // =================================================================

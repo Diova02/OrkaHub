@@ -252,6 +252,38 @@ export const Utils = {
         const m = Math.floor(seconds / 60).toString().padStart(2,'0');
         const s = Math.floor(seconds % 60).toString().padStart(2,'0');
         return `${m}:${s}`;
+    },
+    
+    preloadImages: async function (items, basePath = '../../assets/imagens/') {
+        // função de normalização idêntica à que você usou para gerar os nomes
+        const normalize = (str) =>
+            str.normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/\s+/g, '')
+                .toLowerCase();
+
+        // 1️⃣ Carrega o índice UMA VEZ
+        const imageList = await fetch(basePath + 'images.json').then(r => r.json());
+
+        // 2️⃣ Cria mapa de lookup: nome normalizado → nome real do arquivo
+        const imageMap = {};
+        for (const fileName of imageList) {
+            const nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
+            imageMap[normalize(nameWithoutExt)] = fileName;
+        }
+
+        // 3️⃣ Resolve cada item usando lookup direto
+        const resolveItem = (item) => {
+            const cleanName = normalize(item.name);
+            const matchedFile = imageMap[cleanName];
+
+            return {
+                ...item,
+                imgUrl: matchedFile ? `${basePath}${matchedFile}` : null
+            };
+        };
+
+        return items.map(resolveItem);
     }
 };
 
