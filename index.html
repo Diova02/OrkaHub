@@ -391,7 +391,7 @@
                         Toda ajuda aqui literalmente vira mais jogo.
                     </p>
                     <div class="support-actions" style="justify-content: center;">
-                        <a href="https://instagram.com/SEU_INSTA" target="_blank" class="btn-social btn-insta">
+                        <a href="https://instagram.com/orka.gamestudio" target="_blank" class="btn-social btn-insta">
                             <span class="material-icons">photo_camera</span> Seguir no Insta
                         </a>
                         <a href="#" target="_blank" class="btn-social btn-coffee">
@@ -522,6 +522,17 @@
             </div>
         </div>
     </div>
+
+    <script>
+        // Registra o Service Worker se o navegador suportar
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('Orka SW registrado!', reg.scope))
+                    .catch(err => console.log('Falha no SW:', err));
+            });
+        }
+    </script>
 
     <script type="module" src="script.js"></script>
 </body>

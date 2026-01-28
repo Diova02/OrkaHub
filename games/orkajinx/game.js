@@ -8,6 +8,7 @@ import { palavrasPT, palavrasEN } from './palavras.js';
 const GAME_ID = 'jinx';
 const Game = new OrkaGameManager({
     gameId: GAME_ID,
+    isDaily: false,     // [NOVO] Impede que o manager busque saves diários ou daily claims
     enforceLogin: true, // Garante que tem Nick e Avatar antes de entrar
     heartbeatInterval: 60000 
 });
@@ -180,17 +181,19 @@ async function enterRoom(roomData) {
 async function leaveRoomLogic() {
     if (!state.roomId) return;
     
-    Game.checkpoint({ action: 'leave_room' });
+    // [CORREÇÃO] Aqui chamamos o endGame, pois o jogador está efetivamente saindo
+    // Passamos 'abandoned' ou 'quit' para saber que ele saiu voluntariamente
+    Game.endGame('quit', { 
+        total_rounds: state.round,
+        final_room: state.roomCode
+    });
 
     if (state.isHost) {
-        // Host deleta a sala (idealmente deveria migrar host, mas deletar é mais seguro pra MVP)
         await supabase.from('jinx_rooms').delete().eq('id', state.roomId);
     } else {
         await supabase.from('jinx_room_players').delete().eq('player_id', state.playerId);
     }
     
-    // Encerra sessão do jogo atual e volta pro hub
-    Game.endGame('abandoned');
     window.location.href = '../../index.html'; 
 }
 
@@ -384,17 +387,21 @@ async function sendWord() {
 }
 
 async function finishGame(winningWord) {
-    // Vitória no Jinx!
-    // Aqui usamos 'win' para Analytics, mas Jinx não tem Daily Reward nem Leaderboard pessoal
-    // então o Game.endGame serve mais para fechar a sessão com sucesso.
-    Game.endGame('win', { 
-        rounds_played: state.round, 
+    // [CORREÇÃO] Não usamos endGame aqui para não matar a sessão do lobby.
+    // Usamos checkpoint para registrar que uma rodada foi concluída.
+    Game.checkpoint({ 
+        event: 'round_win',
+        round: state.round, 
         players_count: state.players.length,
         role: state.isHost ? 'host' : 'guest',
         winning_word: winningWord
     });
     
-    await supabase.from('jinx_rooms').update({ status: 'finished', used_words: state.usedWords }).eq('id', state.roomId);
+    // Atualiza status da sala no Supabase
+    await supabase.from('jinx_rooms')
+        .update({ status: 'finished', used_words: state.usedWords })
+        .eq('id', state.roomId);
+        
     showEndModal('win', winningWord);
 }
 

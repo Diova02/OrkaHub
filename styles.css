@@ -992,3 +992,63 @@ main{
     from { transform: scale(0); opacity: 0; }
     to { transform: scale(1); opacity: 1; }
 }
+
+/* --- MOBILE TWEAKS (Adicione ao final do styles.css) --- */
+
+/* --- MOBILE FIXES (Atualizado) --- */
+@media (max-width: 768px) {
+
+    /* 1. LAYOUT GERAL (Sobre & Equipe) */
+    .strip-content-wrapper {
+        flex-direction: column !important;
+        text-align: center;
+        gap: 20px;
+    }
+    
+    /* Remove inversão em linhas pares */
+    .about-strip:nth-child(even) .strip-content-wrapper {
+        flex-direction: column !important;
+    }
+
+    /* CORREÇÃO: Equipe (Tabela em cima, Funcionário em baixo) */
+    .team-layout {
+        flex-direction: column; /* Empilha verticalmente */
+        align-items: center;    /* Centraliza o quadro do funcionário */
+    }
+    .credits-col {
+        width: 100%;           /* Tabela ocupa largura total */
+        margin-bottom: 30px;   /* Espaço antes do quadro do funcionário */
+    }
+
+    /* 2. CARDS DO HUB (Proporcionais e Compactos) */
+    .game-card-horizontal {
+        /* Proporção mais próxima do Desktop (4:3), só que menor */
+        min-width: 200px;  
+        width: 200px;
+        height: 150px;     /* Reduzido proporcionalmente */
+    }
+
+    .card-print {
+        height: 90px;      /* Imagem domina a maior parte */
+    }
+
+    .card-content {
+        padding: 8px 12px; /* Padding mais enxuto */
+        justify-content: center;
+    }
+    
+    /* Esconde descrição, foca no título */
+    .card-text p { display: none; }
+    
+    .card-text h3 {
+        font-size: 0.9rem;
+        margin: 0;
+    }
+    
+    .card-icon {
+        width: 24px; height: 24px; /* Ícone discreto */
+    }
+    
+    /* Remove botão de seta para economizar espaço vertical
+    .card-action { display: none; } */
+}

@@ -132,9 +132,27 @@ function updateHubUI() {
     // C. Avatar & Header
     updateAvatarUI(profile.profile_image); 
 
-    // D. Bolos
+    // D. Bolos (Via RPC Ledger)
     const boloDisplay = document.getElementById('header-bolo-count');
-    if (boloDisplay) boloDisplay.textContent = profile.bolo || 0;
+    if (boloDisplay) {
+        // 1. Mostra o cached/zero enquanto carrega para não ficar vazio
+        boloDisplay.textContent = profile.bolo || "..."; 
+        
+        // 2. Busca o saldo real no Ledger (Async)
+        OrkaCloud.getClient()
+            .rpc('get_my_balance')
+            .then(({ data, error }) => {
+                if (!error && data !== null) {
+                    boloDisplay.textContent = data;
+                    
+                    // Opcional: Animaçãozinha visual quando o valor atualiza
+                    boloDisplay.style.transition = "transform 0.3s";
+                    boloDisplay.style.transform = "scale(1.2)";
+                    setTimeout(() => boloDisplay.style.transform = "scale(1)", 300);
+                }
+            })
+            .catch(err => console.error("Erro ao buscar saldo:", err));
+    }
 
     // E. Auth State
     const user = OrkaCloud.getUser();
@@ -309,6 +327,8 @@ function applyHubTranslation(langFull) {
     renderGames(lang);
 }
 
+// Localize a função renderGames e substitua o bloco do "forEach" interno por este:
+
 function renderGames(lang) {
     const t = translations[lang];
     const role = OrkaCloud.getProfile()?.role || 'user';
@@ -341,19 +361,23 @@ function renderGames(lang) {
         const printSrc = game.print ? `assets/prints/${game.print}` : '';
         const isNew = checkIsNew(game.releaseDate);
 
-        // --- LÓGICA DO BOLO ---
+        // --- LÓGICA DO BOLO (ATUALIZADA) ---
         let rewardHTML = '';
-        // Mostra SE: for jogo diário + ativo + NÃO estiver marcado como 'done' hoje
+        
+        // Regra:
+        // 1. É jogo diário?
+        // 2. Está ativo?
+        // 3. NÃO está na lista de "dailyStatus" (ou seja, ainda não pegou hoje)?
         if (game.type === 'daily' && game.active && !dailyStatus[game.id]) {
             rewardHTML = `
             <div class="tag-reward" title="Recompensa disponível!">
                 <span class="material-icons" style="font-size:0.9rem;">cake</span>
             </div>`;
         }
-        // ----------------------
+        // ------------------------------------
+
         const tagHTML = (isNew && game.active) ? `<span class="tag-new">NOVO</span>` : '';
         
-        // Injeta o rewardHTML
         const printHTML = game.active ? 
             `<div class="print-container" style="position:relative;">
                 <img src="${printSrc}" class="card-print" style="height:100%; width:100%; object-fit:cover; border:none;" onerror="this.src='assets/icons/orka-logo.png'">
@@ -381,7 +405,6 @@ function renderGames(lang) {
         `;
         container.appendChild(card);
     });
-    console.log("Status recebido:", dailyStatus); // <--- Adicione isso
 }
 
 function checkIsNew(dateString) {
@@ -736,123 +759,58 @@ function formatDate(date) {
 
 // Verifica quais jogos o usuário já interagiu hoje (ganhou ou perdeu)
 // No script.js, substitua a antiga checkDailyStatus por esta:
+// --- FUNÇÃO DE STATUS DIÁRIO ---
 
-async function fetchDailyStatus(user) {
+async function fetchDailyStatus() {
+    const user = OrkaCloud.getUser();
     if (!user) return {};
 
+    const supabase = OrkaCloud.getClient();
     const today = new Date().toISOString().split('T')[0];
 
-    // 1. Busca direta na tabela de claims (Muito mais leve!)
-    const { data: claims, error } = await supabase
-        .from('daily_claims')
-        .select('game_id')
-        .eq('player_id', user.id)
-        .eq('claimed_at', today);
+    console.log("🔍 Verificando status diário para:", today);
 
-    if (error) {
-        console.error("Erro ao checar status diário:", error);
-        return {};
-    }
+    // Faremos duas buscas em paralelo (muito rápido)
+    const [claimsReq, savesReq] = await Promise.all([
+        // 1. Já recebeu recompensa? (Vitórias)
+        supabase.from('daily_claims')
+            .select('game_id')
+            .eq('player_id', user.id)
+            .eq('claimed_at', today),
 
-    // 2. Mapeia para o formato que o Hub espera
-    // Se está na tabela daily_claims, é porque completou/ganhou hoje.
-    const statusMap = {};
-    
-    if (claims) {
-        claims.forEach(claim => {
-            // Normaliza IDs se necessário (ex: converter 'orka-zoo' para 'zoo' se o banco usar nomes diferentes)
-            // Se seus IDs no banco já batem com gamesList[].id, basta:
-            statusMap[claim.game_id] = 'done'; 
-        });
-    }
-    
-    console.log("Status Diário (Otimizado):", statusMap);
-    return statusMap;
-// Variável global para cache (como você já usava)
-let adminDataCache = null;
-
-async function fetchAdminData() {
-    console.log("📊 Buscando dados do painel admin...");
-    
-    // 1. Buscas Paralelas para Performance
-    const [
-        { count: totalPlayers },
-        { count: activeSessionsNow }, // Sessões com heartbeat recente
-        { data: allSessions }, // Precisamos processar estatísticas
-        { data: ecoTransactions } // Para calcular a inflação do bolo
-    ] = await Promise.all([
-        supabase.from('players').select('*', { count: 'exact', head: true }),
-        
-        // Considera "online" quem deu heartbeat nos últimos 2 min
-        supabase.from('sessions').select('*', { count: 'exact', head: true })
-            .gt('last_heartbeat_at', new Date(Date.now() - 120000).toISOString()),
-            
-        // Pega sessões para estatísticas (Limitado a 10000 para não travar o browser, idealmente usar VIEW no futuro)
-        supabase.from('sessions').select('game_id, duration_seconds, player_id').limit(10000),
-
-        supabase.from('cake_transactions').select('amount')
+        // 2. Já finalizou um save hoje? (Derrotas ou Vitórias sem claim)
+        // Buscamos saves do dia onde o jogo acabou (over, finished, etc)
+        supabase.from('game_saves')
+            .select('game_id, save_data')
+            .eq('player_id', user.id)
+            .eq('date_reference', today)
     ]);
 
-    // 2. Processamento dos Dados (Aggregation)
-    // Aqui transformamos as linhas do banco no objeto que o renderAdminUI espera
-    
-    const stats = {
-        users: totalPlayers || 0,
-        active_sessions: activeSessionsNow || 0,
-        hub_time: 0,
-        game_time: 0,
-        games_stats: [],
-        economy: { minted: 0, burned: 0 }
-    };
+    const statusMap = {};
 
-    // 2.1 Processa Economia
-    if (ecoTransactions) {
-        ecoTransactions.forEach(tx => {
-            if (tx.amount > 0) stats.economy.minted += tx.amount;
-            else stats.economy.burned += tx.amount;
-        });
+    // A. Processa Claims (Vitórias Pagas)
+    if (claimsReq.data) {
+        claimsReq.data.forEach(c => statusMap[c.game_id] = 'reward_claimed');
     }
 
-    // 2.2 Processa Sessões (Agrupamento por Jogo)
-    const gameMap = {};
+    // B. Processa Saves (Jogou até o fim?)
+    if (savesReq.data) {
+        savesReq.data.forEach(save => {
+            const data = save.save_data || {};
+            
+            // Verifica flags comuns de fim de jogo nos seus scripts (Listit, Zoo, etc)
+            // Listit usa 'finished', Zoo usa 'over', Eagle usa 'status'
+            const isFinished = data.over === true || data.finished === true || data.status === 'finished';
 
-    if (allSessions) {
-        allSessions.forEach(session => {
-            const gid = session.game_id || 'desconhecido';
-            const duration = session.duration_seconds || 0;
-
-            if (!gameMap[gid]) {
-                gameMap[gid] = { game_id: gid, plays: 0, time: 0, playersSet: new Set() };
-            }
-
-            gameMap[gid].plays++;
-            gameMap[gid].time += duration;
-            if (session.player_id) gameMap[gid].playersSet.add(session.player_id);
-
-            // Totais Globais
-            if (gid === 'hub' || gid === 'orkahub') { // Ajuste para o ID real do Hub
-                stats.hub_time += duration;
-            } else {
-                stats.game_time += duration;
+            if (isFinished) {
+                // Se já estava marcado como claimed, mantém. Se não, marca como jogado.
+                if (!statusMap[save.game_id]) {
+                    statusMap[save.game_id] = 'played_no_reward';
+                }
             }
         });
     }
 
-    // Converte mapa para array
-    stats.games_stats = Object.values(gameMap).map(g => ({
-        game_id: g.game_id,
-        plays: g.plays,
-        time: g.time,
-        uniques: g.playersSet.size // Converte Set para número
-    }));
-
-    // 3. Salva no Cache (Simulando Raw vs Clean por enquanto iguais)
-    // Futuramente você pode aplicar filtros de "devs" aqui para criar o 'clean'
-    adminDataCache = {
-        raw: stats,
-        clean: stats // Se quiser implementar filtro, faça uma cópia de stats filtrando player_ids dos devs
-    };
-
-    // 4. Renderiza
-    renderAdminUI();
-}}
+    console.log("📅 Status Consolidado:", statusMap);
+    return statusMap;
+}
