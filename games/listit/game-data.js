@@ -184,7 +184,7 @@ const DB = [
     },
     {
         type: "velocidade",
-        theme: "Zoologia",
+        theme: "Animais",
         elements: ["Tartaruga Gigante", "Humano (Médio)", "Usain Bolt (Max)", "Canguru", "Avestruz", "Guepardo", "Águia Real", "Falcão-peregrino"],
         resposta: ["0.3 km/h", "12 km/h", "44 km/h", "70 km/h", "72 km/h", "120 km/h", "320 km/h", "390 km/h"]
     },
@@ -239,7 +239,7 @@ const DB = [
     },
     {
         type: "duracao",
-        theme: "Zoologia",
+        theme: "Período Gestacional",
         elements: ["Hamster", "Coelho", "Cachorro", "Tigre", "Humano", "Vaca", "Girafa", "Elefante"],
         resposta: ["18 dias", "30 dias", "60 dias", "3.5 meses", "9 meses", "9.5 meses", "15 meses", "22 meses"]
     },

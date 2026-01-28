@@ -49,6 +49,8 @@ const loadingMessages = [
     "Alimentando os animais do zoológico..."
 ];
 
+let dailyStatus = {};
+
 // --- INICIALIZAÇÃO ---
 
 window.addEventListener('load', () => {
@@ -77,7 +79,7 @@ async function initHub() {
     await OrkaCloud.initAuth();
     
     // 2. Inicia Sessão de Navegação (Hub)
-    await OrkaCloud.startSession('orka_hub');
+    await OrkaCloud.startSession('orkahub');
     
     // 3. Lógica do "Recepcionista" (Check Redirect)
     const params = new URLSearchParams(window.location.search);
@@ -90,8 +92,9 @@ async function initHub() {
         return; 
     }
 
-    // 4. Carrega UI
-    updateHubUI();
+    // NOVO: Carrega status dos jogos antes de desenhar
+    dailyStatus = await fetchDailyStatus();
+    updateHubUI(dailyStatus); // Passa o status para a UI
 }
 
 function updateHubUI() {
@@ -100,6 +103,8 @@ function updateHubUI() {
 
     // A. Idioma
     const langFull = profile.language || 'pt-BR';
+    const langSimple = langFull.startsWith('en') ? 'en' : 'pt';
+    renderGames(langSimple, dailyStatus); // <--- ATUALIZADO
     applyHubTranslation(langFull);
     updateLangButtons(langFull);
 
@@ -145,13 +150,21 @@ function updateHubUI() {
         if(els.emailInputContainer) els.emailInputContainer.style.display = 'flex';
     }
 
-    // F. Admin Visibility
+    // F. Admin & Partners Visibility
     const role = profile.role || 'user';
+    const btnAdmin = document.getElementById("tab-admin");
+    const btnPartners = document.getElementById("tab-partners"); // Novo
+
     if (role === 'admin') {
-        if(els.btnAdmin) els.btnAdmin.style.display = "block";
+        if(btnAdmin) btnAdmin.style.display = "block";
+        if(btnPartners) btnPartners.style.display = "block"; // Novo
     } else {
-        if(els.btnAdmin) els.btnAdmin.style.display = "none";
-        if(document.getElementById('section-admin')?.classList.contains('active')) {
+        if(btnAdmin) btnAdmin.style.display = "none";
+        if(btnPartners) btnPartners.style.display = "none"; // Novo
+        
+        // Se estiver numa aba restrita, chuta pro início
+        const activeSection = document.querySelector('.tab-content.active');
+        if(activeSection && (activeSection.id === 'section-admin' || activeSection.id === 'section-partners')) {
             showTab('games');
         }
     }
@@ -327,12 +340,26 @@ function renderGames(lang) {
 
         const printSrc = game.print ? `assets/prints/${game.print}` : '';
         const isNew = checkIsNew(game.releaseDate);
+
+        // --- LÓGICA DO BOLO ---
+        let rewardHTML = '';
+        // Mostra SE: for jogo diário + ativo + NÃO estiver marcado como 'done' hoje
+        if (game.type === 'daily' && game.active && !dailyStatus[game.id]) {
+            rewardHTML = `
+            <div class="tag-reward" title="Recompensa disponível!">
+                <span class="material-icons" style="font-size:0.9rem;">cake</span>
+            </div>`;
+        }
+        // ----------------------
         const tagHTML = (isNew && game.active) ? `<span class="tag-new">NOVO</span>` : '';
+        
+        // Injeta o rewardHTML
         const printHTML = game.active ? 
-            `<div class="print-container">
+            `<div class="print-container" style="position:relative;">
                 <img src="${printSrc}" class="card-print" style="height:100%; width:100%; object-fit:cover; border:none;" onerror="this.src='assets/icons/orka-logo.png'">
                 ${tagHTML}
-             </div>` : 
+                ${rewardHTML} 
+             </div>` :
             `<div class="card-print" style="display:flex; align-items:center; justify-content:center; color:#444; font-size:1.5rem;">🚧</div>`;
 
         const iconSrc = game.icon ? `assets/icons/${game.icon}` : '';
@@ -354,6 +381,7 @@ function renderGames(lang) {
         `;
         container.appendChild(card);
     });
+    console.log("Status recebido:", dailyStatus); // <--- Adicione isso
 }
 
 function checkIsNew(dateString) {
@@ -389,14 +417,26 @@ document.getElementById('btn-send-code')?.addEventListener('click', async () => 
 document.getElementById('btn-verify-code')?.addEventListener('click', async () => {
     const email = els.inputEmail.value.trim();
     const token = els.inputOtp.value.trim();
+    
+    // 1. SALVA O ID DO ANÔNIMO ATUAL ANTES DE LOGAR
+    const currentUser = OrkaCloud.getUser();
+    const oldAnonId = (currentUser && currentUser.is_anonymous) ? currentUser.id : null;
+
     updateAuthMsg("Verificando...", "info");
 
     const supabase = OrkaCloud.getClient();
-    const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
+    const { data, error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
 
     if (!error) {
         updateAuthMsg("Sucesso!", "correct");
         OrkaFX.confetti();
+        
+        // 2. SE O LOGIN DEU CERTO E TINHA UM ANÔNIMO, DELETA ELE
+        // Verifica se o ID novo é diferente do antigo para não se auto-deletar por engano
+        if (oldAnonId && data.user.id !== oldAnonId) {
+            await OrkaCloud.deleteGhost(oldAnonId);
+        }
+
         await initHub(); 
         
         setTimeout(() => {
@@ -454,49 +494,83 @@ async function loadAdminDashboard() {
 }
 
 function renderAdminUI() {
+    // Se não tiver dados carregados ainda, aborta
     if (!adminDataCache) return;
 
-    // Toggle: Se marcado, usa dados limpos (sem admin). Se desmarcado, usa raw.
+    // Toggle: Dados Limpos (sem devs) vs Dados Brutos
+    // Nota: A lógica de filtrar devs deve acontecer ANTES, na função fetchAdminData, 
+    // gerando o objeto 'clean' e 'raw'. Aqui só escolhemos qual mostrar.
     const hideAdmins = document.getElementById('toggle-admin-data') && document.getElementById('toggle-admin-data').checked;
     const dataset = hideAdmins ? adminDataCache.clean : adminDataCache.raw;
 
-    // 1. KPIs
-    document.getElementById('adm-users').textContent = dataset.users;
-    document.getElementById('adm-sessions').textContent = dataset.sessions;
+    // --- 1. KPIs GERAIS ---
+    // Total de Jogadores (Tabela players)
+    updateElement('adm-users', dataset.users);
     
-    // TEMPO SEPARADO (Hub vs Game)
-    document.getElementById('adm-game-time').textContent = formatDuration(dataset.game_time);
-    document.getElementById('adm-hub-time').textContent = formatDuration(dataset.hub_time);
+    // Sessões Ativas Agora (Baseado no last_heartbeat_at)
+    updateElement('adm-sessions', `${dataset.sessions} (${dataset.active_sessions} on)`); // Mudado de 'sessions' total para 'ativas agora' que é mais útil
+    
+    // --- 2. ECONOMIA (Novidade!) ---
+    // Mostra quantos bolos foram gerados vs queimados
+    if (dataset.economy) {
+        const netEconomy = dataset.economy.minted + dataset.economy.burned; // Burned geralmente é negativo
+        updateElement('adm-economy', `🎂 ${netEconomy} (Global)`);
+        // Dica: Você pode criar um tooltip mostrando: +${dataset.economy.minted} / ${dataset.economy.burned}
+    }
 
-    // 2. Tabela Performance
+    // --- 3. TEMPO (Hub vs Jogo) ---
+    updateElement('adm-game-time', formatDuration(dataset.game_time));
+    updateElement('adm-hub-time', formatDuration(dataset.hub_time));
+
+    // --- 4. TABELA DE PERFORMANCE DOS JOGOS ---
     const tbody = document.querySelector('#adm-games-table tbody');
+    if (!tbody) return;
+    
     tbody.innerHTML = '';
     
-    // Ordena jogos por tempo total
-    const sortedGames = (dataset.games_stats || []).sort((a,b) => b.time - a.time);
+    // Ordena por tempo total de jogo
+    const sortedGames = (dataset.games_stats || []).sort((a, b) => b.time - a.time);
 
     if (sortedGames.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Sem dados.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px;">Sem dados nas novas tabelas.</td></tr>';
         return;
     }
 
     sortedGames.forEach(stat => {
-        const isHub = stat.game_id === 'orka_hub';
+        // Identifica se é o Hub
+        const isHub = stat.game_id === 'hub' || stat.game_id === 'orkahub'; // Ajuste conforme seu ID real no banco
+        
+        // Busca nome bonitinho na lista de jogos (gamesList do script.js)
         const gameInfo = gamesList.find(g => g.id === stat.game_id);
         
         let title = gameInfo ? gameInfo.title : stat.game_id;
-        if (isHub) title = "🏠 ORKA HUB (Menu)";
+        let iconHtml = gameInfo ? `<img src="${gameInfo.icon}" style="width:20px; vertical-align:middle; margin-right:5px;">` : '';
+
+        if (isHub) {
+            title = "🏠 ORKA HUB (Navegação)";
+            iconHtml = '';
+        }
 
         const row = `
-            <tr style="${isHub ? 'opacity:0.7; font-style:italic;' : ''}">
-                <td style="text-align:left;">${title}</td>
+            <tr style="${isHub ? 'background: rgba(255,255,255,0.05); font-style:italic;' : ''}">
+                <td style="text-align:left;">
+                    ${iconHtml}
+                    <span style="${isHub ? 'opacity:0.7' : 'font-weight:bold'}">${title}</span>
+                </td>
                 <td>${stat.plays}</td>
-                <td>${stat.uniques}</td>
-                <td style="color:${isHub ? '#ccc' : 'var(--orka-accent)'}">${formatDuration(stat.time)}</td>
+                <td>${stat.uniques}</td> <td style="color:${isHub ? '#999' : 'var(--orka-accent)'}; font-family:monospace;">
+                    ${formatDuration(stat.time)}
+                </td>
             </tr>
         `;
         tbody.innerHTML += row;
     });
+}
+
+// Helper simples para não quebrar se o elemento não existir no HTML
+function updateElement(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
 }
 
 // Toggle Listener
@@ -639,7 +713,7 @@ function createPDF(curr, prev, start, end, isPublic) {
     y += 10;
 
     (curr.games_stats || []).forEach(game => {
-        if (game.game_id === 'orka_hub') return;
+        if (game.game_id === 'orkahub') return;
         const name = game.game_id.toUpperCase().replace('_', ' ');
         const duration = (game.time / 60).toFixed(1) + ' min';
         
@@ -659,3 +733,126 @@ function createPDF(curr, prev, start, end, isPublic) {
 function formatDate(date) {
     return date.toISOString().split('T')[0];
 }
+
+// Verifica quais jogos o usuário já interagiu hoje (ganhou ou perdeu)
+// No script.js, substitua a antiga checkDailyStatus por esta:
+
+async function fetchDailyStatus(user) {
+    if (!user) return {};
+
+    const today = new Date().toISOString().split('T')[0];
+
+    // 1. Busca direta na tabela de claims (Muito mais leve!)
+    const { data: claims, error } = await supabase
+        .from('daily_claims')
+        .select('game_id')
+        .eq('player_id', user.id)
+        .eq('claimed_at', today);
+
+    if (error) {
+        console.error("Erro ao checar status diário:", error);
+        return {};
+    }
+
+    // 2. Mapeia para o formato que o Hub espera
+    // Se está na tabela daily_claims, é porque completou/ganhou hoje.
+    const statusMap = {};
+    
+    if (claims) {
+        claims.forEach(claim => {
+            // Normaliza IDs se necessário (ex: converter 'orka-zoo' para 'zoo' se o banco usar nomes diferentes)
+            // Se seus IDs no banco já batem com gamesList[].id, basta:
+            statusMap[claim.game_id] = 'done'; 
+        });
+    }
+    
+    console.log("Status Diário (Otimizado):", statusMap);
+    return statusMap;
+// Variável global para cache (como você já usava)
+let adminDataCache = null;
+
+async function fetchAdminData() {
+    console.log("📊 Buscando dados do painel admin...");
+    
+    // 1. Buscas Paralelas para Performance
+    const [
+        { count: totalPlayers },
+        { count: activeSessionsNow }, // Sessões com heartbeat recente
+        { data: allSessions }, // Precisamos processar estatísticas
+        { data: ecoTransactions } // Para calcular a inflação do bolo
+    ] = await Promise.all([
+        supabase.from('players').select('*', { count: 'exact', head: true }),
+        
+        // Considera "online" quem deu heartbeat nos últimos 2 min
+        supabase.from('sessions').select('*', { count: 'exact', head: true })
+            .gt('last_heartbeat_at', new Date(Date.now() - 120000).toISOString()),
+            
+        // Pega sessões para estatísticas (Limitado a 10000 para não travar o browser, idealmente usar VIEW no futuro)
+        supabase.from('sessions').select('game_id, duration_seconds, player_id').limit(10000),
+
+        supabase.from('cake_transactions').select('amount')
+    ]);
+
+    // 2. Processamento dos Dados (Aggregation)
+    // Aqui transformamos as linhas do banco no objeto que o renderAdminUI espera
+    
+    const stats = {
+        users: totalPlayers || 0,
+        active_sessions: activeSessionsNow || 0,
+        hub_time: 0,
+        game_time: 0,
+        games_stats: [],
+        economy: { minted: 0, burned: 0 }
+    };
+
+    // 2.1 Processa Economia
+    if (ecoTransactions) {
+        ecoTransactions.forEach(tx => {
+            if (tx.amount > 0) stats.economy.minted += tx.amount;
+            else stats.economy.burned += tx.amount;
+        });
+    }
+
+    // 2.2 Processa Sessões (Agrupamento por Jogo)
+    const gameMap = {};
+
+    if (allSessions) {
+        allSessions.forEach(session => {
+            const gid = session.game_id || 'desconhecido';
+            const duration = session.duration_seconds || 0;
+
+            if (!gameMap[gid]) {
+                gameMap[gid] = { game_id: gid, plays: 0, time: 0, playersSet: new Set() };
+            }
+
+            gameMap[gid].plays++;
+            gameMap[gid].time += duration;
+            if (session.player_id) gameMap[gid].playersSet.add(session.player_id);
+
+            // Totais Globais
+            if (gid === 'hub' || gid === 'orkahub') { // Ajuste para o ID real do Hub
+                stats.hub_time += duration;
+            } else {
+                stats.game_time += duration;
+            }
+        });
+    }
+
+    // Converte mapa para array
+    stats.games_stats = Object.values(gameMap).map(g => ({
+        game_id: g.game_id,
+        plays: g.plays,
+        time: g.time,
+        uniques: g.playersSet.size // Converte Set para número
+    }));
+
+    // 3. Salva no Cache (Simulando Raw vs Clean por enquanto iguais)
+    // Futuramente você pode aplicar filtros de "devs" aqui para criar o 'clean'
+    adminDataCache = {
+        raw: stats,
+        clean: stats // Se quiser implementar filtro, faça uma cópia de stats filtrando player_ids dos devs
+    };
+
+    // 4. Renderiza
+    renderAdminUI();
+}}

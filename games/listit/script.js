@@ -3,7 +3,7 @@ import { OrkaGameManager } from '../../core/scripts/orka-game-manager.js';
 import { OrkaMath, OrkaAudio, OrkaFX, OrkaCalendar, OrkaTutorial, Utils, OrkaStorage } from '../../core/scripts/orka-lib.js';
 import { GameData, TYPE_TRANSLATIONS } from './game-data.js';
 
-const GAME_ID = 'list-it';
+const GAME_ID = 'listit';
 const MAX_ATTEMPTS = 3;
 
 const Game = new OrkaGameManager({
@@ -43,11 +43,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function loadGame(dateObj) {
+    // ... (reset de estados mantém igual) ...
     state.date = dateObj;
     state.attempts = 0;
     state.isGameOver = false;
     state.lockedIndices = [];
-    state.wrongIndices = []; // Limpa erros
+    state.wrongIndices = [];
     state.startTime = Date.now();
     
     const btnSubmit = document.getElementById('btn-submit');
@@ -56,6 +57,7 @@ async function loadGame(dateObj) {
 
     Game.checkpoint({ status: 'level_load', date: getDateKey(dateObj) });
 
+    // ... (displays de data mantém igual) ...
     const dateOptions = { day: '2-digit', month: 'long' };
     document.getElementById('date-display').textContent = dateObj.toLocaleDateString('pt-BR', dateOptions);
     updateDots();
@@ -64,26 +66,37 @@ async function loadGame(dateObj) {
     const level = GameData.getLevel(state.date, lang);
     state.items = await Utils.preloadImages(level.items);
 
-    const cloudId = getCloudId(state.date);
-    const storageKey = getStorageKey(state.date);
+    // [CORREÇÃO AQUI]
+    const dateRef = getDateKey(state.date);
+    const storageKey = getStorageKey(state.date); // LocalStorage ainda usa a chave combinada
 
-    let daySave = await OrkaCloud.loadSave(cloudId);
+    // Carrega da nuvem passando (ID, DataRef)
+    let daySave = await OrkaCloud.loadSave(GAME_ID, dateRef);
+    
+    // Se não veio da nuvem, tenta local
     if (!daySave) daySave = OrkaStorage.load(storageKey);
 
+    // [MIGRAÇÃO] Se achou local mas não na nuvem, salva na nuvem agora
+    if (daySave && !await OrkaCloud.loadSave(GAME_ID, dateRef)) {
+        console.log("Migrando save local para nuvem...");
+        OrkaCloud.saveGame(GAME_ID, daySave, dateRef);
+    }
+
     if (daySave) {
-        // Se tem save, carrega direto sem animação
+        // ... (restante da função igual) ...
         document.getElementById('daily-prompt').textContent = level.prompt;
         document.getElementById('prompt-sub').textContent = `Tema: ${level.theme}`;
         restoreSave(daySave);
     } else {
-        // Novo jogo: verifica se deve rodar a animação
+        // ... (lógica de intro igual) ...
         const introKey = `${GAME_ID}_intro_${getDateKey(state.date)}`;
-        const hasSeenIntro = localStorage.getItem(introKey);
+        
+        // Dica: removi o "if (true)" hardcoded, use a lógica real
+        const hasSeenIntro = localStorage.getItem(introKey); 
 
-        if (true) {
+        if (!hasSeenIntro) {
             runIntroSequence(level, introKey);
         } else {
-            // Se já viu hoje, mostra estático
             document.getElementById('daily-prompt').textContent = level.prompt;
             document.getElementById('prompt-sub').textContent = `Tema: ${level.theme}`;
             renderGrid();
@@ -156,7 +169,6 @@ function getDateKey(dateObj) {
     return localDate.toISOString().split('T')[0];
 }
 
-function getCloudId(dateObj) { return `${GAME_ID}_${getDateKey(dateObj)}`; }
 function getStorageKey(dateObj) { return `${GAME_ID}_${getDateKey(dateObj)}`; }
 
 // --- RENDERIZAÇÃO ---
@@ -253,14 +265,18 @@ async function saveProgress(forceWin = null) {
         items: state.items,
         attempts: state.attempts,
         lockedIndices: state.lockedIndices,
-        wrongIndices: state.wrongIndices, // Salva os vermelhos
+        wrongIndices: state.wrongIndices,
         finished: state.isGameOver,
         win: forceWin
     };
+
+    // 1. LocalStorage (Continua usando a chave concatenada, isso está certo)
     const storageKey = getStorageKey(state.date);
     OrkaStorage.save(storageKey, currentData);
-    const cloudId = getCloudId(state.date);
-    await OrkaCloud.saveGame(cloudId, currentData);
+
+    // 2. OrkaCloud (AQUI MUDOU: Separamos ID e Data)
+    const dateRef = getDateKey(state.date); // '2024-01-28'
+    await OrkaCloud.saveGame(GAME_ID, currentData, dateRef);
 }
 
 function restoreSave(data) {

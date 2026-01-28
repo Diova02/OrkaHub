@@ -52,6 +52,7 @@
     <nav class="hub-tabs" id="tabs">
         <button class="tab-btn active" id="tab-games" data-tab="games" data-t="tabGames">JOGOS</button>
         <button class="tab-btn" id="tab-about" data-tab="about" data-t="tabAbout">SOBRE</button>
+        <button class="tab-btn" id="tab-partners" data-tab="partners" data-t="tabPartners" style="display:none">PARCERIAS</button>
         <button class="tab-btn" id="tab-admin" data-tab="admin" data-t="tabAdmin" style="display:none">ADMIN</button>
     </nav>
 
@@ -120,11 +121,286 @@
             </div>
         </section>
 
-        <section id="section-about" class="tab-content">
-            <div style="text-align:center; color:#888; margin-top:50px;">
-                <h2 data-t="aboutTitle">SOBRE A ORKA</h2>
-                <p data-t="aboutText">Somos um estúdio focado em experiências web simples e divertidas.</p>
+        <section id="section-partners" class="tab-content">
+            <div class="about-container">
+                
+                <div class="about-strip glass-dark" style="text-align: center; padding-bottom: 60px;">
+                    <h2 style="color:var(--orka-accent); font-size: 2rem; margin-bottom: 10px;">ORKA BUSINESS</h2>
+                    <p style="max-width: 600px; margin: 0 auto 40px auto; opacity: 0.8;">
+                        O ponto de encontro entre game design inteligente e oportunidades reais.
+                    </p>
+
+                    <div class="ecosystem-diagram">
+                        <div class="eco-node node-dev">
+                            <span class="material-icons">code</span>
+                            <small>DEVS</small>
+                        </div>
+                        
+                        <div class="eco-arrow">
+                            <span class="material-icons">arrow_forward</span>
+                            <span class="arrow-label">Jogos</span>
+                        </div>
+
+                        <div class="eco-core">
+                            <img src="assets/icons/orka-logo.png" alt="Orka Brain" class="core-logo">
+                            <div class="core-label">HUB & BRAIN</div>
+                        </div>
+
+                        <div class="eco-arrow">
+                            <span class="material-icons">arrow_back</span>
+                            <span class="arrow-label">Ads</span>
+                        </div>
+
+                        <div class="eco-node node-ads">
+                            <span class="material-icons">campaign</span>
+                            <small>BRANDS</small>
+                        </div>
+                    </div>
+
+                    <div class="support-actions" style="justify-content: center; margin-top: 40px;">
+                        <button onclick="document.getElementById('partner-dev').scrollIntoView({behavior: 'smooth'})" class="btn-social btn-dev">
+                            <span class="material-icons">terminal</span> Sou Desenvolvedor
+                        </button>
+                        <button onclick="document.getElementById('partner-ads').scrollIntoView({behavior: 'smooth'})" class="btn-social btn-brand">
+                            <span class="material-icons">diamond</span> Quero Anunciar
+                        </button>
+                    </div>
+                </div>
+
+                <div id="partner-dev" class="about-strip glass-accent">
+                    <div class="strip-content-wrapper">
+                        <div class="text-col">
+                            <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px;">
+                                <span class="material-icons" style="font-size:2rem;">rocket_launch</span>
+                                <h3 style="margin:0; color:#fff;">Orka Publisher</h3>
+                            </div>
+                            
+                            <p>
+                                Cansado de ver seu jogo jogado às traças ou lutar contra SDKs de anúncios complexos?
+                            </p>
+                            <p>
+                                A Orka funciona como uma curadora de elite. Você nos envia o código, nós auditamos a segurança e a qualidade, e integramos ao nosso <strong>Hub Brain</strong>.
+                            </p>
+                            
+                            <ul class="partner-benefits-list">
+                                <li>
+                                    <span class="material-icons">verified</span>
+                                    <span><strong>Selo de Qualidade:</strong> Se seu jogo está aqui, ele é bom. Isso gera confiança imediata no jogador.</span>
+                                </li>
+                                <li>
+                                    <span class="material-icons">pie_chart</span>
+                                    <span><strong>60% Revenue Share:</strong> A maior fatia é sua. Usamos nossa infraestrutura de ads e repassamos a maior parte do valor.</span>
+                                </li>
+                                <li>
+                                    <span class="material-icons">hub</span>
+                                    <span><strong>Tráfego Circular:</strong> Jogadores de outros hits da Orka são direcionados para o seu jogo diariamente.</span>
+                                </li>
+                            </ul>
+
+                            <button class="orka-btn-primary" style="margin-top:20px; width:auto;" onclick="alert('Em breve: Formulário de Submissão')">
+                                Submeter Jogo para Análise
+                            </button>
+                        </div>
+                        
+                        <div class="img-col">
+                            <div class="code-card">
+                                <div class="code-header">
+                                    <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+                                </div>
+                                <pre><code>if (game.isFun()) {
+                                Orka.publish(game);
+                                Dev.receive(60%);
+                                }</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="partner-ads" class="about-strip glass-dark" style="border-top: 2px solid #d4af37;">
+                    <div class="strip-content-wrapper">
+                        <div class="text-col">
+                            <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px;">
+                                <span class="material-icons" style="font-size:2rem; color:#d4af37;">stars</span>
+                                <h3 style="margin:0; color:#d4af37;">Orka Sponsorship</h3>
+                            </div>
+
+                            <p>
+                                Esqueça banners invasivos e cliques acidentais. Na Orka, seguimos a <strong>Lei da Pureza Visual</strong>.
+                            </p>
+                            <p>
+                                Trabalhamos com o modelo de <strong>Slots Semanais</strong>. Sua marca "aluga" o espaço publicitário do Hub e dos jogos, criando uma presença dominante e elegante.
+                            </p>
+
+                            <div class="ad-slots-grid">
+                                <div class="ad-slot-card">
+                                    <span class="material-icons">view_day</span>
+                                    <strong>Banner Nativo</strong>
+                                    <small>Integrado ao menu e HUDs</small>
+                                </div>
+                                <div class="ad-slot-card">
+                                    <span class="material-icons">redeem</span>
+                                    <strong>Recompensado</strong>
+                                    <small>O jogador <em>pede</em> para ver</small>
+                                </div>
+                                <div class="ad-slot-card">
+                                    <span class="material-icons">hourglass_top</span>
+                                    <strong>Interstitial</strong>
+                                    <small>Apenas em loadings naturais</small>
+                                </div>
+                            </div>
+
+                            <button class="orka-btn-primary" style="margin-top:20px; width:auto; background: linear-gradient(45deg, #d4af37, #b8860b); border:none; color:#000;" onclick="alert('Em breve: Link para WhatsApp/Email')">
+                                <span class="material-icons" style="font-size:1rem; vertical-align:middle; margin-right:5px;">contact_mail</span>
+                                Consultar Mídia Kit
+                            </button>
+                        </div>
+
+                        <div class="img-col">
+                            <div style="border: 2px dashed #d4af37; padding: 20px; border-radius: 12px; text-align: center; color: #d4af37;">
+                                <span class="material-icons" style="font-size: 3rem;">ad_units</span>
+                                <p style="margin: 10px 0;">Área de Visibilidade Premium</p>
+                                <small>Seu anúncio aqui, sem irritar o usuário.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="about-strip glass-light" style="text-align: center;">
+                    <p style="font-size: 0.9rem; font-style: italic; opacity: 0.7;">
+                        "Nós curamos a experiência para garantir o retorno de todos. Nem todo jogo entra, nem todo anúncio é aceito."
+                    </p>
+                </div>
+
             </div>
+        </section>
+
+        <section id="section-about" class="tab-content">
+            <div class="about-container">
+                
+                <div class="about-strip glass-accent">
+                    <div class="strip-content-wrapper">
+                        <div class="text-col">
+                            <h3>A Paixão pelo Game Design</h3>
+                            <p>
+                                Por que alguém perderia horas ajustando o tempo de uma animação, a velocidade de um projétil ou a cor de um botão que quase ninguém percebe?
+                            </p>
+                            <p>
+                                Porque um jogo não é só um passatempo. É experiência.
+                            </p>
+                            <p>
+                                Na Orka, cada detalhe existe por um motivo. Não é sobre te manter preso na tela — é sobre fazer o tempo que você escolheu gastar aqui realmente valer a pena.
+                            </p>
+                            <p>
+                                A gente respeita demais quem joga para entregar qualquer coisa “mais ou menos”.
+                            </p>
+                        </div>
+                        <span class="material-icons" style="font-size: 8rem; opacity: 0.3; color: var(--orka-accent);">tsunami</span>
+                    </div>
+                </div>
+
+                <div class="about-strip glass-dark">
+                    <div class="strip-content-wrapper">
+                        <div class="text-col">
+                            <h3>O Espírito da Orka</h3>
+                            <p>
+                                A escolha da orca como animal principal do estúdio não é pura estética.
+                            </p>
+                            <p>
+                                Ela é, provavelmente, o animal mais estratégico dos oceanos. Caça em grupo, se comunica, aprende, ensina e planeja.
+                            </p>
+                            <p>
+                                Mas, ao mesmo tempo, tem laços sociais profundos com suas companheiras <small>(dá um google, sério. Pensa num bicho daora)</small>
+                            </p>
+                            <p>
+                                <strong>Implacável na execução. Profunda nas conexões.</strong>
+                            </p>
+                            <p>
+                                É exatamente assim que a gente enxerga jogos. Essa é a nossa missão como estúdio.
+                            </p>
+                            <div class="values-list">
+                                <span class="value-tag"><span class="material-icons">psychology</span> Estratégia</span>
+                                <span class="value-tag"><span class="material-icons">favorite</span> Paixão</span>
+                                <span class="value-tag"><span class="material-icons">group</span> Comunidade</span>
+                            </div>
+                        </div>
+                        <div class="img-col">
+                            <div class="img-col">
+                            <img src="assets/icons/orka-logo.png" alt="Orka Design" class="image-slot-placeholder" style="transform: rotate(15deg);">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="about-strip glass-light">
+                    <div class="strip-content-wrapper">
+                        <div class="text-col">
+                            <h3>O que é o "Bolo"? 🍰</h3>
+                            <p>
+                                O Bolo é a nossa forma meio boba (mas muito sincera) de agradecer por você estar aqui!
+                            </p>
+                            <p>
+                                É simples: você ganha fatias de bolo simplesmente por jogar diariamente. Sem truques.
+                            </p>
+                            <p>
+                                Depois você pode usar essas fatias para desbloquear coisas legais aqui na plataforma. Espero que goste da nossa sobremesas digital! (Foi feito com carinho)
+                            </p>
+                        </div>
+                        <div class="img-col" style="text-align: center;">
+                            <span class="material-icons" style="font-size: 8rem; color: #ff6b6b; filter: drop-shadow(0 0 10px rgba(255,107,107,0.5));">cake</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="about-strip glass-dark">
+                    <h3>Nossa Equipe</h3>
+                    <div class="team-layout">
+                        <div class="credits-col">
+                            <p>Trabalhamos com um time focado (e ligeiramente sobrecarregado).</p>
+                            <table class="credits-table">
+                                <tr><td>Direção Geral</td><td>Diova</td></tr>
+                                <tr><td>Gerente de Projetos</td><td>Diova</td></tr>
+                                <tr><td>Game Designer</td><td>Diova</td></tr>
+                                <tr><td>Front-end Developer</td><td>Diova (& GPT)</td></tr>
+                                <tr><td>Assistente Executivo</td><td>Diova</td></tr>
+                                <tr><td>Marketing & Atendimento ao Consumidor</td><td>Diova (de novo)</td></tr>
+                            </table>
+                            <p style="font-size:0.8rem; margin-top:15px; opacity:0.6; font-style:italic;">
+                                *Projeto independente. Cada detalhe foi pensado, desenhado, testado, quebrado e consertado pela mesma pessoa.
+                            </p>
+                        </div>
+                        
+                        <div class="employee-month-col">
+                            <div class="employee-frame">
+                                <div class="employee-photo-wrapper">
+                                    <img src="assets/icons/diova-real.jpeg" alt="Funcionário do Mês" class="employee-photo">
+                                </div>
+                                <div class="employee-quote">
+                                    "Parabéns Diova por mais um mês carregando o time nas costas!"
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="about-strip glass-accent" style="text-align: center;">
+                    <h3 style="color:#fff; margin-bottom: 10px;">Continue Nadando Conosco</h3>
+                    <p style="max-width: 600px; margin: 0 auto;">
+                        Se você curte a proposta da Orka e quer ver mais jogos, ideias malucas e experimentos ganhando vida, dá pra acompanhar de perto ou apoiar o desenvolvimento.
+                    </p>
+                    <p style="max-width: 600px; margin: 0 auto;">
+                        Toda ajuda aqui literalmente vira mais jogo.
+                    </p>
+                    <div class="support-actions" style="justify-content: center;">
+                        <a href="https://instagram.com/SEU_INSTA" target="_blank" class="btn-social btn-insta">
+                            <span class="material-icons">photo_camera</span> Seguir no Insta
+                        </a>
+                        <a href="#" target="_blank" class="btn-social btn-coffee">
+                            <span class="material-icons">coffee</span> Pagar um Café
+                        </a>
+                    </div>
+                </div>
+
+            </div> 
         </section>
 
         <section id="section-games" class="tab-content active">

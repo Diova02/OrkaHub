@@ -1,22 +1,15 @@
-// =================================================================
-//  ORKA CLOUD V5.0 — Core Service Layer
-//  Responsabilidade: Comunicação Pura com Supabase (I/O)
-// =================================================================
-
+// core/scripts/orka-cloud.js
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2?bundle&target=browser'
 
 const CONFIG = {
     url: 'https://lvwlixmcgfuuiizeelmo.supabase.co',
-    // ⚠️ Idealmente, usar variáveis de ambiente em build steps profissionais
     key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d2xpeG1jZ2Z1dWlpemVlbG1vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc4OTUwMzQsImV4cCI6MjA4MzQ3MTAzNH0.qa0nKUXewE0EqUePwfzQbBOaHypRqkhUxRnY5qgsDbo'
 };
 
 const supabase = createClient(CONFIG.url, CONFIG.key);
 
-// Estado Mínimo Global (Apenas Cache de Identidade)
 let state = {
     user: null,
-    sessionToken: null,
     profile: null
 };
 
@@ -25,37 +18,62 @@ let state = {
 // =================================================================
 
 async function initAuth() {
-    // 1. Tenta recuperar sessão existente
     const { data: { session } } = await supabase.auth.getSession();
     
     if (session) {
         state.user = session.user;
+        state.session = session; // [NOVO] Guarda a sessão para uso síncrono
     } else {
-        // 2. Login Anônimo Silencioso
         const { data, error } = await supabase.auth.signInAnonymously();
         if (error) console.error("OrkaCloud: Erro de Auth", error);
         state.user = data?.user;
+        state.session = data?.session; // [NOVO]
     }
 
-    if (state.user) await _syncProfile();
+    // 2. Garantia de Existência do Perfil (Bootstrapping)
+    if (state.user) {
+        // Tenta buscar o perfil
+        const { data } = await supabase.from('players').select('*').eq('id', state.user.id).maybeSingle();
+        state.profile = data;
+
+        if (!state.profile) {
+            console.log("🆕 Novo usuário detectado (Ghost). Criando linha na tabela players...");
+            
+            // CRÍTICO: Cria a linha inicial para satisfazer a Foreign Key da tabela sessions
+            const { error: insertError } = await supabase.from('players').insert([
+                { id: state.user.id, nickname: 'Ghost', is_registered: false }
+            ]);
+
+            if (insertError) {
+                console.error("❌ Falha fatal ao criar player:", insertError);
+            } else {
+                // Busca de novo para garantir que temos o objeto atualizado
+                await _syncProfile();
+            }
+        } else {
+            // Se já existe, apenas atualiza o 'visto por último'
+            await supabase.from('players').update({ last_seen_at: new Date() }).eq('id', state.user.id);
+        }
+    }
+    
     return state.user;
 }
 
 async function _syncProfile() {
-    // Busca perfil ou retorna null (O GameManager decide o que fazer se for null)
+    // [AJUSTE] cake_balance agora é read-only aqui.
     const { data } = await supabase.from('players').select('*').eq('id', state.user.id).maybeSingle();
     state.profile = data;
 }
 
-// Atualiza dados do jogador (Nick, Avatar, Lang)
 async function updateProfile(updates) {
     if (!state.user) return;
     
-    // Atualização Otimista Local
-    state.profile = { ...state.profile, ...updates };
+    // [PROTEÇÃO] Removemos campos sensíveis ou de cache manual antes de enviar
+    const { cake_balance, id, created_at, ...safeUpdates } = updates;
 
-    // Envia ao Banco (Upsert garante criação se não existir)
-    const payload = { id: state.user.id, ...updates, last_seen_at: new Date() };
+    state.profile = { ...state.profile, ...safeUpdates };
+
+    const payload = { id: state.user.id, ...safeUpdates, last_seen_at: new Date() };
     await supabase.from('players').upsert(payload);
 }
 
@@ -63,46 +81,102 @@ async function updateProfile(updates) {
 //  2. GAME DATA (SAVES & LEADERBOARDS)
 // =================================================================
 
-async function loadSave(gameId) {
+// [NOVO] Suporte a Date Reference para jogos diários
+async function loadSave(gameId, dateRef = null) {
     if (!state.user) return null;
-    const { data } = await supabase.from('game_saves')
-        .select('save_data').eq('player_id', state.user.id).eq('game_id', gameId).maybeSingle();
+    
+    let query = supabase.from('game_saves')
+        .select('save_data')
+        .eq('player_id', state.user.id)
+        .eq('game_id', gameId);
+
+    if (dateRef) {
+        query = query.eq('date_reference', dateRef);
+    } else {
+        query = query.is('date_reference', null); // Jogos contínuos (RPG, etc)
+    }
+
+    const { data } = await query.maybeSingle();
     return data ? data.save_data : null;
 }
 
-async function saveGame(gameId, data) {
+
+async function saveGame(gameId, data, dateRef = null) {
     if (!state.user) return;
-    await supabase.from('game_saves').upsert({
+    
+    // Configura o payload limpo
+    const payload = {
         player_id: state.user.id,
-        game_id: gameId,
+        game_id: gameId,          // Ex: "zoo"
+        date_reference: dateRef,  // Ex: "2026-01-27"
         save_data: data,
         updated_at: new Date()
+    };
+
+    console.log("☁️ Uploading Save:", payload);
+
+    // Agora a constraint é dinâmica e precisa
+    const conflictColumns = dateRef 
+        ? 'player_id, game_id, date_reference' 
+        : 'player_id, game_id'; 
+
+    const { error } = await supabase.from('game_saves').upsert(payload, { 
+        onConflict: conflictColumns 
     });
+
+    if (error) console.error("❌ Erro ao salvar na nuvem:", error);
 }
 
-async function submitScore(gameId, score) {
-    if (!state.user) return;
-    const today = new Date().toISOString().split('T')[0];
-    await supabase.from('leaderboards').upsert({
-        player_id: state.user.id,
+// core/scripts/orka-cloud.js
+
+async function submitScore(gameId, score, dateRef = null) {
+    if (!state.user) {
+        console.warn("⚠️ OrkaCloud: Tentativa de enviar score sem usuário logado.");
+        return;
+    }
+    
+    // Se não passar data, usa hoje
+    const today = dateRef || new Date().toISOString().split('T')[0];
+    
+    // Payload preparado
+    const payload = {
+        player_id: state.user.id, 
         game_id: gameId,
         score: score,
         played_at: today
-    }, { onConflict: 'game_id, player_id, played_at' });
+    };
+
+    console.group(`🚀 OrkaCloud: Enviando Score (${gameId})`);
+    console.log("📦 Payload:", payload);
+    console.log("🔑 Constraint Esperada: leaderboards_player_game_date_key");
+
+    try {
+        const { data, error } = await supabase.from('leaderboards').upsert(payload, { 
+            onConflict: 'player_id, game_id, played_at'
+        }).select();
+
+        if (error) {
+            console.error("❌ ERRO NO BANCO:", error.message, error.details);
+            console.error("💡 Dica: Verifique se a constraint 'leaderboards_player_game_date_key' existe no SQL.");
+        } else {
+            console.log("✅ Sucesso! Score salvo/atualizado:", data);
+        }
+    } catch (e) {
+        console.error("🔥 Erro Crítico na Requisição:", e);
+    } finally {
+        console.groupEnd();
+    }
 }
 
 async function getLeaderboard(gameId, dateObj = new Date()) {
-    // Garante formato YYYY-MM-DD
     const dateStr = dateObj instanceof Date ? dateObj.toISOString().split('T')[0] : dateObj;
     
-    // Nota: 'ascending: true' favorece MENOR tempo (Eagle Aim). 
-    // Se no futuro tiver jogo de PONTOS, precisaremos de um parametro extra aqui.
     const { data, error } = await supabase
         .from('leaderboards')
         .select(`score, player_id, players(nickname, profile_image)`) 
         .eq('game_id', gameId)
         .eq('played_at', dateStr)
-        .order('score', { ascending: true }) 
+        .order('score', { ascending: true }) // Confirme se o jogo é "menor score" ou "maior score"
         .limit(50);
 
     if (error) {
@@ -118,8 +192,23 @@ async function getLeaderboard(gameId, dateObj = new Date()) {
     }));
 }
 
+// [NOVO] Verifica se já pegou recompensa diária
+async function checkDailyClaim(gameId) {
+    if (!state.user) return false;
+    const today = new Date().toISOString().split('T')[0];
+    
+    const { data } = await supabase.from('daily_claims')
+        .select('id')
+        .eq('player_id', state.user.id)
+        .eq('game_id', gameId)
+        .eq('claimed_at', today)
+        .maybeSingle();
+        
+    return !!data; // Retorna true se já existir
+}
+
 // =================================================================
-//  3. SESSÃO & ANALYTICS (BEACON SUPPORT)
+//  3. SESSÃO & ANALYTICS
 // =================================================================
 
 async function startSession(gameId) {
@@ -131,6 +220,7 @@ async function startSession(gameId) {
         player_id: state.user.id,
         game_id: gameId,
         started_at: new Date(),
+        last_heartbeat_at: new Date(), // [NOVO] Inicializa o heartbeat
         platform_info: { ua: navigator.userAgent, mobile: /Mobi/i.test(navigator.userAgent) }
     });
     
@@ -138,46 +228,47 @@ async function startSession(gameId) {
     return sessionId;
 }
 
-// Atualização Parcial (Heartbeat)
 async function updateSession(sessionId, payload) {
-    await supabase.from('sessions').update(payload).eq('id', sessionId);
+    // [NOVO] Sempre atualiza o last_heartbeat_at
+    await supabase.from('sessions').update({
+        ...payload,
+        last_heartbeat_at: new Date()
+    }).eq('id', sessionId);
 }
-
-// core/scripts/orka-cloud.js
 
 function endSessionBeacon(sessionId, finalPayload) {
     if (!sessionId) return;
     
     const url = `${CONFIG.url}/rest/v1/sessions?id=eq.${sessionId}`;
+    
     const body = JSON.stringify({
         ...finalPayload,
-        ended_at: new Date().toISOString()
+        ended_at: new Date().toISOString(),
+        last_heartbeat_at: new Date().toISOString()
     });
+
+    // [CORREÇÃO] Removemos supabase.auth.session() (V1)
+    // Usamos o token salvo no state ou tentamos pegar do localStorage se a memória falhar
+    const token = state.session?.access_token;
 
     const headers = {
         'apikey': CONFIG.key,
-        'Authorization': `Bearer ${CONFIG.key}`,
+        'Authorization': token ? `Bearer ${token}` : `Bearer ${CONFIG.key}`,
         'Content-Type': 'application/json',
         'Prefer': 'return=minimal'
     };
 
-    // TENTATIVA 1: Beacon API (Ideal para mobile/fechar aba)
-    const blob = new Blob([body], { type: 'application/json' });
-    const beaconSuccess = navigator.sendBeacon(url, blob);
-
-    // TENTATIVA 2: Se o Beacon falhar (ou não for suportado), usa Fetch Keepalive
-    if (!beaconSuccess) {
-        fetch(url, {
-            method: 'PATCH',
-            headers: headers,
-            body: body,
-            keepalive: true
-        }).catch(e => console.warn("OrkaCloud: Erro ao finalizar sessão (Keepalive)", err));
-    }
+    // keepalive: true é essencial para funcionar quando a aba fecha
+    fetch(url, { 
+        method: 'PATCH', 
+        headers: headers, 
+        body: body, 
+        keepalive: true 
+    }).catch(e => console.warn("OrkaCloud: Erro no beacon", e));
 }
 
 // =================================================================
-//  4. ECONOMIA SEGURA (RPCs)
+//  4. ECONOMIA (RPCs)
 // =================================================================
 
 async function secureTransaction(rpcName, params) {
@@ -185,31 +276,35 @@ async function secureTransaction(rpcName, params) {
     return await supabase.rpc(rpcName, params);
 }
 
-// =================================================================
-//  EXPORTS
-// =================================================================
-
 export const OrkaCloud = {
     initAuth,
     getUser: () => state.user,
     getProfile: () => state.profile,
     updateProfile,
     
-    // Data
     loadSave,
     saveGame,
     submitScore,
     getLeaderboard,
+    checkDailyClaim, // [EXPORT NOVO]
     
-    // Session
     startSession,
     updateSession,
     endSessionBeacon,
-    trackEvent: async (name, data) => { /* Implementar insert em analytics_events */ },
     getClient: () => supabase,
 
-    // Economy
-    addBolo: (amount) => secureTransaction('add_bolo', { amount }),
-    buyItem: (itemId, cost) => secureTransaction('buy_item', { item_id: itemId, item_cost: cost }),
-    claimDaily: (gameTag) => secureTransaction('claim_daily_reward', { game_tag: gameTag, amount: 1 })
+    // [IMPORTANTE] Certifique-se que suas RPCs no Supabase foram atualizadas 
+    // para inserir na tabela 'cake_transactions' em vez de update direto no player.
+    addBolo: (amount) => secureTransaction('add_bolo', { amount }), 
+    claimDaily: (gameTag) => secureTransaction('claim_daily_reward', { game_tag: gameTag }),
+
+    // Admin Tools
+    //deleteGhost: () => secureTransaction('clean_ghost_users', {}),
+    
+    // Limpeza de Transição (Ghost -> Real)
+    deleteGhost: async (oldGhostId) => {
+        if (!oldGhostId) return;
+        console.log("👻 Faxina: Apagando rastro do fantasma", oldGhostId);
+        await secureTransaction('delete_old_guest', { ghost_id: oldGhostId });
+    }
 };

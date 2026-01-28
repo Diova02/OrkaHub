@@ -525,18 +525,30 @@ main{
     border-bottom-color: var(--orka-accent, #00ff88);
 }
 
-/* Animação suave na troca de abas */
+/* =========================================
+   ANIMAÇÃO DE ABAS
+   ========================================= */
+
+/* Define a animação de entrada */
+@keyframes slideFadeIn {
+    0% {
+        opacity: 0;
+        transform: translateY(20px) scale(0.98); /* Começa um pouco menor e mais baixo */
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
 .tab-content {
-    display: none;
-    opacity: 0;
-    transform: translateY(10px);
-    transition: opacity 0.4s ease, transform 0.4s ease;
+    display: none; /* Escondido por padrão */
 }
 
 .tab-content.active {
-    display: block; /* Essencial para funcionar */
-    opacity: 1;
-    transform: translateY(0);
+    display: block;
+    /* A mágica acontece aqui: chamamos a animação */
+    animation: slideFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* =========================================
@@ -677,4 +689,306 @@ main{
 /* Ajuste fino para o ícone padrão centralizar caso não tenha foto */
 .header-profile-btn .material-icons {
     font-size: 24px;
+}
+
+/* =========================================
+   ABA SOBRE (VISUAL VIDRO FUMÊ & LAYOUT)
+   ========================================= */
+
+/* CORREÇÃO DO BUG: O estilo visual agora fica num container interno,
+   deixando a section externa livre para ser escondida pelo sistema de abas. */
+.about-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2px; /* Pequena fresta entre os vidros */
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px); /* O efeito de vidro embaçado */
+    -webkit-backdrop-filter: blur(10px);
+}
+
+/* Estilo Base das Faixas de Vidro */
+.about-strip {
+    padding: 40px;
+    position: relative;
+    /* Fundo base translúcido */
+    background: rgba(20, 20, 20, 0.6); 
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Wrapper para conteúdo em duas colunas (Texto + Imagem) */
+.strip-content-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+}
+/* Alternar a ordem em faixas pares para zigue-zague */
+.about-strip:nth-child(even) .strip-content-wrapper {
+    flex-direction: row-reverse;
+}
+
+.text-col { flex: 2; }
+.img-col { 
+    flex: 1; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center;
+}
+
+/* Slots de Imagem (Placeholder) */
+.image-slot-placeholder {
+    width: 100%;
+    max-width: 200px;
+    height: auto;
+    opacity: 0.8;
+    border-radius: 12px;
+    /* Sombra suave para destacar do vidro */
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3); 
+}
+
+/* --- Variações de "Vidro" --- */
+.glass-dark {
+    background: rgba(10, 10, 10, 0.7);
+    color: #eee;
+}
+.glass-accent {
+     /* Um tom azulado bem sutil no vidro */
+    background: linear-gradient(135deg, rgba(0, 85, 255, 0.15) 0%, rgba(0, 0, 0, 0.6) 100%);
+    border-top: 1px solid rgba(0, 85, 255, 0.3);
+    color: #fff;
+}
+.glass-light {
+    background: rgba(255, 255, 255, 0.08); /* Vidro mais claro */
+    color: #fff;
+}
+
+/* --- Tipografia e Elementos --- */
+.about-strip h3 {
+    font-size: 1.5rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 15px;
+    font-weight: 800;
+    color: var(--orka-accent);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+.glass-light h3 { color: #fff; } /* Título branco no vidro claro */
+
+.about-strip p {
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 15px;
+    opacity: 0.9;
+}
+
+.values-list { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+.value-tag {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    display: flex; align-items: center; gap: 6px;
+}
+
+/* --- Seção da Equipe & Funcionário do Mês --- */
+.team-layout {
+    display: flex;
+    gap: 30px;
+    align-items: flex-start;
+}
+.credits-col { flex: 2; }
+.employee-month-col { flex: 1; display: flex; justify-content: center; }
+
+.credits-table { width: 100%; border-collapse: collapse; font-family: monospace; }
+.credits-table td { padding: 8px 0; border-bottom: 1px dashed rgba(255,255,255,0.1); }
+.credits-table td:last-child { text-align: right; font-weight: bold; color: var(--orka-accent); }
+
+/* Moldura do Funcionário do Mês */
+.employee-frame {
+    background: linear-gradient(45deg, #d4af37, #f7e5a1, #d4af37); /* Efeito Dourado */
+    padding: 4px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    text-align: center;
+    max-width: 220px;
+    position: relative;
+}
+.employee-frame::before { /* Faixa de título */
+    content: "⭐ Funcionário do Mês ⭐";
+    position: absolute;
+    top: -12px; left: 50%; transform: translateX(-50%);
+    background: #d4af37; color: #000;
+    font-size: 0.75rem; font-weight: bold;
+    padding: 4px 10px; border-radius: 10px;
+    white-space: nowrap;
+}
+.employee-photo-wrapper {
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+.employee-photo { width: 100%; display: block; filter: sepia(0.3); } /* Um filtrozinho retrô */
+.employee-quote { color: #000; font-weight: bold; font-size: 0.9rem; padding: 5px; }
+
+/* --- Botões Sociais --- */
+.support-actions { display: flex; gap: 15px; margin-top: 25px; }
+.btn-social {
+    flex: 1; padding: 12px; border-radius: 8px; border: none;
+    font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+    text-decoration: none; color: white; transition: 0.3s;
+    backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.2);
+}
+.btn-social:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+.btn-insta { background: linear-gradient(45deg, rgba(240, 148, 51, 0.8) 0%, rgba(188, 24, 136, 0.8) 100%); }
+.btn-coffee { background: rgba(255, 221, 0, 0.8); color: #000; }
+/*.btn-insta { background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); }
+.btn-coffee { background-color: #FFDD00; color: #000; } 
+ Amarelo BuyMeACoffee */
+
+ /* =========================================
+   ABA PARCERIAS (ECOSYSTEM & B2B)
+   ========================================= */
+
+/* --- Diagrama do Ecossistema --- */
+.ecosystem-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 30px;
+    flex-wrap: wrap; /* Para mobile não quebrar */
+}
+
+.eco-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #fff;
+    background: rgba(255,255,255,0.05);
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+    min-width: 80px;
+}
+.eco-node .material-icons { font-size: 2rem; margin-bottom: 5px; }
+.node-dev { color: var(--orka-accent); border-color: var(--orka-accent); }
+.node-ads { color: #d4af37; border-color: #d4af37; }
+
+.eco-core {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    background: radial-gradient(circle, rgba(0,85,255,0.2) 0%, rgba(0,0,0,0) 70%);
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    animation: pulseCore 3s infinite ease-in-out;
+}
+@keyframes pulseCore { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+
+.core-logo { width: 50px; height: auto; margin-bottom: 5px; }
+.core-label { font-size: 0.7rem; font-weight: bold; letter-spacing: 1px; color: #fff; }
+
+.eco-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #666;
+}
+.arrow-label { font-size: 0.65rem; text-transform: uppercase; margin-top: -5px; }
+
+/* --- Botões Hero Específicos --- */
+.btn-dev { background: linear-gradient(135deg, #0044cc 0%, #0055ff 100%); border: none; }
+.btn-brand { background: linear-gradient(135deg, #b8860b 0%, #d4af37 100%); border: none; color: #000; }
+
+/* --- Lista de Benefícios --- */
+.partner-benefits-list {
+    list-style: none;
+    padding: 0;
+    margin: 20px 0;
+}
+.partner-benefits-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 15px;
+    background: rgba(0,0,0,0.2);
+    padding: 10px;
+    border-radius: 8px;
+}
+.partner-benefits-list li .material-icons {
+    color: var(--orka-accent);
+    font-size: 1.2rem;
+    margin-top: 2px;
+}
+
+/* --- Card de Código (Visual Dev) --- */
+.code-card {
+    background: #1e1e1e;
+    border-radius: 8px;
+    padding: 15px;
+    font-family: 'Consolas', monospace;
+    font-size: 0.85rem;
+    color: #d4d4d4;
+    border: 1px solid #333;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    width: 100%;
+    max-width: 300px;
+}
+.code-header { display: flex; gap: 6px; margin-bottom: 10px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; }
+.red { background: #ff5f56; } .yellow { background: #ffbd2e; } .green { background: #27c93f; }
+.code-card pre { margin: 0; white-space: pre-wrap; }
+
+/* --- Grid de Slots de Ads --- */
+.ad-slots-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+    margin: 25px 0;
+}
+.ad-slot-card {
+    background: rgba(212, 175, 55, 0.1); /* Dourado fraco */
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    color: #fff;
+}
+.ad-slot-card .material-icons { color: #d4af37; font-size: 1.5rem; }
+.ad-slot-card strong { font-size: 0.9rem; color: #d4af37; }
+.ad-slot-card small { font-size: 0.7rem; opacity: 0.8; line-height: 1.2; }
+
+/* --- Tag de Recompensa (Bolo) --- */
+.tag-reward {
+    position: absolute;
+    top: 5px;
+    left: 5px; /* Fica no canto esquerdo, oposto ao "NOVO" */
+    background: #ff6b6b; /* Aquele rosa "goiaba" do ícone */
+    color: white;
+    font-size: 0.7rem;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 4px; /* Espaço entre ícone e texto */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.6);
+    z-index: 10;
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Animaçãozinha de entrada pra dar um "tchans" */
+@keyframes popIn {
+    from { transform: scale(0); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
 }

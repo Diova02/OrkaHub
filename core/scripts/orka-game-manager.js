@@ -1,11 +1,11 @@
+// core/scripts/orka-game-manager.js
 import { OrkaCloud } from './orka-cloud.js';
 
 export class OrkaGameManager {
     constructor(config) {
-        console.log('🧱 OrkaGameManager constructor', config);
-
         this.config = {
             gameId: config.gameId,
+            isDaily: config.isDaily !== false, // [NOVO] Padrão true para seus jogos atuais (Wordle style)
             enforceLogin: config.enforceLogin !== false,
             heartbeatInterval: config.heartbeatInterval || 30000
         };
@@ -17,7 +17,8 @@ export class OrkaGameManager {
             score: 0,
             level: 1,
             customContext: {}, 
-            history: [] 
+            history: [],
+            dateRef: null // [NOVO] Guarda a data de referência da sessão
         };
 
         this.timers = { heartbeat: null };
@@ -26,78 +27,90 @@ export class OrkaGameManager {
     async init() {
         console.log(`🎮 Inicializando ${this.config.gameId}...`);
         
-        const user = await OrkaCloud.initAuth();
-        console.log('🔐 Auth OK:', user);
+        // Define a data de referência (Hoje YYYY-MM-DD se for diário, ou null)
+        if (this.config.isDaily) {
+            this.state.dateRef = new Date().toISOString().split('T')[0];
+        }
 
+        const user = await OrkaCloud.initAuth();
         let profile = OrkaCloud.getProfile();
-        console.log('👤 Perfil atual:', profile);
 
         if (this.config.enforceLogin && (!profile || !profile.nickname)) {
+            // Lógica de guest...
             const randomNick = `Explorador ${Math.floor(Math.random() * 9999)}`;
-            console.log('✏️ Gerando nickname automático:', randomNick);
-
-            await OrkaCloud.updateProfile({ nickname: randomNick, language: 'pt-BR' });
-            profile = OrkaCloud.getProfile();
-            console.log('✅ Perfil atualizado:', profile);
+            await OrkaCloud.updateProfile({ nickname: randomNick });
         }
 
         this.state.sessionId = await OrkaCloud.startSession(this.config.gameId);
         this.state.startTime = Date.now();
 
-        console.log('🆔 Sessão iniciada:', this.state.sessionId);
-
         this._startHeartbeat();
         this._setupListeners();
 
-        return { user, profile };
+        // [NOVO] Carrega save específico da data (se houver)
+        const saveData = await OrkaCloud.loadSave(this.config.gameId, this.state.dateRef);
+
+        return { user, profile, saveData };
+    }
+
+    // [NOVO] Método auxiliar para salvar progresso
+    async saveProgress(data) {
+        // Salva passando a referência de data
+        await OrkaCloud.saveGame(this.config.gameId, data, this.state.dateRef);
     }
 
     checkpoint(data = {}) {
-        console.log('📍 Checkpoint recebido:', data);
-
         this.state.history.push({ t: Date.now(), ...data });
         
-        if (data.score !== undefined) {
-            this.state.score = data.score;
-            console.log('🎯 Score atualizado:', this.state.score);
-        }
-
-        if (data.level !== undefined) {
-            this.state.level = data.level;
-            console.log('🪜 Level atualizado:', this.state.level);
-        }
+        if (data.score !== undefined) this.state.score = data.score;
+        if (data.level !== undefined) this.state.level = data.level;
         
         this.state.customContext = { ...this.state.customContext, ...data };
-        console.log('🧠 customContext atual:', this.state.customContext);
         
+        // [OPCIONAL] Se quiser salvar automaticamente no checkpoint:
+        // this.saveProgress(this.state.customContext);
+
         this._syncSession('checkpoint'); 
     }
 
     async endGame(result, finalData = {}) {
-        console.log('🏁 endGame chamado:', { result, finalData });
-
         this._stopHeartbeat();
-        
         const duration = Math.floor((Date.now() - this.state.startTime) / 1000);
-        console.log('⏱️ Duração da sessão:', duration, 'segundos');
+
+        // [CORREÇÃO 1] Atualiza o estado local se o jogo mandou score/level agora
+        if (finalData.score !== undefined) this.state.score = finalData.score;
+        if (finalData.level !== undefined) this.state.level = finalData.level;
 
         const metadata = {
             result: result, 
             final_level: this.state.level,
             final_score: this.state.score,
+            date_ref: this.state.dateRef,
             ...this.state.customContext,
             ...finalData
         };
 
-        console.log('📦 Metadata final da sessão:', metadata);
+        if (result !== 'abandoned') {
+            if (result === 'win') {
+                try {
+                    const alreadyClaimed = await OrkaCloud.checkDailyClaim(this.config.gameId);
+                    
+                    if (!alreadyClaimed) {
+                        console.log('🎁 Claiming daily reward...');
+                        await OrkaCloud.claimDaily(this.config.gameId);
+                    }
+                    
+                    // [CORREÇÃO 2] Agora this.state.score tem o valor correto!
+                    if (this.state.score > 0) {
+                        await OrkaCloud.submitScore(this.config.gameId, this.state.score);
+                    }
+                } catch (e) {
+                    console.warn("Falha ao processar vitória:", e);
+                }
+            }
 
-        if (result === 'win') {
-            console.log('🎁 Tentando claimDaily...');
-            await OrkaCloud.claimDaily(this.config.gameId);
-
-            if (this.state.score > 0) {
-                console.log('🏆 Enviando score:', this.state.score);
-                await OrkaCloud.submitScore(this.config.gameId, this.state.score);
+            if (this.config.isDaily) {
+                await this.saveProgress({ ...this.state.customContext, status: 'finished', result });
             }
         }
 
@@ -105,66 +118,47 @@ export class OrkaGameManager {
             duration_seconds: duration,
             metadata: metadata
         });
-        
-        console.log("✅ Sessão encerrada e beacon enviado.");
     }
 
     _startHeartbeat() {
-        console.log('💓 Iniciando heartbeat a cada', this.config.heartbeatInterval, 'ms');
-
         if (this.timers.heartbeat) clearInterval(this.timers.heartbeat);
-
         this.timers.heartbeat = setInterval(() => {
             if (!this.state.isPaused) {
-                console.log('💓 Heartbeat disparado');
                 this._syncSession('heartbeat');
             }
         }, this.config.heartbeatInterval);
     }
 
     _stopHeartbeat() {
-        console.log('🛑 Parando heartbeat');
         if (this.timers.heartbeat) clearInterval(this.timers.heartbeat);
     }
 
     _syncSession(reason) {
-        if (!this.state.sessionId) {
-            console.warn('⚠️ Tentativa de sync sem sessionId');
-            return;
-        }
-
+        if (!this.state.sessionId) return;
         const duration = Math.floor((Date.now() - this.state.startTime) / 1000);
-
-        const payload = {
+        
+        OrkaCloud.updateSession(this.state.sessionId, {
             duration_seconds: duration,
             metadata: {
                 status: 'playing',
                 last_update: reason,
                 ...this.state.customContext
             }
-        };
-
-        console.log('🔄 SyncSession:', reason, payload);
-
-        OrkaCloud.updateSession(this.state.sessionId, payload);
+        });
     }
 
     _setupListeners() {
-        console.log('👂 Configurando listeners de visibilidade e unload');
-
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'hidden') {
-                console.log('🙈 Aba ficou oculta → pausando sessão');
                 this.state.isPaused = true;
                 this._syncSession('paused');
             } else {
-                console.log('👀 Aba voltou → retomando sessão');
                 this.state.isPaused = false;
             }
         });
 
         window.addEventListener('beforeunload', () => {
-            console.log('🚪 beforeunload disparado → encerrando como abandoned');
+            // Tenta enviar o beacon final como abandoned
             this.endGame('abandoned'); 
         });
     }

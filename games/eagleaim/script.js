@@ -5,7 +5,7 @@ import { OrkaFX, OrkaMath, OrkaStorage, OrkaAudio, OrkaCalendar, Utils, OrkaTuto
 // =========================
 // CONFIGURAÇÕES
 // =========================
-const GAME_ID = 'eagle_aim';
+const GAME_ID = 'eagle';
 const MIN_DATE = '2026-01-01'; 
 const PENALTY_MS = 1000; 
 const PERFECT_BONUS_MS = 500;
@@ -468,7 +468,7 @@ function spawnWave(index) {
             
             if (dist < (rect.width / 2) * 0.25) { 
                 state.bonusTime += PERFECT_BONUS_MS;
-                OrkaFX.toast(`PERFECT! -${(PERFECT_BONUS_MS/1000)}s`, 'success');
+                //OrkaFX.toast(`PERFECT! -${(PERFECT_BONUS_MS/1000)}s`, 'success');
                 OrkaAudio.play('precise');
                 const flash = document.createElement('div'); flash.className = 'perfect-flash';
                 document.body.appendChild(flash); setTimeout(() => flash.remove(), 200);
@@ -497,7 +497,7 @@ function handleMissClick(e) {
     OrkaAudio.play('miss');
     state.penaltyTime += PENALTY_MS;
     OrkaFX.shake('game-wrapper');
-    OrkaFX.toast('+1s ERRO!', 'error');
+    //OrkaFX.toast('+1s ERRO!', 'error');
     const flash = document.createElement('div'); flash.className = 'penalty-flash';
     document.body.appendChild(flash); setTimeout(() => flash.remove(), 150);
 }
@@ -543,38 +543,49 @@ async function finishGame() {
     const now = performance.now();
     const rawTime = Math.max(0, now - state.startTime + state.penaltyTime - state.bonusTime);
     state.finalTime = (rawTime / 1000).toFixed(3);
-    
-    // Salva recorde local (UI instantânea)
+    const floatTime = parseFloat(state.finalTime);
+
+    // Salva recorde local
     saveDailyRecord(state.finalTime);
     
-    // Toca som
     OrkaAudio.play('endgame');
     
-    // V5: O EndGame faz tudo (Beacon, Analytics, Recompensa)
-    // O 'score' aqui é o tempo (quanto menor melhor, mas o manager envia como está)
-    // Se o jogo fosse de pontos (maior melhor), funcionaria igual.
-    // Nota: Como Eagle Aim é "Menor Tempo", certifique-se que o Leaderboard no Supabase está ordenado ASC.
-    // Se ainda não estiver, precisaremos ajustar a view ou a query.
-    await Game.endGame('win', { 
-        score: parseFloat(state.finalTime), // Importante converter pra float
-        wave: TOTAL_WAVES,
-        penalties: state.penaltyTime,
-        perfect_bonus: state.bonusTime
-    });
+    // [PRO TIP] Só enviamos para o GameManager se for um tempo VÁLIDO e MELHOR (ou igual) ao bestTime
+    // Isso evita que uma partida ruim sobrescreva seu recorde no banco
+    const isRecord = !state.bestTime || floatTime <= state.bestTime;
+    
+    if (isRecord) {
+        // Se for recorde, enviamos o score para o Cloud
+        await Game.endGame('win', { 
+            score: floatTime, 
+            wave: TOTAL_WAVES,
+            penalties: state.penaltyTime,
+            perfect_bonus: state.bonusTime
+        });
+        
+        // Força atualização visual imediata
+        const profile = OrkaCloud.getProfile();
+        if (profile && profile.nickname) {
+            OrkaFX.toast('🏆 Novo Recorde Salvo!', 'success');
+            loadLeaderboardInline(); 
+            refreshDashboardUI(); 
+        }
+    } else {
+        // Se não foi recorde, apenas finalizamos a sessão sem enviar score novo
+        // Passamos 'abandoned' ou um status customizado para não triggerar o submitScore interno do Manager
+        // Mas para manter analytics, podemos passar 'lose' ou apenas não passar score
+        await Game.endGame('win', { 
+            final_score: floatTime, // Salva no metadata para analytics, mas não no leaderboard
+            is_record: false
+        });
+    }
 
     els.btnPlay.textContent = 'JOGAR NOVAMENTE';
     switchScreen('menu');
 
-    // V5: Perfil vem do Cloud
+    // ... lógica de modal nick ...
     const profile = OrkaCloud.getProfile();
-    if (profile && profile.nickname) {
-        // Envia Score explicitamente para atualizar ranking IMEDIATO na UI
-        // (O Game.endGame já envia, mas aqui garantimos o refresh visual)
-        await OrkaCloud.submitScore(GAME_ID, state.bestTime); 
-        OrkaFX.toast('Ranking atualizado!', 'success');
-        loadLeaderboardInline(); 
-        refreshDashboardUI(); 
-    } else {
+    if (!profile || !profile.nickname) {
         els.modalNick.classList.add('active'); 
     }
 }
@@ -600,6 +611,7 @@ async function saveNicknameAndSubmit() {
     refreshDashboardUI();
     if(state.bestTime) await OrkaCloud.submitScore(GAME_ID, state.bestTime);
     loadLeaderboardInline();
+    loadSeasonRankings();
 }
 
 async function loadLeaderboardInline() {

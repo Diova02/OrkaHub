@@ -5,7 +5,7 @@ import Traducao from './trad.js';
 import { palavrasPT, palavrasEN } from './palavras.js';
 
 // --- INSTÂNCIA DO GERENTE ---
-const GAME_ID = 'orka-jinx';
+const GAME_ID = 'jinx';
 const Game = new OrkaGameManager({
     gameId: GAME_ID,
     enforceLogin: true, // Garante que tem Nick e Avatar antes de entrar

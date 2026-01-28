@@ -16,7 +16,7 @@ import { OrkaCloud } from '../../core/scripts/orka-cloud.js'; // Ainda usada par
 // ==========================================
 // 1. CONFIGURAÇÃO & DADOS
 // ==========================================
-const GAME_ID = 'orka_zoo';
+const GAME_ID = 'zoo';
 const MAX_ATTEMPTS = 10;
 const START_DATE = new Date("2025-12-01T00:00:00");
 const POP_SCALE = ["Extinto","Dezenas", "Centenas", "Milhares", "Milhões", "Bilhões", "Trilhões"];
@@ -261,6 +261,11 @@ function getStorageKey() {
     return `orkaZoo_${gameState.currentDate.toISOString().split('T')[0]}`;
 }
 
+// Função helper simples para pegar a string de data ISO (YYYY-MM-DD)
+function getCurrentDateRef() {
+    return gameState.currentDate.toISOString().split('T')[0];
+}
+
 async function saveProgress() {
     const dataParaSalvar = {
         guessed: Array.from(gameState.guessedNames),
@@ -271,32 +276,38 @@ async function saveProgress() {
         attempts: gameState.attemptsCount
     };
 
+    // 1. Salva Local (Storage)
     OrkaStorage.save(getStorageKey(), dataParaSalvar);
     OrkaStorage.updateCalendarStatus(gameState.currentDate, dataParaSalvar.win ? 'win' : (dataParaSalvar.over ? 'lose' : 'playing'));
 
-    // ATUALIZADO: Chama saveGame (V5) ao invés de saveGameProgress (V4)
-    const cloudId = getCloudGameId();
-    await OrkaCloud.saveGame(cloudId, dataParaSalvar);
+    // 2. Salva Nuvem (CORREÇÃO AQUI)
+    // Passamos 3 argumentos: ID do jogo, Dados, Referência de Data
+    const dateRef = getCurrentDateRef();
+    await OrkaCloud.saveGame(GAME_ID, dataParaSalvar, dateRef);
 }
 
 async function loadProgress() {
-    const cloudId = getCloudGameId();
+    const dateRef = getCurrentDateRef();
     
-    // ATUALIZADO: Chama loadSave (V5)
-    let data = await OrkaCloud.loadSave(cloudId);
+    // 1. Tenta carregar da Nuvem usando a nova assinatura (ID, DataRef)
+    let data = await OrkaCloud.loadSave(GAME_ID, dateRef);
 
+    // Fallback: Se não tem na nuvem, tenta local e migra
     if (!data) {
         data = OrkaStorage.load(getStorageKey());
+        
+        // Se achou localmente e o jogo já acabou, salva na nuvem para persistir
         if (data && data.over) {
-            console.log(`☁️ Migrando save de ${cloudId} para nuvem...`);
-            OrkaCloud.saveGame(cloudId, data);
+            console.log(`☁️ Migrando save local de ${dateRef} para nuvem...`);
+            OrkaCloud.saveGame(GAME_ID, data, dateRef);
         }
     }
 
+    // ... Resto da lógica de renderização (mantém igual) ...
     if (data) {
         startTime = data.startT;
         endTime = data.endT;
-
+        // (O resto do seu código de loadProgress continua aqui...)
         if (data.guessed && data.guessed.length > 0) {
              const emptyState = document.getElementById("empty-state");
              if(emptyState) emptyState.style.display = "none";
