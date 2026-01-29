@@ -143,3 +143,29 @@
     gap: 10px;
     padding: 15px 0;
 }
+
+/* Definição da animação de flutuar */
+@keyframes orkaFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+/* Classe que aplica a animação */
+.pet-float-animation {
+    animation: orkaFloat 3s ease-in-out infinite; /* 3 segundos para o ciclo completo */
+    display: inline-block; /* Garante que o transform funcione */
+}
+
+.pet-particle {
+    position: fixed;
+    pointer-events: none; /* Fundamental para não bugar o mouse */
+    font-size: 1.5rem;
+    z-index: 10000;
+    animation: particleUp 1s ease-out forwards;
+}
+
+@keyframes particleUp {
+    0% { transform: translateY(0) scale(0.5); opacity: 0; }
+    20% { opacity: 1; transform: translateY(-10px) scale(1.2); }
+    100% { transform: translateY(-50px) scale(0.8); opacity: 0; }
+}

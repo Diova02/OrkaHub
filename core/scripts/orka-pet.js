@@ -23,6 +23,8 @@ export class OrkaPet {
         this.dragOffset = { x: 0, y: 0 };
         this.lastMousePos = { x: 0, y: 0 };
         this.lastDragTime = 0;
+        this.grabTime = 0;
+        this.isPetting = false;
         
         this.aiTimer = null;
     }
@@ -88,6 +90,7 @@ export class OrkaPet {
     spawn(instant = false) {
         this.state.isHidden = false;
         this.saveState(); // Garante que a função existe lá embaixo
+        this.startPassiveWatcher();
 
         if (!this.el) this.createDOM();
         
@@ -111,6 +114,21 @@ export class OrkaPet {
         }
 
         this.startAI();
+    }
+
+    createHeart(x, y) {
+        const heart = document.createElement('div');
+        heart.className = 'pet-particle';
+        heart.textContent = '❤️'; // Pode alternar entre ✨ ou 🍰
+        heart.style.left = `${x}px`;
+        heart.style.top = `${y}px`;
+        
+        // Variação aleatória na posição horizontal
+        const randomOffset = (Math.random() - 0.5) * 40;
+        heart.style.marginLeft = `${randomOffset}px`;
+        
+        document.body.appendChild(heart);
+        setTimeout(() => heart.remove(), 800);
     }
 
     recall() {
@@ -214,6 +232,34 @@ export class OrkaPet {
     //  INTERAÇÃO E FÍSICA
     // =================================================================
 
+    startPassiveWatcher() {
+        const watch = () => {
+            if (this.state.isHidden || !this.el) {
+                requestAnimationFrame(watch);
+                return;
+            }
+
+            // Lógica Passiva:
+            // Se NÃO está sendo arrastado (drag)
+            // E NÃO está voando/arremessado (fly)
+            // E NÃO está no meio de um passo da IA (walking)
+            const isQuiet = !this.isDragging && !this.isFlying && !this.isWalking;
+
+            if (isQuiet) {
+                // Se estiver parado e não tiver a animação, adiciona
+                if (!this.el.classList.contains('pet-float-animation')) {
+                    this.el.classList.add('pet-float-animation');
+                }
+            } else {
+                // Se estiver em movimento (qualquer um), remove na hora
+                this.el.classList.remove('pet-float-animation');
+            }
+
+            requestAnimationFrame(watch);
+        };
+        requestAnimationFrame(watch);
+    }
+
     bindEvents() {
         // Mouse
         this.el.addEventListener('mousedown', (e) => this.onGrab(e));
@@ -226,25 +272,32 @@ export class OrkaPet {
         window.addEventListener('touchend', (e) => this.onRelease(e));
     }
 
+    // --- ATUALIZAÇÃO DO ONGRAB ---
     onGrab(e) {
         if (this.state.isHidden || this.isWalking || this.isFlying) return;
-        if(e.preventDefault) e.preventDefault(); 
-        
-        this.isDragging = true;
-        this.el.classList.add('dragging');
-        this.setTransition(false);
         
         const rect = this.el.getBoundingClientRect();
-        this.dragOffset.x = e.clientX - rect.left;
-        this.dragOffset.y = e.clientY - rect.top;
-        
-        this.lastMousePos = { x: e.clientX, y: e.clientY };
-        this.lastDragTime = Date.now();
-        this.vel = { x:0, y:0 };
+        const offsetX = e.clientX - rect.left;
+        const offsetY = e.clientY - rect.top;
 
+        // Lógica da Testa: Topo central (30% superior do pet, entre 30% e 70% da largura)
+        const isForehead = (offsetY < rect.height * 0.3) && (offsetX > rect.width * 0.3 && offsetX < rect.width * 0.7);
+
+        if (isForehead) {
+            this.isPetting = true;
+            this.reactToPetting(e.clientX, e.clientY);
+            return; // Sai daqui para NÃO iniciar o drag
+        }
+
+        // Se não for na testa, segue o baile pro Drag original
+        this.isDragging = true;
+        this.grabTime = Date.now();
+        this.el.classList.add('dragging');
+        this.setTransition(false);
+        this.dragOffset = { x: offsetX, y: offsetY };
         this.setFace('surprised');
     }
-
+    
     onDrag(e) {
         if (this.state.isHidden || this.isWalking) return;
 
@@ -273,7 +326,12 @@ export class OrkaPet {
         }
     }
 
+
     onRelease(e) {
+        if (this.isPetting) {
+            this.isPetting = false;
+            return;
+        }
         if (!this.isDragging) return;
         this.isDragging = false;
         this.el.classList.remove('dragging');
@@ -289,6 +347,43 @@ export class OrkaPet {
         } else {
             this.saveState();
         }
+
+        if (!this.isDragging) return;
+        this.isDragging = false;
+        this.el.classList.remove('dragging');
+        this.setFace('default');
+        // Se ele não sair voando (arremesso), volta a flutuar
+        if (!(Math.abs(this.vel.x) > 3 || Math.abs(this.vel.y) > 3)) {
+            this.el.classList.add('pet-float-animation');
+        }
+    }
+
+    reactToPetting(x, y) {
+        this.setFace('surprised'); // Abre os olhinhos
+        this.mouth.textContent = 'u'; // Boquinha feliz
+        
+        // Efeito de "pulinho"
+        this.el.style.transition = 'transform 0.1s ease-out';
+        this.el.style.transform = 'scale(1.15)';
+        OrkaFX.shake('orka-pet-layer', 3);
+
+        // Cria os corações
+        for(let i=0; i<3; i++) {
+            setTimeout(() => {
+                const heart = document.createElement('div');
+                heart.className = 'pet-particle';
+                heart.textContent = '❤️';
+                heart.style.left = `${x + (Math.random() * 40 - 20)}px`;
+                heart.style.top = `${y - 20}px`;
+                document.body.appendChild(heart);
+                setTimeout(() => heart.remove(), 1000);
+            }, i * 100);
+        }
+
+        setTimeout(() => {
+            this.setFace('default');
+            this.el.style.transform = 'scale(1)';
+        }, 600);
     }
 
     startFly() {
@@ -344,44 +439,50 @@ export class OrkaPet {
 
     startAI() {
         const think = () => {
-            if (this.state.isHidden) return; // Se escondeu, para de pensar
+            if (this.state.isHidden) return;
 
+            // Se estiver sendo arrastado ou voando, removemos a animação e esperamos
             if (this.isDragging || this.isFlying) {
+                this.el.classList.remove('pet-float-animation'); // GARANTE QUE PARA AO SEGURAR
                 this.aiTimer = setTimeout(think, 1000); 
                 return;
             }
 
-            // 1. Modo Andar
+            // --- ESTADO PARADO (IDLE) ---
+            // Se chegou aqui e não está andando, ele está "pensando"/parado
+            this.el.classList.add('pet-float-animation'); 
+
             this.isWalking = true;
-            this.el.classList.add('walking');
-
-            const targetX = Math.random() * (window.innerWidth - 100) + 20;
-            const targetY = Math.random() * (window.innerHeight - 100) + 20;
-
-            this.lookAt(targetX, targetY);
             
-            // 2. Antecipação
+            // 2. Antecipação (O momento antes de ele dar o passo)
             setTimeout(() => {
                 if (this.state.isHidden || this.isDragging) {
-                     this.isWalking = false; 
-                     this.el.classList.remove('walking');
-                     return;
+                    this.isWalking = false; 
+                    return;
                 }
                 
-                // 3. Movimento
+                // --- COMEÇOU A ANDAR ---
+                // Removemos a flutuação para ele focar no deslocamento
+                this.el.classList.remove('pet-float-animation'); 
+                this.el.classList.add('walking');
+
+                const targetX = Math.random() * (window.innerWidth - 100) + 20;
+                const targetY = Math.random() * (window.innerHeight - 100) + 20;
+
+                this.lookAt(targetX, targetY);
+                
                 this.setTransition(true); 
                 this.el.style.left = targetX + 'px';
                 this.el.style.top = targetY + 'px';
 
-                // 4. Chegada
                 setTimeout(() => {
                     this.saveState();
                     this.isWalking = false;
                     this.el.classList.remove('walking');
                     
-                    // Agenda próximo movimento
+                    // Ao terminar de andar, ele volta para o topo da função 'think' 
+                    // onde a animação será religada.
                     this.aiTimer = setTimeout(think, Math.random() * 5000 + 5000);
-
                 }, 2000); 
 
             }, 600);
@@ -389,7 +490,6 @@ export class OrkaPet {
         
         this.aiTimer = setTimeout(think, 2000);
     }
-
     lookAt(targetX, targetY) {
         if(!this.eyeL) return;
         
