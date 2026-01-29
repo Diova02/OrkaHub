@@ -24,6 +24,7 @@ header {
     position: sticky;
     top: 0;
     z-index: 100; /* Garante que fique acima dos jogos */
+    height: 70px;
 
     /* Efeito de Vidro (Glassmorphism) */
     background: rgba(15, 23, 42, 0.85); /* Cor do fundo com transparência */
@@ -37,13 +38,22 @@ header {
     /* Manter espaçamentos existentes */
     padding: 15px 0;
     width: 100%;
+    max-width: 100vw;
 
     padding-bottom: 15px;
+    
+    
+    justify-content: space-between;
+    padding: 0 20px;
+    box-sizing: border-box;
+    overflow: hidden; /* Impede que itens internos expandam o header */
 }
+
 
 .header-content {
     max-width: 900px; margin: 0 auto;
     display: flex; align-items: center; justify-content: space-between;
+    margin-top: 13px;
 }
 
 .left-group, .right-group { display: flex; gap: 10px; align-items: center; flex: 1; }
@@ -370,3 +380,147 @@ body {
     color: white;
     font-weight: bold;
 }
+
+.orka-pet {
+    display: none;
+}
+/* DESKTOP: Botões lado a lado */
+.header-actions {
+    display: flex !important;
+    flex-direction: row;
+    gap: 10px;
+    align-items: center;
+}
+
+.mobile-menu-trigger { display: none !important; }
+.action-label { display: none; } /* Esconde texto no PC */
+
+/* MOBILE: Menu Vertical */
+@media (max-width: 768px) {
+    .mobile-menu-trigger { display: flex !important; }
+
+    .header-actions {
+        /* RESET TOTAL PARA SAIR DO HEADER */
+        display: none !important;
+        position: fixed !important; 
+        top: 15px !important; /* Alinhado ao topo */
+        right: 15px !important;
+        width: 220px !important;
+        
+        /* ESTILO VISUAL */
+        background: #0f0f0f !important;
+        border: 1px solid var(--orka-accent) !important;
+        border-radius: 12px !important;
+        flex-direction: column !important;
+        padding: 20px 10px !important;
+        
+        /* CAMADA SUPREMA */
+        z-index: 999999 !important; 
+        box-shadow: 0 0 30px rgba(0, 0, 0, 0.9), 0 0 10px rgba(0, 85, 255, 0.2) !important;
+    }
+
+    .header-actions.active {
+        display: flex !important;
+    }
+
+    /* Ajuste dos botões dentro do menu */
+    .header-profile-btn {
+        width: 100% !important;
+        height: 50px !important;
+        border-radius: 8px !important;
+        margin-bottom: 10px;
+        background: #1a1a1a !important;
+        justify-content: flex-start !important;
+        padding-left: 15px !important;
+    }
+}
+
+.mobile-menu-trigger {
+    display: none; /* Escondido no desktop */
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--orka-accent);
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    align-items: center;
+    justify-content: center;
+}
+
+.mobile-menu-trigger:hover {
+    background: rgba(0, 85, 255, 0.2);
+    border-color: var(--orka-accent);
+}
+
+.mobile-menu-trigger .material-icons {
+    font-size: 28px;
+}
+/* --- FIXAÇÃO DO HEADER --- */
+/* --- HEADER: Altura Fixa e Largura Controlada --- */
+
+/* --- NAVEGAÇÃO DE ABAS: Rolagem Lateral --- */
+.hub-tabs {
+    display: flex;
+    justify-content: flex-start; /* Alinha à esquerda para permitir deslizar */
+    gap: 15px;
+    margin: 20px 0;
+    padding: 0 10px 10px 10px;
+    
+    /* Mágica do Scroll Horizontal */
+    overflow-x: auto; 
+    overflow-y: hidden;
+    white-space: nowrap; /* Impede quebra de linha dos botões */
+    -webkit-overflow-scrolling: touch; /* Suavidade no mobile */
+    
+    /* Esconde a barra de rolagem para um visual limpo */
+    scrollbar-width: none; 
+}
+
+.hub-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.tab-btn {
+    flex-shrink: 0; /* Impede que o botão diminua de tamanho */
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 10000; /* Acima do menu mobile */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* O modal em si não rola, o conteúdo sim */
+    background-color: rgba(0,0,0,0.85);
+}
+
+.modal-content {
+    width: 90%;
+    max-width: 450px;
+    max-height: 85vh; /* Garante que nunca saia da tela verticalmente */
+    overflow-y: auto;
+    margin: 5vh auto;
+    box-sizing: border-box;
+}
+
+header {
+    height: 70px !important;
+    overflow: visible !important; /* MUDANÇA CHAVE: Permite que o menu escape */
+    position: relative;
+    z-index: 1000;
+}
+
+.hub-tabs {
+    display: flex !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    gap: 15px !important;
+    padding: 10px 15px !important;
+    scrollbar-width: none; 
+    -webkit-overflow-scrolling: touch;
+}
+
+.hub-tabs::-webkit-scrollbar { display: none; }

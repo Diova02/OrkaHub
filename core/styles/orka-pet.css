@@ -1,0 +1,145 @@
+/* O Corpo Principal */
+.orka-pet {
+    position: fixed;
+    width: 60px;
+    height: 60px;
+    background: var(--orka-accent, #ffcc00);
+    border-radius: 50%;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    z-index: 99999;
+    
+    /* Layout da Face */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+    /* Importante: Começa sem transição para não bugar o init */
+    transition: none; 
+    
+    /* Previne seleção de texto ao arrastar */
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none; /* Vital para celular */
+    cursor: grab;
+}
+
+.orka-pet.dragging {
+    cursor: grabbing;
+    transform: scale(1.1) rotate(5deg);
+    /* Força bruta via CSS para garantir */
+    transition: none !important; 
+}
+
+/* Face Container */
+.pet-face {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* O clique passa direto para o corpo */
+}
+
+/* Olhos */
+.pet-eye {
+    position: absolute;
+    top: 35%;
+    width: 8px; /* Olhos maiores ficam mais expressivos */
+    height: 8px;
+    background: #000;
+    border-radius: 50%;
+    transition: transform 0.1s; /* Olhos muito rápidos */
+}
+.pet-eye.left { left: 25%; }
+.pet-eye.right { right: 25%; }
+
+/* Boca */
+.pet-mouth {
+    position: absolute;
+    bottom: 25%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-weight: 900;
+    font-size: 14px;
+    font-family: sans-serif;
+    color: #000;
+}
+
+.orka-pet.walking {
+    cursor: default; /* Indica que não é clicável agora */
+    filter: brightness(1.1); /* Leve brilho de "determinação" */
+}
+
+/* 1. O Botão do Header */
+.pet-btn-trigger {
+    background: rgba(255, 255, 255, 0.1);
+    margin-right: 10px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Mini Face no Botão (Quando recolhido) */
+.mini-pet-face {
+    font-weight: bold;
+    font-size: 0.8rem;
+    color: var(--orka-accent);
+}
+
+/* 2. O Acessório no Pet */
+.pet-accessory-layer {
+    position: absolute;
+    top: -15px;  /* Ajuste para chapéus */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50px; /* Tamanho relativo ao pet */
+    height: 50px;
+    pointer-events: none;
+    z-index: 10;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center bottom;
+}
+
+/* 3. Modal de Customização */
+.pet-preview-stage {
+    background: rgba(0,0,0,0.2);
+    border-radius: 12px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 15px;
+}
+
+/* O Pet dentro do modal (estático) */
+.orka-pet.static-preview {
+    position: relative; /* Não fixed */
+    transform: scale(1.5); /* Maiorzinho */
+    top: auto; left: auto;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+/* Grid de Cores */
+.color-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    padding: 15px 0;
+}
+
+.color-option {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+.color-option:hover { transform: scale(1.1); }
+.color-option.selected { border-color: #fff; box-shadow: 0 0 10px #fff; }
+
+/* Grid de Acessórios */
+.accessory-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    padding: 15px 0;
+}

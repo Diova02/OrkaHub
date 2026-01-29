@@ -2,10 +2,11 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Orka Studio | Hub</title>
     
     <link rel="stylesheet" href="core/styles/orka-base.css">
+    <link rel="stylesheet" href="core/styles/orka-pet.css">
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/png" href="../../assets/icons/orka-logo.png">
 
@@ -39,11 +40,24 @@
                 <div class="bolo-counter" title="Seus Bolos">
                     <span class="material-icons" style="color:#ffcc00; font-size:1.2rem; margin-right:4px;">cake</span>
                     <span id="header-bolo-count">0</span>
-                </div>
-                <button id="btn-profile" class="header-profile-btn" data-t-title="profileBtn">
-                    <img id="header-avatar-img" src="" alt="Avatar" class="header-avatar-img" style="display:none;">
-                    
-                    <span id="header-avatar-icon" class="material-icons">person</span>
+                </div><div class="right-group">
+
+            <button id="btn-mobile-menu" class="mobile-menu-trigger">
+                <span class="material-icons">menu</span>
+            </button>
+
+            <div id="header-actions-container" class="header-actions">
+                <button id="btn-pet-toggle" class="header-profile-btn pet-btn-trigger">
+                    <span class="material-icons" id="btn-pet-icon">pets</span>
+                    <div id="btn-pet-face-preview" class="mini-pet-face" style="display:none;">
+                        <span>●‿●</span>
+                    </div>
+                    <span class="action-label">Pet Studio</span> 
+                </button>
+
+                <button id="btn-profile" class="header-profile-btn">
+                    <span class="material-icons">person</span>
+                    <span class="action-label">Meu Perfil</span>
                 </button>
             </div>
         </div>
@@ -520,6 +534,43 @@
                 
                 <p id="auth-msg" style="font-size:0.75rem; margin-top:5px; height:15px;"></p>
             </div>
+        </div>
+    </div>
+
+
+    <div id="modal-pet-shop" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px; text-align:center;">
+            <div class="modal-header">
+                <h2 style="color:var(--orka-accent);">ESTÚDIO DO PET</h2>
+                <button class="icon-btn close-pet-modal"><span class="material-icons">close</span></button>
+            </div>
+
+            <div class="pet-preview-stage">
+                <div id="pet-preview-dummy" class="orka-pet static-preview">
+                    </div>
+            </div>
+
+            <nav class="hub-tabs" style="margin-top:20px; justify-content:center;">
+                <button class="tab-btn active" data-target="pet-colors">CORES</button>
+                <button class="tab-btn" data-target="pet-accessories">ACESSÓRIOS</button>
+            </nav>
+
+            <div id="tab-pet-colors" class="pet-tab-content active">
+                <div class="color-grid" id="pet-color-grid">
+                    </div>
+            </div>
+
+            <div id="tab-pet-accessories" class="pet-tab-content" style="display:none;">
+                <div class="accessory-grid" id="pet-acc-grid">
+                    <div class="empty-msg">Em breve: Chapéus e Óculos!</div>
+                </div>
+            </div>
+
+            <hr style="border:0; border-top:1px solid #333; margin: 20px 0;">
+
+            <button id="btn-recall-pet" class="orka-btn danger-btn" style="width:100%;">
+                <span class="material-icons">home</span> Recolher Pet (Descansar)
+            </button>
         </div>
     </div>
 

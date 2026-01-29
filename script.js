@@ -1,6 +1,8 @@
 import { OrkaCloud } from './core/scripts/orka-cloud.js';
 import { OrkaFX } from './core/scripts/orka-lib.js'; 
 import { translations } from './translate.js'; 
+import { OrkaPet } from './core/scripts/orka-pet.js'; // PET bro
+
 
 // NOTA: jsPDF agora é carregado via <script> no HTML, não via import, para evitar erros de módulo.
 
@@ -61,6 +63,29 @@ window.addEventListener('load', () => {
     }
 
     initHub();
+
+    // INICIA O PET
+    const pet = new OrkaPet();
+    pet.init();
+
+    //lógica menu mobile
+    const btnMobile = document.getElementById('btn-mobile-menu');
+    const actionsMenu = document.getElementById('header-actions-container');
+
+    if (btnMobile && actionsMenu) {
+        btnMobile.onclick = (e) => {
+            e.stopPropagation();
+            actionsMenu.classList.toggle('active');
+            const icon = btnMobile.querySelector('.material-icons');
+            icon.textContent = actionsMenu.classList.contains('active') ? 'close' : 'menu';
+        };
+
+        // Fecha ao clicar fora
+        document.addEventListener('click', () => {
+            actionsMenu.classList.remove('active');
+            btnMobile.querySelector('.material-icons').textContent = 'menu';
+        });
+    }
     
     // 2. Remove Loader após carregamento
     setTimeout(() => {
@@ -567,7 +592,7 @@ function renderAdminUI() {
         const gameInfo = gamesList.find(g => g.id === stat.game_id);
         
         let title = gameInfo ? gameInfo.title : stat.game_id;
-        let iconHtml = gameInfo ? `<img src="${gameInfo.icon}" style="width:20px; vertical-align:middle; margin-right:5px;">` : '';
+        let iconHtml = gameInfo ? `<img src="assets/icons/${gameInfo.icon}" style="width:20px; vertical-align:middle; margin-right:5px;">` : '';
 
         if (isHub) {
             title = "🏠 ORKA HUB (Navegação)";

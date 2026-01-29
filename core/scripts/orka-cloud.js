@@ -295,7 +295,19 @@ export const OrkaCloud = {
 
     // [IMPORTANTE] Certifique-se que suas RPCs no Supabase foram atualizadas 
     // para inserir na tabela 'cake_transactions' em vez de update direto no player.
-    addBolo: (amount) => secureTransaction('add_bolo', { amount }), 
+    // JS Sugerido
+    addBolo: (amount) => {
+        // Garante que é um número inteiro antes de enviar
+        const cleanAmount = parseInt(amount, 10);
+        
+        if (isNaN(cleanAmount)) {
+            console.error("Erro: 'amount' inválido para add_bolo");
+            return;
+        }
+
+        // A chave 'amount' aqui deve bater com o nome do parâmetro na função SQL acima
+        return secureTransaction('add_bolo', { p_amount: cleanAmount });
+    },
     claimDaily: (gameTag) => secureTransaction('claim_daily_reward', { game_tag: gameTag }),
 
     // Admin Tools
