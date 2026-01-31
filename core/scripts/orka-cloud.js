@@ -241,30 +241,34 @@ function endSessionBeacon(sessionId, finalPayload) {
     
     const url = `${CONFIG.url}/rest/v1/sessions?id=eq.${sessionId}`;
     
+    // Tenta pegar o token do localStorage se o state sumiu
+    const storageKey = `sb-${new URL(CONFIG.url).hostname.split('.')[0]}-auth-token`;
+    const savedSession = JSON.parse(localStorage.getItem(storageKey));
+    const token = state.session?.access_token || savedSession?.access_token;
+
     const body = JSON.stringify({
         ...finalPayload,
         ended_at: new Date().toISOString(),
         last_heartbeat_at: new Date().toISOString()
     });
 
-    // [CORREÇÃO] Removemos supabase.auth.session() (V1)
-    // Usamos o token salvo no state ou tentamos pegar do localStorage se a memória falhar
-    const token = state.session?.access_token;
-
     const headers = {
         'apikey': CONFIG.key,
-        'Authorization': token ? `Bearer ${token}` : `Bearer ${CONFIG.key}`,
         'Content-Type': 'application/json',
         'Prefer': 'return=minimal'
     };
 
-    // keepalive: true é essencial para funcionar quando a aba fecha
+    // Só adiciona Authorization se realmente tiver um token
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
     fetch(url, { 
         method: 'PATCH', 
         headers: headers, 
         body: body, 
         keepalive: true 
-    }).catch(e => console.warn("OrkaCloud: Erro no beacon", e));
+    }).catch(e => {}); // No fechamento da aba, não adianta muito o console.warn
 }
 
 // =================================================================

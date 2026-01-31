@@ -34,8 +34,8 @@ export class OrkaGameManager {
             this.state.dateRef = new Date().toISOString().split('T')[0];
         }
 
-        const pet = new OrkaPet();
-        pet.init(); // O Pet vai aparecer no jogo na mesma posição que estava no Hub!
+        //const pet = new OrkaPet();
+        //pet.init(); // O Pet vai aparecer no jogo na mesma posição que estava no Hub!
 
         const user = await OrkaCloud.initAuth();
         let profile = OrkaCloud.getProfile();
@@ -103,7 +103,6 @@ export class OrkaGameManager {
                     if (!alreadyClaimed) {
                         console.log('🎁 Claiming daily reward...');
                         await OrkaCloud.claimDaily(this.config.gameId);
-                        await OrkaCloud.addBolo(1);
                     }
                     
                     // [CORREÇÃO 2] Agora this.state.score tem o valor correto!

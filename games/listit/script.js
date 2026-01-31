@@ -481,8 +481,8 @@ function setupTutorial() {
             "Você tem uma <strong>segunda chance</strong> para corrigir os vermelhos!"
         ]
     });
-    document.getElementById('btn-tutorial').onclick = () => {
-        localStorage.removeItem(GAME_ID);
-        setupTutorial();
-    };
+    //document.getElementById('btn-tutorial').onclick = () => {
+    //    localStorage.removeItem(GAME_ID);
+    //    setupTutorial();
+    //};
 }

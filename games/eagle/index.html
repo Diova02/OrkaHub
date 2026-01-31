@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Eagle Aim | Orka Studio</title>
+    <link rel="stylesheet" href="../../core/styles/orka-base.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="../../assets/icons/eagle-logo.png">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+    <div id="rotate-warning">
+        <span class="material-icons" style="font-size: 64px; margin-bottom: 20px;">screen_rotation</span>
+        <p>POR FAVOR, VIRE SEU DISPOSITIVO</p>
+        <small>Este jogo requer a tela na horizontal</small>
+    </div>
+
+    <div id="global-bg">
+        <div id="splat-layer"></div>
+    </div>
+
+    <div class="game-toolbar">
+        <div class="toolbar-left">
+            </div>
+
+        <div class="toolbar-center">
+            <span class="date-display" id="date-display">Carregando...</span>
+        </div>
+        
+        <div class="toolbar-right">
+            <button id="calendar-btn" class="toolbar-icon-btn" title="Jogar dias anteriores">
+                <span class="material-icons">calendar_today</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="game-wrapper">
+        <div id="game-stage">
+            
+            <div id="screen-menu" class="game-layer active">
+                <div class="float-btn-group">
+                    <button id="btn-back-hub" class="icon-btn float-home-btn" title="Voltar ao Orka Hub">
+                        <img src="../../assets/icons/orka-logo.png" alt="Home" draggable="false">
+                    </button>
+                    <button id="btn-float-calendar" class="icon-btn float-home-btn" title="Calendário">
+                        <span class="material-icons">calendar_today</span>
+                    </button>
+                </div>
+                
+                <div class="menu-grid-container">
+                    
+                    <div id="global-podium-section">
+                        <small class="section-label">TOP 5 MELHORES - ÚLTIMOS 7 DIAS</small>
+                        <div id="podium-container" class="loading-placeholder">
+                            Carregando Pódio...
+                        </div>
+                    </div>
+
+                    <div id="player-dashboard">
+                        <div class="dash-left">
+                            <div class="avatar-wrapper">
+                                <img id="dash-avatar" src="../../assets/icons/orka-logo.png" alt="User">
+                            </div>
+                            <div class="user-info">
+                                <span id="dash-nick">Visitante</span>
+                                <span id="dash-global-pts" class="global-pts-badge">0 pts</span>
+                            </div>
+                        </div>
+                        <div class="dash-divider"></div>
+                        <div class="dash-right">
+                            <div class="stat-box">
+                                <small>HOJE (BEST)</small>
+                                <span id="dash-best-today">--.--</span>
+                            </div>
+                            <div class="stat-box">
+                                <small>ÚLTIMA RUN</small>
+                                <span id="dash-last-run">--.--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="daily-ranking-section">
+                        <small class="section-label">RANKING DO DIA (TOP 10)</small>
+                        <div id="daily-scroll-box">
+                            <div id="inline-ranking-list">
+                                <div class="loading-spinner small"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="menu-actions">
+                        <button id="btn-play" class="orka-btn orka-btn-primary big-play-btn">JOGAR</button>
+                        <button id="btn-share" class="orka-btn icon-only-btn" title="Compartilhar">
+                            <span class="material-icons">share</span>
+                        </button>
+                        </div>
+
+                </div>
+
+            </div>
+
+            <div id="screen-countdown" class="game-layer">
+                <div id="countdown-text">3</div>
+            </div>
+
+            <div id="screen-game" class="game-layer">
+                <div id="timer-hud">00.00</div>
+                <div id="wave-hud">ONDA 1/3</div>
+                <div id="targets-container"></div>
+                <div id="miss-click-layer"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="modal-calendar" class="modal-overlay">
+        <div class="modal-content calendar-modal">
+            
+            <div class="calendar-header">
+                <button id="prev-month" class="calendar-nav-btn">&lt;</button>
+                
+                <span id="calendar-month-year" class="calendar-title">Mês/Ano</span>
+                
+                <button id="next-month" class="calendar-nav-btn">&gt;</button>
+            </div>
+            
+            <div id="calendar-grid" class="calendar-grid"></div>
+            <button id="btn-close-calendar" class="orka-btn" style="margin-top:15px">FECHAR</button>
+        </div>
+    </div>
+
+    <div id="modal-nick" class="modal-overlay">
+        <div class="modal-content">
+            <h3>COMO DEVEMOS TE CHAMAR?</h3>
+            <input type="text" id="nick-input" placeholder="Seu apelido..." maxlength="12" style="
+                background: #222; border: 1px solid #444; color: white; 
+                padding: 10px; border-radius: 5px; width: 80%; margin: 15px 0; text-align: center;
+            ">
+            <button id="save-nick-btn" class="orka-btn orka-btn-primary">SALVAR E ENTRAR</button>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>

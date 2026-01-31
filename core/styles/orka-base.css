@@ -524,3 +524,77 @@ header {
 }
 
 .hub-tabs::-webkit-scrollbar { display: none; }
+
+
+/* TOOLBAR PARA JOGOS EM IFRAME */
+.game-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 95%;
+    max-width: 850px;
+    margin: 10px auto 0px auto; /* Espaçamento sutil no topo */
+    padding: 5px 0;
+    z-index: 10;
+}
+
+.toolbar-center {
+    flex-grow: 1;
+    text-align: center;
+}
+
+#date-display {
+    font-size: 0.85rem;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 500;
+}
+
+.toolbar-icon-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.toolbar-icon-btn:hover {
+    border-color: var(--orka-accent);
+    color: var(--orka-accent);
+    background: rgba(var(--orka-accent-rgb), 0.1); /* Se tiver a var RGB, senão use uma cor fixa */
+}
+
+.toolbar-icon-btn .material-icons {
+    font-size: 1.2rem;
+}
+
+/* AJUSTE DO CONTAINER PRINCIPAL */
+body {
+    padding-top: 0; /* Garante que não haja espaço sobrando no topo */
+}
+
+/* Esconde o botão antigo que estava no header se ele ainda existir no CSS */
+#tip-btn { margin-left: 0; } 
+
+@media (max-width: 480px) {
+    .game-toolbar {
+        margin-bottom: 10px;
+    }
+    #date-display {
+        font-size: 0.7rem;
+    }
+    .toolbar-icon-btn {
+        width: 32px;
+        height: 32px;
+    }
+    .toolbar-icon-btn .material-icons {
+        font-size: 1rem;
+    }
+}

@@ -2,19 +2,9 @@ import { OrkaCloud } from './core/scripts/orka-cloud.js';
 import { OrkaFX } from './core/scripts/orka-lib.js'; 
 import { translations } from './translate.js'; 
 import { OrkaPet } from './core/scripts/orka-pet.js'; // PET bro
-
+import { gamesList } from './games.js'
 
 // NOTA: jsPDF agora é carregado via <script> no HTML, não via import, para evitar erros de módulo.
-
-export const gamesList = [
-    { id: 'zoo', type: 'daily', title: 'ORKA ZOO', descKey: 'game_zoo_desc', icon: 'zoo-logo.png', print: 'print-zoo.png', url: 'games/orkazoo/', releaseDate: '2026-01-05', active: true },
-    { id: 'jinx', type: 'web', title: 'ORKA JINX', descKey: 'game_jinx_desc', icon: 'jinx-logo.png', print: 'print-jinx.png', url: 'games/orkajinx/', releaseDate: '2026-01-13', active: true },
-    { id: 'eagle', type: 'daily', title: 'EAGLE AIM', descKey: 'game_eagle_desc', icon: 'eagle-logo.png', print: 'print-eagle.png', url: 'games/eagleaim/', releaseDate: '2026-01-17', active: true },
-    { id: 'listit', type: 'daily', title: 'LISTIT', descKey: 'game_listit_desc', icon: 'listit-logo.png', print: 'print-listit.png', url: 'games/listit/', releaseDate: '2026-01-25', active: true},
-    // Em breve - usar adminOnly: true para testar!
-    { id: 'disco', type: 'soon', title: 'DISCOMANIA', descKey: 'game_disco_desc', icon: null, print: null, url: '#', active: false },
-    { id: 'firewall', type: 'soon', title: 'FIREWALL', descKey: 'game_firewall_desc', icon: null, print: null, url: '#', active: false }
-];
 
 // --- ELEMENTOS DO DOM ---
 const els = {
@@ -52,6 +42,20 @@ const loadingMessages = [
 ];
 
 let dailyStatus = {};
+
+function getGameData(game) {
+    const id = game.id;
+    return {
+        ...game,
+        title: game.title,
+        descKey: `game_${id}_desc`,
+        icon: `assets/icons/${id}-logo.png`,
+        print: `assets/prints/print-${id}.png`,
+        dev: game.dev || "Orka Studio",
+        // A mágica da URL centralizada no Console Mestre:
+        playUrl: `console.html?id=${id}&url=games/${id}/&portrait=${game.allowPortrait}&title=${game.title}`
+    };
+}
 
 // --- INICIALIZAÇÃO ---
 
@@ -358,52 +362,49 @@ function renderGames(lang) {
     const t = translations[lang];
     const role = OrkaCloud.getProfile()?.role || 'user';
 
+    // Limpa os containers antes de renderizar
     ['daily', 'web', 'soon', 'pnp'].forEach(type => {
         const container = document.getElementById(`list-${type}`);
         if(container) container.innerHTML = '';
     });
 
     gamesList.forEach(game => {
-        if (game.adminOnly && role !== 'admin') return;
+        if (!game.releaseDate && role !== 'admin') return;
 
         const container = document.getElementById(`list-${game.type}`);
         if (!container) return;
 
-        const card = document.createElement(game.active ? 'a' : 'div');
+        // Usa a helper para pegar os dados limpos
+        const data = getGameData(game);
+
+        const card = document.createElement(data.active ? 'a' : 'div');
         card.className = 'game-card-horizontal';
         
-        if (!game.active) {
+        if (!data.active) {
             card.style.opacity = '0.5';
             card.style.cursor = 'default';
         } else {
-            card.href = game.url;
+            card.href = data.playUrl;
             card.onclick = (e) => {
                 e.preventDefault();
-                setTimeout(() => window.location.href = game.url, 150);
+                setTimeout(() => window.location.href = data.playUrl, 150);
             };
         }
 
-        const printSrc = game.print ? `assets/prints/${game.print}` : '';
-        const isNew = checkIsNew(game.releaseDate);
-
-        // --- LÓGICA DO BOLO (ATUALIZADA) ---
-        let rewardHTML = '';
+        // Lógica de Tags: NOVO (7 dias) e Recompensa (Bolo)
+        const isNew = checkIsNew(data.releaseDate);
+        const tagHTML = (isNew && data.active) ? `<span class="tag-new">NOVO</span>` : '';
         
-        // Regra:
-        // 1. É jogo diário?
-        // 2. Está ativo?
-        // 3. NÃO está na lista de "dailyStatus" (ou seja, ainda não pegou hoje)?
-        if (game.type === 'daily' && game.active && !dailyStatus[game.id]) {
+        let rewardHTML = '';
+        if (data.type === 'daily' && data.active && !dailyStatus[data.id]) {
             rewardHTML = `
             <div class="tag-reward" title="Recompensa disponível!">
                 <span class="material-icons" style="font-size:0.9rem;">cake</span>
             </div>`;
         }
-        // ------------------------------------
 
-        const tagHTML = (isNew && game.active) ? `<span class="tag-new">NOVO</span>` : '';
-        
-        const printHTML = game.active ? 
+        const printSrc = data.print || `assets/prints/print-default.png`;
+        const printHTML = data.active ? 
             `<div class="print-container" style="position:relative;">
                 <img src="${printSrc}" class="card-print" style="height:100%; width:100%; object-fit:cover; border:none;" onerror="this.src='assets/icons/orka-logo.png'">
                 ${tagHTML}
@@ -411,9 +412,8 @@ function renderGames(lang) {
              </div>` :
             `<div class="card-print" style="display:flex; align-items:center; justify-content:center; color:#444; font-size:1.5rem;">🚧</div>`;
 
-        const iconSrc = game.icon ? `assets/icons/${game.icon}` : '';
-        const desc = t[game.descKey] || '...';
-        const iconHTML = game.active ? `<img src="${iconSrc}" class="card-icon">` : '';
+        const desc = t[data.descKey] || '...';
+        const iconHTML = data.active ? `<img src="${data.icon}" class="card-icon">` : '';
 
         card.innerHTML = `
             ${printHTML}
@@ -421,11 +421,11 @@ function renderGames(lang) {
                 <div class="card-info-top">
                     ${iconHTML}
                     <div class="card-text">
-                        <h3>${game.title}</h3>
+                        <h3>${data.title}</h3> 
                         <p>${desc}</p>
                     </div>
                 </div>
-                ${game.active ? '<div class="card-action"><span class="material-icons">play_arrow</span></div>' : ''}
+                ${data.active ? '<div class="card-action"><span class="material-icons">play_arrow</span></div>' : ''}
             </div>
         `;
         container.appendChild(card);

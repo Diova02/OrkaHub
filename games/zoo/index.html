@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Orka Zoo - Desafio Diário</title>
+    <link rel="icon" type="image/png" href="../../assets/icons/zoo-logo.png">
+    
+    <link rel="stylesheet" href="../../core/styles/orka-base.css">
+    <link rel="stylesheet" href="../../core/styles/orka-pet.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+
+<div id="modal-tip" class="modal-overlay">
+    <div class="modal-content">
+        <h2 style="color: var(--orka-accent); margin-bottom: 10px;" data-t="tipTitle">CURIOSIDADE DO DIA</h2>
+        
+        <img id="tip-img" class="animal-reveal-img" src="" alt="" style="display:none; max-height: 200px;">
+        
+        <p id="tip-text" style="font-size: 1rem; line-height: 1.5; color: #ddd; margin: 20px 0;"></p>
+        
+        <button class="modal-btn" onclick="closeModal('modal-tip')" data-t="tipBtn">LEGAL</button>
+    </div>
+</div>
+
+<div class="game-toolbar">
+    <div class="toolbar-left">
+        <button id="tip-btn" title="Curiosidade do Dia" class="toolbar-icon-btn">?</button>
+    </div>
+
+    <div class="toolbar-center">
+        <span class="date-display" id="date-display">...</span>
+    </div>
+    
+    <div class="toolbar-right">
+        <button id="calendar-btn" class="toolbar-icon-btn" title="Calendário">
+            <span class="material-icons">calendar_today</span>
+        </button>
+    </div>
+</div>
+
+<div class="game-controls">
+    <div class="stats-row">
+        <div class="attempt-counter">
+            <span data-t="attempts">Tentativas</span>: 
+            <strong><span id="attempt-count">0</span>/10</strong>
+        </div>
+    </div>
+    
+    <div class="input-group">
+        <input type="text" id="guess-input" placeholder="Digite um animal..." autocomplete="off">
+        <button id="submit-btn" class="orka-btn-primary" data-t="btnGuess">CHUTAR</button>
+    </div>
+    <div id="suggestions"></div>
+</div>
+
+<div class="results-container">
+    <div class="grid-header">
+        <div class="header-cell" data-t="hAnimal">Animal</div>
+        <div class="header-cell" data-t="hWeight">Peso</div>
+        <div class="header-cell" data-t="hDiet">Dieta</div>
+        <div class="header-cell" data-t="hHabitat">Habitat</div>
+        <div class="header-cell" data-t="hContinent">Continente</div>
+        <div class="header-cell" data-t="hClass">Classe</div>
+        <div class="header-cell" data-t="hPop">Pop.</div>
+        <div class="header-cell" data-t="hCycle">Ciclo</div>
+    </div>
+    <div id="empty-state">
+        <p data-t="startMsg">Tudo começa com um chute...</p>
+        <small data-t="startSub">Digite o primeiro animal para começar!</small>
+    </div>
+    <div id="grid-body"></div>
+</div>
+
+<div id="page-end-summary" class="end-summary-box" style="display: none"></div>
+
+<div id="modal-calendar" class="modal-overlay">
+    <div class="modal-content calendar-modal">
+        <div class="calendar-header">
+            <button id="prev-month" class="calendar-nav-btn">&lt;</button>
+            <h3 id="calendar-month-year"></h3>
+            <button id="next-month" class="calendar-nav-btn">&gt;</button>
+        </div>
+        <div class="calendar-grid" id="calendar-grid">
+            </div>
+        <button class="modal-btn" onclick="closeModal('modal-calendar')">FECHAR</button>
+    </div>
+</div>
+
+<div id="modal-help" class="modal-overlay">
+    <div class="modal-content">
+        <h2 style="color: var(--orka-accent); margin-bottom: 10px;">BEM-VINDO(A) AO ORKA ZOO!</h2>
+        <p style="font-size: 0.95rem; margin-bottom: 20px;">
+            Seu objetivo é descobrir qual é o <strong>Animal Secreto</strong> do dia.
+        </p>
+        
+        <div style="text-align: left; background: #1a1a1a; padding: 15px; border-radius: 8px; font-size: 0.9rem;">
+            <p style="margin: 5px 0;"><strong>Como jogar:</strong></p>
+            <ul style="margin-top: 5px; padding-left: 20px; color: #ccc;">
+                <li style="margin-bottom: 5px;">Você tem <strong>10 tentativas</strong> para acertar.</li>
+                <li style="margin-bottom: 5px;">A cada chute, comparamos os atributos do seu animal com o animal secreto.</li>
+            </ul>
+
+            <p style="margin: 10px 0 5px 0;"><strong>Entenda as cores:</strong></p>
+            <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                <span style="background:var(--status-correct); color:white; padding:2px 6px; border-radius:4px; font-size:0.8rem;">VERDE</span>
+                <span style="color:#ccc">Atributo exato.</span>
+            </div>
+            <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                <span style="background:var(--partial); color:black; padding:2px 6px; border-radius:4px; font-size:0.8rem;">AMARELO</span>
+                <span style="color:#ccc">Parcial (ex: compartilha um habitat).</span>
+            </div>
+            
+            <p style="margin: 10px 0 5px 0;"><strong>O que são as setas?</strong></p>
+            <ul style="margin-top: 0; padding-left: 20px; color: #ccc;">
+                <li><strong style="color:white">↑</strong> O valor correto é <strong>maior</strong> (o animal é mais pesado ou tem mais população).</li>
+                <li><strong style="color:white">↓</strong> O valor correto é <strong>menor</strong>.</li>
+            </ul>
+        </div>
+
+        <button class="modal-btn" onclick="closeModal('modal-help')" style="width: 100%; margin-top: 20px;">COMEÇAR DESAFIO</button>
+    </div>
+</div>
+
+<div id="modal-end" class="modal-overlay">
+    <div class="modal-content">
+        <h2 id="end-title">FIM DE JOGO</h2>
+        <p id="end-msg">O animal era:</p>
+        
+        <img id="reveal-img" class="animal-reveal-img" src="" alt="">
+        
+        <h3 id="reveal-name" style="font-size: 1.5rem; text-transform: uppercase;"></h3>
+        
+        <div id="end-stats" style="margin-top: 15px; font-size: 1rem; color: #bbb;"></div>
+
+        <button class="share-btn" id="share-btn" onclick="shareResult()">
+            <span class="material-icons">share</span> <span data-t="share">COMPARTILHAR</span>
+        </button>
+
+        <button class="modal-btn" onclick="closeModal('modal-end')" data-t="close" style="background:transparent; border:1px solid #555; color:#ccc; margin-top:10px;">FECHAR</button>
+    </div>
+</div>
+
+ <img src="folha-bg.png" alt="Descrição da imagem" class="imagem-canto-esquerda">
+ <img src="folha-bg.png" alt="Descrição da imagem" class="imagem-canto-direita">
+
+<script type="module" src="script.js"></script>
+
+</body>
+</html>
