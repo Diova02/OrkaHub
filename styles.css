@@ -356,11 +356,11 @@ main{
     font-size: 0.9rem;
 }
 
-.tag-new {
+/* No seu styles.css */
+.tag-new, .tag-updated {
     position: absolute;
     top: 5px;
     right: 5px;
-    background: #ff0055; /* Cor chamativa */
     color: white;
     font-size: 0.65rem;
     padding: 2px 6px;
@@ -368,6 +368,20 @@ main{
     font-weight: bold;
     box-shadow: 0 2px 4px rgba(0,0,0,0.5);
     z-index: 10;
+}
+
+.tag-new {
+    background: #ff0055; /* Vermelho original */
+}
+
+.tag-updated {
+    background: #0055ff; /* Azul Orka para atualizações */
+}
+
+.hub-section:first-of-type h2 {
+    color: #fff;
+    text-shadow: 0 0 10px rgba(0, 85, 255, 0.5);
+    border-bottom: 2px solid var(--orka-accent);
 }
 
 /* --- Área de Login/Sync --- */

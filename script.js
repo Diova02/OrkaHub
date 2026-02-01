@@ -1,8 +1,8 @@
 import { OrkaCloud } from './core/scripts/orka-cloud.js';
-import { OrkaFX } from './core/scripts/orka-lib.js'; 
+import { OrkaFX, OrkaMath } from './core/scripts/orka-lib.js'; 
 import { translations } from './translate.js'; 
 import { OrkaPet } from './core/scripts/orka-pet.js'; // PET bro
-import { gamesList } from './games.js'
+import { gamesList, shelves, gamesTags } from './games.js'
 
 // NOTA: jsPDF agora é carregado via <script> no HTML, não via import, para evitar erros de módulo.
 
@@ -133,7 +133,7 @@ function updateHubUI() {
     // A. Idioma
     const langFull = profile.language || 'pt-BR';
     const langSimple = langFull.startsWith('en') ? 'en' : 'pt';
-    renderGames(langSimple, dailyStatus); // <--- ATUALIZADO
+    renderDynamicHub(langSimple); // Agora o Hub decide o que mostrar e onde.
     applyHubTranslation(langFull);
     updateLangButtons(langFull);
 
@@ -353,10 +353,8 @@ function applyHubTranslation(langFull) {
         if (t[key]) el.title = t[key];
     });
 
-    renderGames(lang);
+    renderDynamicHub(lang);
 }
-
-// Localize a função renderGames e substitua o bloco do "forEach" interno por este:
 
 function renderGames(lang) {
     const t = translations[lang];
@@ -393,7 +391,16 @@ function renderGames(lang) {
 
         // Lógica de Tags: NOVO (7 dias) e Recompensa (Bolo)
         const isNew = checkIsNew(data.releaseDate);
-        const tagHTML = (isNew && data.active) ? `<span class="tag-new">NOVO</span>` : '';
+        const isUpdated = checkIsUpdated(data.lastUpdate); // Nova verificação
+
+        let tagHTML = '';
+        if (data.active) {
+            if (isNew) {
+                tagHTML = `<span class="tag-new">NOVO</span>`;
+            } else if (isUpdated) {
+                tagHTML = `<span class="tag-updated">ATUALIZADO</span>`;
+            }
+        }
         
         let rewardHTML = '';
         if (data.type === 'daily' && data.active && !dailyStatus[data.id]) {
@@ -432,11 +439,136 @@ function renderGames(lang) {
     });
 }
 
+async function renderDynamicHub(langSimple) {
+    const mainContainer = document.getElementById('main-hub-content');
+    if (!mainContainer) return;
+    mainContainer.innerHTML = '';
+
+    // 1. Lógica de Seleção de Categorias (Embaralha 3 temáticas)
+    const thematicKeys = Object.keys(shelves).filter(key => shelves[key].priority === 2);
+    const selectedThematics = OrkaMath.shuffle([...thematicKeys]).slice(0, 3);
+
+    const shelfPlan = [
+        { ...shelves.NEW_UPDATED, isNews: true }, // Especial para Novidades
+        shelves.DAILY,
+        ...selectedThematics.map(key => shelves[key]),
+        shelves.SOON
+    ];
+
+    // 2. Renderização das Prateleiras
+    shelfPlan.forEach(shelf => {
+        const gamesForThisShelf = filterGamesByShelf(shelf);
+        if (gamesForThisShelf.length > 0 || shelf.id === 'soon') {
+            renderShelf(shelf, gamesForThisShelf, mainContainer, langSimple);
+        }
+    });
+}
+
+// --- FUNÇÕES TERCEIRIZADAS (AUXILIARES) ---
+// 1. Ajuste na Filtragem e Ordenação
+function filterGamesByShelf(shelf) {
+    let filtered;
+    if (shelf.isNews) {
+        filtered = gamesList.filter(g => checkIsNew(g.releaseDate) || checkIsUpdated(g.lastUpdate));
+        
+        // ORDENAÇÃO: Prioriza Lançamento (releaseDate) sobre Atualização
+        return filtered.sort((a, b) => {
+            const dateA = new Date(a.releaseDate || 0);
+            const dateB = new Date(b.releaseDate || 0);
+            return dateB - dateA; // Decrescente: Mais novo primeiro
+        });
+    }
+    
+    filtered = gamesList.filter(game => {
+        const tags = gamesTags[game.id] || [];
+        return tags.some(tag => shelf.tags?.includes(tag)) || game.type === shelf.id;
+    });
+    return filtered;
+}
+
+// 2. Ajuste no Título (Branding)
+function renderShelf(shelf, games, container, lang) {
+    const section = document.createElement('section');
+    section.className = 'hub-section';
+    
+    const title = document.createElement('h2');
+    // Branding Orka: ID em uppercase + Título
+    const shelfID = shelf.id.toUpperCase().replace('_', ' ');
+    title.textContent = `${shelfID} — ${shelf.title}`; 
+    section.appendChild(title);
+
+    const list = document.createElement('div');
+    list.className = 'game-list';
+    
+    const displayGames = (shelf.priority === 2) ? OrkaMath.shuffle([...games]) : games;
+    
+    displayGames.forEach(game => {
+        list.appendChild(createGameCard(game, lang));
+    });
+
+    section.appendChild(list);
+    container.appendChild(section);
+}
+
+// 3. Correção da Tag de Atualização
+function createGameCard(game, lang) {
+    const data = getGameData(game); 
+    const isNew = checkIsNew(data.releaseDate);
+    // CORREÇÃO: lastUpdate em vez de last_update
+    const isUpdated = checkIsUpdated(data.lastUpdate); 
+
+    const card = document.createElement(data.active ? 'a' : 'div');
+    card.className = 'game-card-horizontal';
+    
+    if (data.active) {
+        card.href = data.playUrl;
+    }
+
+    let tagHTML = '';
+    if (isNew) {
+        tagHTML = `<span class="tag-new">NOVO</span>`;
+    } else if (isUpdated) {
+        tagHTML = `<span class="tag-updated">ATUALIZADO</span>`;
+    }
+
+    // Adicionando o rewardHTML (Bolo) se necessário
+    let rewardHTML = '';
+    if (data.type === 'daily' && data.active && !dailyStatus[data.id]) {
+        rewardHTML = `<div class="tag-reward"><span class="material-icons" style="font-size:0.9rem;">cake</span></div>`;
+    }
+
+    card.innerHTML = `
+        <div class="print-container" style="position:relative;">
+            <img src="${data.print}" class="card-print" onerror="this.src='assets/icons/orka-logo.png'">
+            ${tagHTML}
+            ${rewardHTML}
+        </div>
+        <div class="card-content">
+            <div class="card-info-top">
+                <img src="${data.icon}" class="card-icon">
+                <div class="card-text">
+                    <h3>${data.title}</h3>
+                </div>
+            </div>
+            ${data.active ? '<div class="card-action"><span class="material-icons">play_arrow</span></div>' : ''}
+        </div>
+    `;
+    return card;
+}
+
 function checkIsNew(dateString) {
     if (!dateString) return false;
     const release = new Date(dateString);
     const now = new Date();
     const diffDays = Math.ceil(Math.abs(now - release) / (1000 * 60 * 60 * 24)); 
+    return diffDays <= 7;
+}
+
+function checkIsUpdated(updateDateString) {
+    if (!updateDateString) return false;
+    const update = new Date(updateDateString);
+    const now = new Date();
+    const diffDays = Math.ceil(Math.abs(now - update) / (1000 * 60 * 60 * 24)); 
     return diffDays <= 7;
 }
 
