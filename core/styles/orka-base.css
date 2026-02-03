@@ -136,7 +136,7 @@ body {
 /* Confetti padrão */
 .confetti-piece {
     position: fixed;
-    top: -10px;
+    top: -15px;
     width: 10px; 
     height: 10px;
     z-index: 9999;
@@ -456,8 +456,6 @@ body {
 .mobile-menu-trigger .material-icons {
     font-size: 28px;
 }
-/* --- FIXAÇÃO DO HEADER --- */
-/* --- HEADER: Altura Fixa e Largura Controlada --- */
 
 /* --- NAVEGAÇÃO DE ABAS: Rolagem Lateral --- */
 .hub-tabs {

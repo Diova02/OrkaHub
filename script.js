@@ -59,16 +59,16 @@ function getGameData(game) {
 
 // --- INICIALIZAÇÃO ---
 
-window.addEventListener('load', () => {
-    // 1. Define mensagem aleatória
+window.addEventListener('load', async () => { // Adicione async aqui
     const loaderMsg = document.getElementById('loader-msg');
     if (loaderMsg) {
         loaderMsg.textContent = loadingMessages[Math.floor(Math.random() * loadingMessages.length)];
     }
 
-    initHub();
+    // 1. Aguarda a inicialização completa do Hub (Auth + Fetch Dados + Render)
+    await initHub(); 
 
-    // INICIA O PET
+    // 2. Inicia o Pet (pode ser em paralelo ou depois)
     const pet = new OrkaPet();
     pet.init();
 
@@ -138,24 +138,30 @@ function updateHubUI() {
     updateLangButtons(langFull);
 
     // B. Nickname
-    if (profile.nickname) {
+    const hasValidNickname = profile && profile.nickname && profile.nickname.toLowerCase() !== 'ghost';
+
+    if (hasValidNickname) {
         els.displayNick.textContent = profile.nickname;
         els.inputNick.value = profile.nickname;
         els.viewMode.style.display = 'flex';
         els.editMode.style.display = 'none';
         if(els.btnAdd) els.btnAdd.style.display = 'none';
     } else {
+        // Caso o usuário não tenha nick (usuário novo ou ghost)
         els.displayNick.textContent = '';
         els.inputNick.value = '';
         els.viewMode.style.display = 'none';
         els.editMode.style.display = 'none';
         if(els.btnAdd) els.btnAdd.style.display = 'block';
         
-        if (!localStorage.getItem('orka_hub_intro_seen')) {
-            openModal();
-            OrkaFX.toast("Bem-vindo! Crie seu perfil.", "info");
-            localStorage.setItem('orka_hub_intro_seen', 'true');
-        }
+        // FORÇAR ABERTURA: Se não tem nick, abre o modal direto
+        // Removi a trava do 'orka_hub_intro_seen' para garantir que ele defina o nick
+        openModal(); 
+        
+        // Feedback visual opcional
+        const lang = profile.language?.startsWith('en') ? 'en' : 'pt';
+        const welcomeMsg = lang === 'en' ? "Welcome! Please set your nickname." : "Bem-vindo! Crie seu perfil para começar.";
+        OrkaFX.toast(welcomeMsg, "info");
     }
 
     // C. Avatar & Header
@@ -356,88 +362,88 @@ function applyHubTranslation(langFull) {
     renderDynamicHub(lang);
 }
 
-function renderGames(lang) {
-    const t = translations[lang];
-    const role = OrkaCloud.getProfile()?.role || 'user';
+// function renderGames(lang) {
+//     const t = translations[lang];
+//     const role = OrkaCloud.getProfile()?.role || 'user';
 
-    // Limpa os containers antes de renderizar
-    ['daily', 'web', 'soon', 'pnp'].forEach(type => {
-        const container = document.getElementById(`list-${type}`);
-        if(container) container.innerHTML = '';
-    });
+//     // Limpa os containers antes de renderizar
+//     ['daily', 'web', 'soon', 'pnp'].forEach(type => {
+//         const container = document.getElementById(`list-${type}`);
+//         if(container) container.innerHTML = '';
+//     });
 
-    gamesList.forEach(game => {
-        if (!game.releaseDate && role !== 'admin') return;
+//     gamesList.forEach(game => {
+//         if (!game.releaseDate && role !== 'admin') return;
 
-        const container = document.getElementById(`list-${game.type}`);
-        if (!container) return;
+//         const container = document.getElementById(`list-${game.type}`);
+//         if (!container) return;
 
-        // Usa a helper para pegar os dados limpos
-        const data = getGameData(game);
+//         // Usa a helper para pegar os dados limpos
+//         const data = getGameData(game);
 
-        const card = document.createElement(data.active ? 'a' : 'div');
-        card.className = 'game-card-horizontal';
+//         const card = document.createElement(data.active ? 'a' : 'div');
+//         card.className = 'game-card-horizontal';
         
-        if (!data.active) {
-            card.style.opacity = '0.5';
-            card.style.cursor = 'default';
-        } else {
-            card.href = data.playUrl;
-            card.onclick = (e) => {
-                e.preventDefault();
-                setTimeout(() => window.location.href = data.playUrl, 150);
-            };
-        }
+//         if (!data.active) {
+//             card.style.opacity = '0.5';
+//             card.style.cursor = 'default';
+//         } else {
+//             card.href = data.playUrl;
+//             card.onclick = (e) => {
+//                 e.preventDefault();
+//                 setTimeout(() => window.location.href = data.playUrl, 150);
+//             };
+//         }
 
-        // Lógica de Tags: NOVO (7 dias) e Recompensa (Bolo)
-        const isNew = checkIsNew(data.releaseDate);
-        const isUpdated = checkIsUpdated(data.lastUpdate); // Nova verificação
+//         // Lógica de Tags: NOVO (7 dias) e Recompensa (Bolo)
+//         const isNew = checkIsNew(data.releaseDate);
+//         const isUpdated = checkIsUpdated(data.lastUpdate); // Nova verificação
 
-        let tagHTML = '';
-        if (data.active) {
-            if (isNew) {
-                tagHTML = `<span class="tag-new">NOVO</span>`;
-            } else if (isUpdated) {
-                tagHTML = `<span class="tag-updated">ATUALIZADO</span>`;
-            }
-        }
+//         let tagHTML = '';
+//         if (data.active) {
+//             if (isNew) {
+//                 tagHTML = `<span class="tag-new">NOVO</span>`;
+//             } else if (isUpdated) {
+//                 tagHTML = `<span class="tag-updated">ATUALIZADO</span>`;
+//             }
+//         }
         
-        let rewardHTML = '';
-        if (data.type === 'daily' && data.active && !dailyStatus[data.id]) {
-            rewardHTML = `
-            <div class="tag-reward" title="Recompensa disponível!">
-                <span class="material-icons" style="font-size:0.9rem;">cake</span>
-            </div>`;
-        }
+//         let rewardHTML = '';
+//         if (data.type === 'daily' && data.active && !dailyStatus[data.id]) {
+//             rewardHTML = `
+//             <div class="tag-reward" title="Recompensa disponível!">
+//                 <span class="material-icons" style="font-size:0.9rem;">cake</span>
+//             </div>`;
+//         }
 
-        const printSrc = data.print || `assets/prints/print-default.png`;
-        const printHTML = data.active ? 
-            `<div class="print-container" style="position:relative;">
-                <img src="${printSrc}" class="card-print" style="height:100%; width:100%; object-fit:cover; border:none;" onerror="this.src='assets/icons/orka-logo.png'">
-                ${tagHTML}
-                ${rewardHTML} 
-             </div>` :
-            `<div class="card-print" style="display:flex; align-items:center; justify-content:center; color:#444; font-size:1.5rem;">🚧</div>`;
+//         const printSrc = data.print || `assets/prints/print-default.png`;
+//         const printHTML = data.active ? 
+//             `<div class="print-container" style="position:relative;">
+//                 <img src="${printSrc}" class="card-print" style="height:100%; width:100%; object-fit:cover; border:none;" onerror="this.src='assets/icons/orka-logo.png'">
+//                 ${tagHTML}
+//                 ${rewardHTML} 
+//              </div>` :
+//             `<div class="card-print" style="display:flex; align-items:center; justify-content:center; color:#444; font-size:1.5rem;">🚧</div>`;
 
-        const desc = t[data.descKey] || '...';
-        const iconHTML = data.active ? `<img src="${data.icon}" class="card-icon">` : '';
+//         const desc = t[data.descKey] || '...';
+//         const iconHTML = data.active ? `<img src="${data.icon}" class="card-icon">` : '';
 
-        card.innerHTML = `
-            ${printHTML}
-            <div class="card-content">
-                <div class="card-info-top">
-                    ${iconHTML}
-                    <div class="card-text">
-                        <h3>${data.title}</h3> 
-                        <p>${desc}</p>
-                    </div>
-                </div>
-                ${data.active ? '<div class="card-action"><span class="material-icons">play_arrow</span></div>' : ''}
-            </div>
-        `;
-        container.appendChild(card);
-    });
-}
+//         card.innerHTML = `
+//             ${printHTML}
+//             <div class="card-content">
+//                 <div class="card-info-top">
+//                     ${iconHTML}
+//                     <div class="card-text">
+//                         <h3>${data.title}</h3> 
+//                         <p>${desc}</p>
+//                     </div>
+//                 </div>
+//                 ${data.active ? '<div class="card-action"><span class="material-icons">play_arrow</span></div>' : ''}
+//             </div>
+//         `;
+//         container.appendChild(card);
+//     });
+// }
 
 async function renderDynamicHub(langSimple) {
     const mainContainer = document.getElementById('main-hub-content');
