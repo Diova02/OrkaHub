@@ -2,18 +2,29 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Orka Console | Player</title>
+    
     <link rel="stylesheet" href="core/styles/orka-base.css">
     <link id="favicon" rel="icon" type="image/png" href="assets/icons/orka-logo.png">
-    <link rel="stylesheet" href="styles.css"> <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css"> 
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
     <style>
-        /* Estilos específicos do Master Console */
+        :root { 
+            --safe-top: env(safe-area-inset-top); 
+            --orka-accent-rgb: 0, 85, 255;
+        }
+
         body {
             overflow-y: auto;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            background: #050505;
+            padding-top: var(--safe-top);
+            touch-action: pan-x pan-y; /* Permite scroll mas evita gestos de zoom */
+            overscroll-behavior: none;
         }
 
         .console-container {
@@ -27,21 +38,21 @@
             box-sizing: border-box;
         }
 
-        /* Container do Iframe que mantém a proporção 16:9 */
+        /* Container do Iframe (Mix de Visual 1 com Melhorias do 2) */
         .game-wrapper {
             position: relative;
             width: 100%;
-            max-width: 900px; /* Alinhado com o max-width do seu main */
+            max-width: 940px; /* Largura aprimorada do Arq 2 */
             aspect-ratio: 16 / 9;
             background: #000;
             border-radius: 12px;
             border: 2px solid var(--orka-border);
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
             overflow: hidden;
             transition: all 0.3s ease;
+            flex-shrink: 0;
         }
 
-        /* Quando estiver em tela cheia via CSS (Maximizável) */
         .game-wrapper.fullscreen {
             position: fixed;
             top: 0; left: 0;
@@ -52,46 +63,6 @@
             border: none;
         }
 
-
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-
-        .console-controls {
-            width: 100%;
-            max-width: 900px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 15px;
-            color: #888;
-        }
-
-        .game-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .game-info img {
-            width: 32px;
-            height: 32px;
-            border-radius: 4px;
-        }
-
-        #master-wrapper {
-            background: #000;
-            display: flex;
-            width: 100%;
-            max-width: 1000px; /* Limite opcional para Desktop */
-            aspect-ratio: 16 / 9; /* Padrão Horizontal */
-            border-radius: 12px;
-            overflow: hidden;
-        }
-
-        /* O iframe agora é "burro": ele só obedece ao pai */
         iframe {
             width: 100% !important;
             height: 100% !important;
@@ -99,42 +70,186 @@
             display: block;
         }
 
-        /* Ajuste para Mobile Portrait */
+        /* Loader Customizado (Arquivo 2) */
+        #game-loader {
+            position: absolute; 
+            top:0; left:0; width:100%; height:100%;
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+            background: #050505; 
+            z-index: 5; 
+            transition: opacity 0.5s ease;
+        }
+
+        /* Controles Inferiores */
+        .console-controls {
+            width: 100%;
+            max-width: 940px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            padding: 0 10px;
+        }
+
+        .game-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .game-info img {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* Botão Flutuante (Arquivo 2) *//* Botão Flutuante de Saída (Discreto no Canto Inferior Direito) */
+        #fs-exit-btn {
+            position: fixed; 
+            bottom: 20px; /* Posicionado embaixo */
+            right: 20px;  /* Posicionado à direita */
+            z-index: 2147483647; /* Valor máximo para sobrepor QUALQUER coisa */
+            background: rgba(0, 0, 0, 0.4);
+            color: rgba(255, 255, 255, 0.6); 
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%; 
+            display: none; /* Ativado via JS */
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(3px); 
+            transition: opacity 0.3s, transform 0.2s;
+            pointer-events: auto; /* Garante que o clique funcione */
+        }
+
+        #fs-exit-btn.visible { 
+            display: flex; 
+        }
+
+        #fs-exit-btn:active { 
+            transform: scale(0.9); 
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+        }
+
+        /* Esconder o ícone nativo de fullscreen no mobile se estiver atrapalhando */
+        iframe::-webkit-media-controls-fullscreen-button {
+            display: none;
+        }
+
+        /* Estilo dos Botões de Ação (Arquivo 2) */
+        .actions-group { display: flex; gap: 10px; }
+        
+        .btn-console {
+            background: rgba(255,255,255,0.05); 
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #eee; padding: 8px 16px; border-radius: 20px;
+            display: flex; align-items: center; gap: 6px; 
+            cursor: pointer; transition: all 0.2s ease; font-weight: 600;
+        }
+        .btn-console:hover { border-color: var(--orka-accent); background: rgba(0,85,255,0.15); }
+        .btn-console.active { color: #00ff88; border-color: #00ff88; background: rgba(0,255,136,0.1); }
+        
+        .btn-danger { color: #ff4444; border-color: rgba(255, 68, 68, 0.3); }
+
+        /* Ajustes Mobile */
         @media (max-width: 768px) {
-            #master-wrapper.portrait-mode {
-                aspect-ratio: 9 / 16; /* Padrão Vertical */
+            .game-wrapper.portrait-mode {
+                aspect-ratio: 9 / 16;
                 max-width: 450px;
             }
+            .action-text { display: none; }
+            .btn-console { padding: 10px; border-radius: 50%; }
+        }
+
+        .console-header {
+            height: 50px;
+            background: rgba(0,0,0,0.4);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .console-logo { height: 24px; cursor: pointer; }
+        #game-name-header { font-size: 0.8rem; letter-spacing: 2px; color: #888; margin: 0; }
+
+        .user-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255,255,255,0.03);
+            padding: 4px 4px 4px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .user-nick {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--orka-text);
+        }
+
+        .user-avatar-wrapper {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid var(--orka-accent);
+        }
+
+        .user-avatar-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        @media (max-width: 768px) {
+            .user-nick { display: none; } /* No mobile, mostra só a foto para poupar espaço */
         }
     </style>
 </head>
 <body>
-
-    <header>
-        <div class="header-content">
-            <div class="left-group">
-                <a href="index.html" class="home-link" title="Voltar ao Hub">
+    <header class="console-header">
+        <div class="header-left">
+            <a href="/" class="home-link" title="Orka Studio">
                     <img src="assets/icons/orka-logo.png" alt="Orka Studio" class="orka-logo">
                 </a>
-            </div>
-            <div class="title-group">
-                <h1 id="game-title-display">CARREGANDO JOGO...</h1>
-            </div>
-            <div class="right-group">
-                 <button id="btn-fullscreen" class="icon-btn" title="Tela Cheia">
-                    <span class="material-icons">fullscreen</span>
-                </button>
+            <h1 id="game-title-display">CARREGANDO...</h1>
+        </div>
+        
+        <div id="user-badge" class="user-badge" style="display: none;">
+            <span id="user-nick" class="user-nick">...</span>
+            <div class="user-avatar-wrapper">
+                <img id="user-avatar" src="assets/avatars/default.png">
             </div>
         </div>
+        <button id="btn-fullscreen" class="icon-btn" title="Tela Cheia">
+            <span class="material-icons">fullscreen</span>
+        </button>
     </header>
 
     <main class="console-container">
         <div class="game-wrapper" id="master-wrapper">
+            <div id="game-loader">
+                <img src="assets/icons/orka-logo.png" width="60" class="orka-spin">
+                <p style="margin-top:20px; font-size: 0.7rem; color:#888; letter-spacing: 2px;">SINCRONIZANDO...</p>
+            </div>
+
+            <button id="fs-exit-btn" onclick="document.exitFullscreen()"><span class="material-icons">fullscreen_exit</span></button>
+
             <iframe 
                 id="game-iframe" 
                 src="about:blank" 
                 sandbox="allow-scripts allow-forms allow-pointer-lock allow-same-origin"
-                allow="autoplay; fullscreen; gamepad"
+                allow="autoplay; fullscreen; gamepad; clipboard-write"
             ></iframe>
         </div>
 
@@ -143,76 +258,187 @@
                 <img id="game-icon" src="assets/icons/orka-logo.png" alt="Icon">
                 <div>
                     <strong id="game-name" style="color:#fff;">Orka Publisher</strong><br>
-                    <small id="game-dev">Jogo de Terceiro</small>
+                    <small id="game-dev" style="color:#888;">Jogo de Terceiro</small>
                 </div>
             </div>
-            <button class="orka-btn-small" onclick="location.href='index.html'">
-                <span class="material-icons" style="margin-right:5px;">arrow_back</span> SAIR
-            </button>
+
+            <div class="actions-group">
+                <button id="btn-like" class="btn-console" title="Curtir">
+                    <span class="material-icons">favorite_border</span>
+                    <span class="action-text">Curtir</span>
+                </button>
+                
+                <button id="btn-share" class="btn-console" title="Compartilhar">
+                    <span class="material-icons">share</span>
+                    <span class="action-text">Compartilhar</span>
+                </button>
+
+                <button onclick="location.reload()" class="btn-console" title="Reiniciar">
+                    <span class="material-icons">refresh</span>
+                </button>
+
+                <button onclick="location.href='index.html'" class="btn-console btn-danger">
+                    <span class="material-icons">arrow_back</span>
+                    <span class="action-text">SAIR</span>
+                </button>
+            </div>
         </div>
     </main>
 
-<script>
+<script type="module">
+    // Importações do Arquivo 2
+    import { OrkaCloud } from './core/scripts/orka-cloud.js';
+    import { OrkaFX } from './core/scripts/orka-lib.js';
+
     const params = new URLSearchParams(window.location.search);
     const gameId = params.get('id');
     const gameUrl = params.get('url');
     const gameTitle = params.get('title') || "ORKA GAME";
-    const gameDev = params.get('dev') || "Orka Studio"; // Agora dinâmico!
+    const gameDev = params.get('dev') || "Orka Studio";
     const allowPortrait = params.get('portrait') === 'true';
 
     const wrapper = document.getElementById('master-wrapper');
     const iframe = document.getElementById('game-iframe');
+    const loader = document.getElementById('game-loader');
+    const favicon = document.getElementById('favicon');
 
-    // --- INICIALIZAÇÃO DE INTERFACE ---
+    // --- INICIALIZAÇÃO DE INTERFACE (Visual do Arq 1) ---
     document.getElementById('game-title-display').textContent = gameTitle.toUpperCase();
     document.getElementById('game-name').textContent = gameTitle;
     document.getElementById('game-dev').textContent = gameDev;
-    document.getElementById('game-icon').src = `assets/icons/${gameId}-logo.png`;
-
-    // 1. Altera o Título da Aba do Navegador
     document.title = `${gameTitle} | Orka Console`;
-
-    // 2. Altera o Título no Header e no Info do Jogo
-    const titleDisplay = document.getElementById('game-title-display');
-    const nameDisplay = document.getElementById('game-name');
-
-    if (titleDisplay) titleDisplay.textContent = gameTitle.toUpperCase();
-    if (nameDisplay) nameDisplay.textContent = gameTitle;
-
-    // 3. Altera o Favicon e o Ícone de Info para o do Jogo
+    
     const gameIconPath = `assets/icons/${gameId}-logo.png`;
-
     if (favicon) favicon.href = gameIconPath;
-    const iconDisplay = document.getElementById('game-icon');
-    if (iconDisplay) iconDisplay.src = gameIconPath;
+    document.getElementById('game-icon').src = gameIconPath;
 
-    // --- LÓGICA DE TELA CHEIA ---
+    if (allowPortrait) wrapper.classList.add('portrait-mode');
+
+    // --- LÓGICA DE CARREGAMENTO (Arquivo 2) ---
+    if (gameUrl) {
+        iframe.src = gameUrl;
+        iframe.onload = () => {
+            setTimeout(() => {
+                loader.style.opacity = '0';
+                setTimeout(() => loader.style.display = 'none', 500);
+            }, 400);
+        };
+    }
+
+    async function syncProfile() {
+    // 1. O initAuth apenas recupera a sessão que o Hub já salvou no navegador
+    // É uma operação quase instantânea (não pede senha nem nada)
+    await OrkaCloud.initAuth();
+    
+    const user = OrkaCloud.getUser();
+    const profile = OrkaCloud.getProfile();
+
+    if (user && profile) {
+        const badge = document.getElementById('user-badge');
+        const nick = document.getElementById('user-nick');
+        const avatar = document.getElementById('user-avatar');
+
+        if(badge) badge.style.display = 'flex';
+        
+        // Prioridade: Display Name > Nickname > Email (antes do @)
+        if(nick) {
+            nick.textContent = profile.display_name || profile.nickname || user.email.split('@')[0];
+        }
+        
+        if(avatar && profile.profile_image) {
+            avatar.src = `assets/avatars/${profile.profile_image}.png`;
+        }
+    }
+}
+
+// Chama assim que o DOM carregar
+syncProfile();
+
+    // --- SISTEMA DE CURTIDAS (Arquivo 2) ---
+    const likeBtn = document.getElementById('btn-like');
+    let isLiked = false;
+
+    async function toggleLike() {
+        const user = OrkaCloud.getUser();
+        if (!user || user.is_anonymous) {
+            OrkaFX.toast("Entre na sua conta para curtir!", "info");
+            return;
+        }
+
+        const supabase = OrkaCloud.getClient();
+        const icon = likeBtn.querySelector('.material-icons');
+
+        if (!isLiked) {
+            const { error } = await supabase.from('game_likes').insert({ user_id: user.id, game_id: gameId });
+            if (!error) {
+                isLiked = true;
+                likeBtn.classList.add('active');
+                icon.textContent = 'favorite';
+                OrkaFX.confetti();
+            }
+        } else {
+            const { error } = await supabase.from('game_likes').delete().eq('user_id', user.id).eq('game_id', gameId);
+            if (!error) {
+                isLiked = false;
+                likeBtn.classList.remove('active');
+                icon.textContent = 'favorite_border';
+            }
+        }
+    }
+    likeBtn.onclick = toggleLike;
+
+    // --- COMPARTILHAMENTO (Arquivo 2) ---
+    document.getElementById('btn-share').onclick = async () => {
+        try {
+            if (navigator.share) {
+                await navigator.share({
+                    title: gameTitle,
+                    text: `Olha esse jogo no Orka Hub:`,
+                    url: window.location.href
+                });
+            } else {
+                await navigator.clipboard.writeText(window.location.href);
+                OrkaFX.toast("Link copiado!", "success");
+            }
+        } catch (err) { console.warn(err) }
+    };
+
+    // --- LÓGICA DE TELA CHEIA (Arquivo 1 + Botão Flutuante do 2) ---
     const btnFullscreen = document.getElementById('btn-fullscreen');
-    btnFullscreen.onclick = () => {
+    const fsExitBtn = document.getElementById('fs-exit-btn');
+
+    const toggleFS = () => {
         if (!document.fullscreenElement) {
-            wrapper.requestFullscreen().catch(err => {
-                console.error(`Erro ao ativar tela cheia: ${err.message}`);
-            });
+            wrapper.requestFullscreen().catch(err => console.error(err));
         } else {
             document.exitFullscreen();
         }
     };
 
-    // Atualiza ícone do botão quando o estado muda
+    btnFullscreen.onclick = toggleFS;
+    fsExitBtn.onclick = toggleFS;
+
     document.addEventListener('fullscreenchange', () => {
+        const isFS = !!document.fullscreenElement;
         const icon = btnFullscreen.querySelector('.material-icons');
-        icon.textContent = document.fullscreenElement ? 'fullscreen_exit' : 'fullscreen';
-        wrapper.classList.toggle('fullscreen', !!document.fullscreenElement);
+        
+        icon.textContent = isFS ? 'fullscreen_exit' : 'fullscreen';
+        wrapper.classList.toggle('fullscreen', isFS);
+        
+        // Botão flutuante para mobile
+        if (isFS) {
+            fsExitBtn.classList.add('visible');
+            setTimeout(() => { if(document.fullscreenElement) fsExitBtn.style.opacity = "0.05"; }, 4000);
+        } else {
+            fsExitBtn.classList.remove('visible');
+            fsExitBtn.style.opacity = "0.4";
+        }
     });
 
-    // Aplica a proporção correta baseada no jogo
-    if (allowPortrait) {
-        wrapper.classList.add('portrait-mode');
-    }
-
-    window.onload = () => {
-        if(gameUrl) iframe.src = gameUrl;
-    };
+    // Prevenção de gestos (Arquivo 2)
+    document.addEventListener('touchmove', (e) => {
+        if (e.scale !== 1) e.preventDefault();
+    }, { passive: false });
 </script>
 </body>
 </html>

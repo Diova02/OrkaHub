@@ -50,7 +50,7 @@ header {
 }
 
 
-.header-content {
+.header-content, .console-header {
     max-width: 900px; margin: 0 auto;
     display: flex; align-items: center; justify-content: space-between;
     margin-top: 13px;
@@ -395,43 +395,72 @@ body {
 .mobile-menu-trigger { display: none !important; }
 .action-label { display: none; } /* Esconde texto no PC */
 
-/* MOBILE: Menu Vertical */
+/* MOBILE: Menu Vertical e Exibição de Labels */
 @media (max-width: 768px) {
-    .mobile-menu-trigger { display: flex !important; }
-
-    .header-actions {
-        /* RESET TOTAL PARA SAIR DO HEADER */
-        display: none !important;
-        position: fixed !important; 
-        top: 15px !important; /* Alinhado ao topo */
-        right: 15px !important;
-        width: 220px !important;
-        
-        /* ESTILO VISUAL */
-        background: #0f0f0f !important;
-        border: 1px solid var(--orka-accent) !important;
-        border-radius: 12px !important;
-        flex-direction: column !important;
-        padding: 20px 10px !important;
-        
-        /* CAMADA SUPREMA */
-        z-index: 999999 !important; 
-        box-shadow: 0 0 30px rgba(0, 0, 0, 0.9), 0 0 10px rgba(0, 85, 255, 0.2) !important;
+    /* Ativa o botão hambúrguer */
+    .mobile-menu-trigger { 
+        display: flex !important; 
+        position: relative;
+        z-index: 1000001; /* Fica acima do menu aberto para poder fechar */
     }
 
+    .header-actions {
+        display: none !important;
+        position: fixed !important; 
+        top: 0 !important; 
+        right: 0 !important;
+        width: 200px !important; /* Um pouco mais largo para os nomes */
+        height: 100vh !important; /* Ocupa a altura toda para parecer um drawer */
+        
+        background: #0a0a0a !important;
+        border-left: 1px solid var(--orka-accent) !important;
+        border-radius: 0 !important; /* Remove arredondamento lateral */
+        flex-direction: column !important;
+        padding: 80px 20px 20px 20px !important; /* Padding top maior para não cobrir o X */
+        
+        /* EFEITO DE SLIDE */
+        transform: translateX(100%); /* Começa escondido à direita */
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 1000000 !important;
+        box-shadow: -10px 0 30px rgba(0, 0, 0, 0.8);
+    }
+
+    /* Quando a classe .active é adicionada via JS */
     .header-actions.active {
+        transform: translateX(0); /* Desliza para dentro da tela */
         display: flex !important;
     }
 
-    /* Ajuste dos botões dentro do menu */
+    /* EXIBIR OS NOMES DOS BOTÕES */
+    .action-label { 
+        display: block !important; 
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-left: 15px;
+        color: #fff;
+    }
+
+    /* Ajuste dos botões dentro do menu mobile */
     .header-profile-btn {
         width: 100% !important;
-        height: 50px !important;
-        border-radius: 8px !important;
-        margin-bottom: 10px;
+        height: 55px !important; /* Mais alto para toque */
+        border-radius: 12px !important;
+        margin-bottom: 15px;
         background: #1a1a1a !important;
-        justify-content: flex-start !important;
-        padding-left: 15px !important;
+        justify-content: flex-start !important; /* Ícone na esquerda */
+        padding-left: 20px !important;
+        border: 1px solid #333 !important;
+    }
+
+    .header-profile-btn:hover {
+        border-color: var(--orka-accent) !important;
+        background: #222 !important;
+    }
+
+    /* Garante que o ícone do Pet não fique esmagado */
+    .header-profile-btn .material-icons {
+        font-size: 24px;
+        color: var(--orka-accent);
     }
 }
 
@@ -458,20 +487,26 @@ body {
 }
 
 /* --- NAVEGAÇÃO DE ABAS: Rolagem Lateral --- */
+/* --- CORREÇÃO DAS ABAS (NAV) --- */
 .hub-tabs {
-    display: flex;
-    justify-content: flex-start; /* Alinha à esquerda para permitir deslizar */
-    gap: 15px;
-    margin: 20px 0;
-    padding: 0 10px 10px 10px;
+    display: flex !important;
+    justify-content: flex-start !important; /* MUDANÇA CHAVE: Garante que o texto comece do início */
+    align-items: center;
+    gap: 10px !important;
+    padding: 10px 20px !important; /* Espaço nas pontas para não colar na borda */
+    margin: 10px 0 20px 0;
     
-    /* Mágica do Scroll Horizontal */
-    overflow-x: auto; 
-    overflow-y: hidden;
-    white-space: nowrap; /* Impede quebra de linha dos botões */
-    -webkit-overflow-scrolling: touch; /* Suavidade no mobile */
+    /* Mágica do Scroll Independente */
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch; /* Suavidade no iOS */
     
-    /* Esconde a barra de rolagem para um visual limpo */
+    /* Impede que o scroll das abas arraste a página inteira */
+    touch-action: pan-x; 
+    overscroll-behavior-x: contain;
+    
+    /* Remove a barra de rolagem visual */
     scrollbar-width: none; 
 }
 
@@ -479,8 +514,12 @@ body {
     display: none;
 }
 
+/* Garante que os botões não encolham e sejam legíveis */
 .tab-btn {
-    flex-shrink: 0; /* Impede que o botão diminua de tamanho */
+    flex: 0 0 auto !important; /* Não encolhe, não cresce, tamanho automático */
+    padding: 8px 16px !important;
+    font-size: 0.9rem !important;
+    -webkit-tap-highlight-color: transparent; /* Remove o quadrado cinza ao clicar no mobile */
 }
 
 .modal {
