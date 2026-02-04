@@ -1,3 +1,16 @@
+import { OrkaAudio, OrkaFX, OrkaStorage, OrkaUI, OrkaMath, Utils } from '../../core/scripts/orka-lib.js';
+
+// No seu init ou topo do script:
+OrkaAudio.loadAll({
+    'shoot': 'sfx/shoot.mp3',
+    'hit': 'sfx/playerhit.mp3',
+    'explosion': 'sfx/explosion.mp3',
+    'coin': 'sfx/coin.mp3',
+    'levelup': 'sfx/levelup.mp3',
+    'gameover': 'sfx/gameover.mp3',
+    'bgm': 'music/back_music.mp3'
+});
+
 // --- 1. AUDIO SYSTEM ---
 class AudioSystem {
     constructor() {
@@ -209,11 +222,11 @@ function saveScoreLocal() {
 }
 
 function clearData() {
-    if(confirm("Tem certeza, frangote? Isso apagará todo seu histórico.")) {
-        localStorage.removeItem('autoShooter_rank');
-        alert("Ranking apagado.");
+    OrkaUI.confirm("Tem certeza, frangote?", "Isso apagará seu recorde para sempre.", () => {
+        localStorage.removeItem('firewall_rank');
+        OrkaFX.toast("Ranking resetado!", "info");
         toggleSettings();
-    }
+    });
 }
 
 function getLeaderboardHTML(rankData) {
@@ -277,7 +290,7 @@ function checkLevelUp() {
     if (game.xp >= game.xpNext) {
         game.xp = 0; game.level++; game.xpNext = Math.floor(game.xpNext * 1.3);
         ui.xpBar.style.width = '0%';
-        game.state = 'PAUSED_LVL'; audioSys.setMuffled(true); audioSys.playSound('levelup');
+        game.state = 'PAUSED_LVL'; audioSys.setMuffled(true); OrkaAudio.play('levelup',);
         
         // ESPECIAL LEVEL 5: ESCOLHA DE CLASSE
         if (game.level === 5) {
@@ -422,7 +435,7 @@ function nextWave() {
     }
     if (newEnemyKey) {
         game.state = 'PAUSED_ENEMY'; audioSys.setMuffled(true);
-        audioSys.playSound('newenemy')
+        OrkaAudio.play('newenemy')
         const def = ENEMIES_DEF[newEnemyKey];
         ui.newEnemy.name.innerText = def.name; ui.newEnemy.name.style.color = def.color;
         ui.newEnemy.desc.innerText = def.desc;
@@ -445,7 +458,7 @@ window.resumeGame = function() {
 window.restartGame = init;
 
 function endGame() {
-    game.isRunning = false; game.state = 'GAMEOVER'; audioSys.setMuffled(true); audioSys.playSound('gameover');
+    game.isRunning = false; game.state = 'GAMEOVER'; audioSys.setMuffled(true); OrkaAudio.play('gameover');
     const rank = saveScoreLocal();
     const rankHTML = getLeaderboardHTML(rank);
     const goScreen = ui.screens.gameOver;
@@ -503,7 +516,7 @@ class Player {
                     target.takeDamage(50 + (game.artifacts.zapp * 20)); // Dano alto
                     // Desenha raio visual (simples linha amarela)
                     ctx.strokeStyle = '#ffeb3b'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(target.x, target.y); ctx.stroke();
-                    audioSys.playSound('shoot'); // Som de zap
+                    OrkaAudio.play('shoot'); // Som de zap
                 }
             }
         }
@@ -535,8 +548,7 @@ class Player {
             if (this.cooldown <= 0) {
                 entities.bullets.push(new Bullet(this.x, this.y, this.angle, this.damage));
                 this.cooldown = this.fireRate;
-                audioSys.playSound('shoot');
-                audioSys.playSound('shoot');
+                OrkaAudio.play('shoot');
             }
         }
         if (this.cooldown > 0) this.cooldown--;
@@ -550,7 +562,7 @@ class Player {
         this.hp -= amount; this.regenTimer = Date.now();
         ui.dmgOverlay.style.opacity = 0.5; setTimeout(() => ui.dmgOverlay.style.opacity = 0, 100);
         this.updateHpUI();
-        audioSys.playSound('hit');
+        OrkaAudio.play('hit');
 
         if (this.hp <= 0) endGame();
     }
@@ -704,7 +716,7 @@ class Drop {
             const a=Math.atan2(player.y-this.y, player.x-this.x); this.x+=Math.cos(a)*9; this.y+=Math.sin(a)*9;
             if(Math.hypot(player.x-this.x, player.y-this.y)<30) {
                 this.del=true;
-                if(this.t==='gold') { game.gold+=10; audioSys.playSound('coin'); ui.gold.innerText=game.gold; updateShopUI(); }
+                if(this.t==='gold') { game.gold+=10; OrkaAudio.play('coin'); ui.gold.innerText=game.gold; updateShopUI(); }
                 else { game.xp+=15; checkLevelUp(); }
             }
         }
@@ -786,7 +798,7 @@ function loop(now) {
                     const range = ARTIFACTS_DEF.explosive.radius + (game.artifacts.explosive * 15);
                     const dmg = finalDmg * ARTIFACTS_DEF.explosive.dmgPct;
                     ctx.beginPath(); ctx.arc(b.x,b.y,range,0,Math.PI*2); ctx.fillStyle='rgba(255,170,0,0.3)'; ctx.fill();
-                    audioSys.playSound('explosion');
+                    OrkaAudio.play('explosion');
                     entities.enemies.forEach(o => { if(o!==e && Math.hypot(o.x-b.x,o.y-b.y)<range) o.takeDamage(dmg); });
                 }
             }
@@ -799,4 +811,23 @@ function loop(now) {
     entities.particles = entities.particles.filter(p => { p.update(); p.draw(); return p.life>0; });
 }
 
-init();
+// --- INICIALIZAÇÃO E LISTENERS ---
+document.addEventListener('DOMContentLoaded', async () => {
+    // Carrega todos os áudios antes de começar
+    //await OrkaAudio.loadAll(SOUND_FILES);
+
+    // Listeners de UI
+    document.getElementById('settings-btn').addEventListener('click', toggleSettings);
+    document.getElementById('btn-back-game').addEventListener('click', toggleSettings);
+    document.getElementById('btn-clear-rank').addEventListener('click', clearData);
+    document.getElementById('btn-continue').addEventListener('click', resumeGame);
+    
+    // Sliders de Volume (Usando OrkaAudio para aplicar)
+    //document.getElementById('vol-master').addEventListener('input', (e) => {
+        // A OrkaLib gerencia o gain do contexto global
+    //    if (OrkaAudio.context) OrkaAudio.context.resume();
+    //});
+
+    // Inicia o jogo
+    init();
+});

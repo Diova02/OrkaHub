@@ -12,7 +12,7 @@ export const gamesTags = {
     eagle: ['mira', 'reflexo', 'diario', 'leaderboard'],
     zoo: ['logica', 'puzzle', 'diario'],
     listit: ['logica', 'puzzle', 'diario'],
-    jinx: ['logica', 'mp_closed'],
+    jinx: ['logica', 'mp_closed', 'casual'],
     firewall: ['roguelike', 'leaderboard', 'estrategia', 'acao']
 };
 

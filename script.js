@@ -53,7 +53,8 @@ function getGameData(game) {
         print: `assets/prints/print-${id}.png`,
         dev: game.dev || "Orka Studio",
         // A mágica da URL centralizada no Console Mestre:
-        playUrl: `console.html?id=${id}&url=games/${id}/&portrait=${game.allowPortrait}&title=${game.title}`
+        //playUrl: `console.html?id=${id}&url=games/${id}/&portrait=${game.allowPortrait}&title=${game.title}`
+        playUrl: `console.html?id=${id}&url=games/${id}/&portrait=true&title=${game.title}`
     };
 }
 
