@@ -451,20 +451,29 @@ async function renderDynamicHub(langSimple) {
     if (!mainContainer) return;
     mainContainer.innerHTML = '';
 
-    // 1. Lógica de Seleção de Categorias (Embaralha 3 temáticas)
+    const profile = OrkaCloud.getProfile();
+    const isAdmin = profile?.role === 'admin';
+
+    // Filtra a lista global para esta renderização específica
+    const authorizedGames = gamesList.filter(game => {
+        // Se tem data de lançamento, qualquer um vê. Se não tem, só admin.
+        return game.releaseDate || isAdmin;
+    });
+
+    // 1. Lógica de Seleção de Categorias
     const thematicKeys = Object.keys(shelves).filter(key => shelves[key].priority === 2);
     const selectedThematics = OrkaMath.shuffle([...thematicKeys]).slice(0, 3);
 
     const shelfPlan = [
-        { ...shelves.NEW_UPDATED, isNews: true }, // Especial para Novidades
+        { ...shelves.NEW_UPDATED, isNews: true },
         shelves.DAILY,
         ...selectedThematics.map(key => shelves[key]),
         shelves.SOON
     ];
 
-    // 2. Renderização das Prateleiras
+    // 2. Renderização das Prateleiras (passando a lista autorizada)
     shelfPlan.forEach(shelf => {
-        const gamesForThisShelf = filterGamesByShelf(shelf);
+        const gamesForThisShelf = filterGamesByShelf(shelf, authorizedGames);
         if (gamesForThisShelf.length > 0 || shelf.id === 'soon') {
             renderShelf(shelf, gamesForThisShelf, mainContainer, langSimple);
         }
@@ -473,20 +482,15 @@ async function renderDynamicHub(langSimple) {
 
 // --- FUNÇÕES TERCEIRIZADAS (AUXILIARES) ---
 // 1. Ajuste na Filtragem e Ordenação
-function filterGamesByShelf(shelf) {
+function filterGamesByShelf(shelf, listToFilter) {
     let filtered;
+    
     if (shelf.isNews) {
-        filtered = gamesList.filter(g => checkIsNew(g.releaseDate) || checkIsUpdated(g.lastUpdate));
-        
-        // ORDENAÇÃO: Prioriza Lançamento (releaseDate) sobre Atualização
-        return filtered.sort((a, b) => {
-            const dateA = new Date(a.releaseDate || 0);
-            const dateB = new Date(b.releaseDate || 0);
-            return dateB - dateA; // Decrescente: Mais novo primeiro
-        });
+        filtered = listToFilter.filter(g => checkIsNew(g.releaseDate) || checkIsUpdated(g.lastUpdate));
+        return filtered.sort((a, b) => new Date(b.releaseDate || 0) - new Date(a.releaseDate || 0));
     }
     
-    filtered = gamesList.filter(game => {
+    filtered = listToFilter.filter(game => {
         const tags = gamesTags[game.id] || [];
         return tags.some(tag => shelf.tags?.includes(tag)) || game.type === shelf.id;
     });

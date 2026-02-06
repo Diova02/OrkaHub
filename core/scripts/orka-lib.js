@@ -98,18 +98,67 @@ export const OrkaDate = {
 // =========================
 // 3. AUDIO ENGINE (Web Audio API)
 // =========================
+
+// orka-lib.js -> Módulo OrkaAudio Atualizado
 export const OrkaAudio = {
     context: null,
+    masterGain: null,
+    filterNode: null,
     buffers: {},
+    volumes: { master: 0.5, sfx: 1.0, music: 1.0 },
 
     init: () => {
         if (!OrkaAudio.context) {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             OrkaAudio.context = new AudioContext();
+            
+            // Master Gain
+            OrkaAudio.masterGain = OrkaAudio.context.createGain();
+            OrkaAudio.masterGain.gain.value = OrkaAudio.volumes.master;
+
+            // Filtro Lowpass (Abafado para menus/pausa)
+            OrkaAudio.filterNode = OrkaAudio.context.createBiquadFilter();
+            OrkaAudio.filterNode.type = 'lowpass';
+            OrkaAudio.filterNode.frequency.value = 22000;
+
+            // Conexões: Source -> Filter -> Master -> Destination
+            OrkaAudio.filterNode.connect(OrkaAudio.masterGain);
+            OrkaAudio.masterGain.connect(OrkaAudio.context.destination);
         }
     },
 
-    // Carrega múltiplos sons e retorna Promise quando TODOS acabarem
+    setMuffled: (isMuffled) => {
+        if (!OrkaAudio.filterNode) return;
+        const freq = isMuffled ? 600 : 22000;
+        OrkaAudio.filterNode.frequency.setTargetAtTime(freq, OrkaAudio.context.currentTime, 0.1);
+    },
+
+    setVolume: (type, val) => {
+        OrkaAudio.volumes[type] = val;
+        if (type === 'master' && OrkaAudio.masterGain) {
+            OrkaAudio.masterGain.gain.value = val;
+        }
+    },
+
+    play: (key, type = 'sfx', loop = false) => {
+        if (!OrkaAudio.context) OrkaAudio.init();
+        const buffer = OrkaAudio.buffers[key];
+        if (!buffer) return;
+
+        const source = OrkaAudio.context.createBufferSource();
+        source.buffer = buffer;
+        source.loop = loop;
+
+        const gainNode = OrkaAudio.context.createGain();
+        // Aplica volume relativo ao tipo (sfx ou music)
+        gainNode.gain.value = OrkaAudio.volumes[type];
+
+        source.connect(gainNode);
+        gainNode.connect(OrkaAudio.filterNode); // Conecta no filtro global
+        source.start(0);
+        return source; // Retorna para controle (ex: parar música)
+    },
+    
     // Uso: await OrkaAudio.loadAll({ jump: 'jump.mp3', win: 'win.mp3' });
     loadAll: async (soundMap) => {
         OrkaAudio.init();
@@ -128,26 +177,6 @@ export const OrkaAudio = {
         return Promise.all(promises);
     },
 
-    play: (key, volume = 1.0, pitch = 1.0) => {
-        if (!OrkaAudio.context) OrkaAudio.init();
-        if (OrkaAudio.context.state === 'suspended') OrkaAudio.context.resume();
-
-        const buffer = OrkaAudio.buffers[key];
-        if (!buffer) return;
-
-        const source = OrkaAudio.context.createBufferSource();
-        source.buffer = buffer;
-        
-        // Efeito de Pitch (Opcional, bom para sons repetitivos não enjoarem)
-        if (pitch !== 1.0) source.playbackRate.value = pitch;
-
-        const gainNode = OrkaAudio.context.createGain();
-        gainNode.gain.value = volume;
-
-        source.connect(gainNode);
-        gainNode.connect(OrkaAudio.context.destination);
-        source.start(0);
-    }
 };
 
 // =========================

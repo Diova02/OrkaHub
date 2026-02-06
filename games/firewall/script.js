@@ -147,13 +147,29 @@ const CLASSES_DEF = {
     shotgun: { name: "Escopeta", icon: "🧨", color: "#795548", desc: "+40% Dano, -30% Range", stats: { damage: 1.4, range: 0.7 } },
     tank: { name: "Tanque", icon: "🛡️", color: "#607d8b", desc: "+50% HP, +30% Dano, -50% Speed", stats: { maxHp: 1.5, damage: 1.3, speed: 1.5 } }
 };
-
 const ENEMIES_DEF = {
-    square: { name: "Cubo", color: "#ff4444", shape: "square", desc: "Carne de canhão.", minWave: 1 },
-    triangle: { name: "Velocista", color: "#ffff00", shape: "triangle", desc: "Rápido e frágil.", minWave: 2 },
-    circle: { name: "Tanque", color: "#aa00ff", shape: "circle", desc: "Resistente.", minWave: 4 }, // HP ajustado na classe Enemy
-    rhombus: { name: "Ladino", color: "#00ffaa", shape: "rhombus", desc: "Dá investidas rápidas.", minWave: 5 },
-    hexagon: { name: "Clérigo", color: "#00ff00", shape: "hexagon", desc: "Cura os aliados.", minWave: 6 }
+    square: { 
+        name: "Cubo", color: "#ff4444", shape: "square", 
+        hpMult: 1.0, speed: 1.5, size: 20, goldChance: 0.2, minWave: 1 
+    },
+    triangle: { 
+        name: "Velocista", color: "#ffff00", shape: "triangle", 
+        hpMult: 0.6, speed: 3.5, size: 15, goldChance: 0.1, minWave: 2 
+    },
+    circle: { 
+        name: "Tanque", color: "#aa00ff", shape: "circle", 
+        hpMult: 2.5, speed: 0.7, size: 30, goldChance: 0.8, minWave: 4 
+    },
+    rhombus: { 
+        name: "Ladino", color: "#00ffaa", shape: "rhombus", 
+        hpMult: 1.2, speed: 0.5, size: 20, goldChance: 0.3, minWave: 5,
+        behavior: 'dash', dashChance: 0.05, dashSpeed: 8
+    },
+    hexagon: { 
+        name: "Clérigo", color: "#00ff00", shape: "hexagon", 
+        hpMult: 1.5, speed: 1.0, size: 25, goldChance: 0.4, minWave: 6,
+        behavior: 'healer', healRange: 100, healAmount: 10, healCooldown: 60
+    }
 };
 
 // --- GAME STATE ---
@@ -593,92 +609,161 @@ class Player {
     }
 }
 
+// Cache global de imagens para evitar re-carregamento
+const ENEMY_SPRITES = {};
+
 class Enemy {
     constructor(wave) {
         const key = game.spawnPool[Math.floor(Math.random() * game.spawnPool.length)];
         const def = ENEMIES_DEF[key];
-        this.shape = def.shape; this.color = def.color;
-        this.maxHp = 10 + (wave * 3); this.speed = 1.5; this.size = 20; this.goldChance = 0.2;
-        
-        // Balanceamento Apocalíptico e Novos Tipos
-        if (key === 'triangle') { this.speed = 3.5; this.maxHp *= 0.6; this.size=15; }
-        if (key === 'circle') { this.speed = 0.7; this.maxHp *= 2.5; this.size=30; this.goldChance=0.8; } // Nerfado de 4x para 2.5x
-        if (key === 'rhombus') { this.speed = 4; this.dashTimer = 0; } // Ladino
-        if (key === 'hexagon') { this.speed = 1; this.healTimer = 0; this.color = '#00ff00'; } // Healer
-        this.hp = this.maxHp; this.freezeTimer = 0; this.hitTimer = 0;
 
-        const edge = Math.floor(Math.random()*4);
-        if(edge===0){this.x=Math.random()*canvas.width; this.y=-40;}
-        else if(edge===1){this.x=canvas.width+40; this.y=Math.random()*canvas.height;}
-        else if(edge===2){this.x=Math.random()*canvas.width; this.y=canvas.height+40;}
-        else{this.x=-40; this.y=Math.random()*canvas.height;}
+        // Atributos Base
+        this.key = key;
+        this.name = def.name;
+        this.size = def.size;
+        this.speed = def.speed;
+        this.baseSpeed = def.speed;
+        this.goldChance = def.goldChance;
+        this.color = def.color; // Mantido para partículas e efeitos
+        
+        // Vida escalável
+        this.maxHp = (10 + (wave * 3)) * (def.hpMult || 1);
+        this.hp = this.maxHp;
+
+        // Estados e Timers
+        this.freezeTimer = 0;
+        this.hitTimer = 0;
+        this.specialTimer = 0;
+        this.angle = 0;
+
+        // Carregamento do Sprite
+        this.loadSprite();
+
+        // Posição inicial
+        this.initSpawnPosition();
+    }
+
+    loadSprite() {
+        const spritePath = `./assets/${this.name}.png`;
+        if (!ENEMY_SPRITES[this.name]) {
+            const img = new Image();
+            img.src = spritePath;
+            ENEMY_SPRITES[this.name] = img;
+            
+            // Tratamento de erro para evitar o estado 'broken'
+            img.onerror = () => {
+                console.warn(`⚠️ Sprite não encontrado: ${spritePath}. Usando fallback.`);
+                ENEMY_SPRITES[this.name] = "ERROR"; // Marca como erro para o draw ignorar
+            };
+        }    
+            
+        this.sprite = ENEMY_SPRITES[this.name];
+    }
+
+    initSpawnPosition() {
+        const edge = Math.floor(Math.random() * 4);
+        const padding = 50;
+        if(edge === 0) { this.x = Math.random() * canvas.width; this.y = -padding; }
+        else if(edge === 1) { this.x = canvas.width + padding; this.y = Math.random() * canvas.height; }
+        else if(edge === 2) { this.x = Math.random() * canvas.width; this.y = canvas.height + padding; }
+        else { this.x = -padding; this.y = Math.random() * canvas.height; }
     }
 
     update() {
         if (this.hitTimer > 0) this.hitTimer--;
         if (this.freezeTimer > 0) { this.freezeTimer--; return; }
 
-        // Lógica Especial: Hexágono Cura
-        if (this.shape === 'hexagon') {
-            this.healTimer++;
-            if (this.healTimer > 60) {
-                this.healTimer = 0;
-                entities.enemies.forEach(e => {
-                    if (e !== this && Math.hypot(e.x-this.x, e.y-this.y) < 100) {
-                        e.hp = Math.min(e.maxHp, e.hp + 10);
-                        entities.particles.push(new Particle(e.x, e.y, '#00ff00'));
-                    }
-                });
+        const def = ENEMIES_DEF[this.key];
+
+        // Lógica de Comportamento Especial
+        if (def.behavior === 'healer') {
+            this.specialTimer++;
+            if (this.specialTimer > def.healCooldown) {
+                this.specialTimer = 0;
+                this.executeHeal(def.healRange, def.healAmount);
             }
         }
 
-        // Lógica Especial: Losango Dash
-        if (this.shape === 'rhombus') {
-            // Ele para e corre
-            if (Math.random() < 0.05) this.speed = 8; else this.speed = 0.5;
+        if (def.behavior === 'dash') {
+            this.speed = (Math.random() < def.dashChance) ? def.dashSpeed : this.baseSpeed;
         }
 
-        const angle = Math.atan2(player.y - this.y, player.x - this.x);
-        this.x += Math.cos(angle) * this.speed;
-        this.y += Math.sin(angle) * this.speed;
+        // Movimento e Rotação em direção ao player
+        this.angle = Math.atan2(player.y - this.y, player.x - this.x);
+        this.x += Math.cos(this.angle) * this.speed;
+        this.y += Math.sin(this.angle) * this.speed;
+    }
+
+    executeHeal(range, amount) {
+        entities.enemies.forEach(e => {
+            if (e !== this && Math.hypot(e.x - this.x, e.y - this.y) < range) {
+                e.hp = Math.min(e.maxHp, e.hp + amount);
+                entities.particles.push(new Particle(e.x, e.y, '#00ff00'));
+            }
+        });
     }
 
     takeDamage(amt) {
-        this.hp -= amt; this.hitTimer = 5;
+        this.hp -= amt;
+        this.hitTimer = 5; // Frame de feedback visual (piscar branco)
         if (this.hp <= 0) this.die();
     }
 
     die() {
+        // Vampirismo (Regra de gameplay baseada em artefatos)
         if (game.artifacts.vampire) {
             const healAmt = ARTIFACTS_DEF.vampire.heal + (game.artifacts.vampire * 2);
-            player.hp = Math.min(player.maxHp, player.hp + healAmt); player.updateHpUI();
+            player.hp = Math.min(player.maxHp, player.hp + healAmt);
+            player.updateHpUI();
             entities.particles.push(new Particle(player.x, player.y, '#ff0000'));
         }
-        game.score++; ui.score.innerText = game.score;
-        for(let i=0; i<5; i++) entities.particles.push(new Particle(this.x, this.y, this.color));
+
+        game.score++;
+        ui.score.innerText = game.score;
+
+        // Efeitos visuais e sonoros
+        for(let i=0; i<8; i++) entities.particles.push(new Particle(this.x, this.y, this.color));
+        OrkaAudio.play('explosion');
+
+        // Drops
         if (Math.random() < this.goldChance) entities.drops.push(new Drop(this.x, this.y, 'gold'));
         entities.drops.push(new Drop(this.x, this.y, 'xp'));
     }
 
     draw() {
-        if (this.hitTimer > 0) ctx.fillStyle = '#ffffff';
-        else ctx.fillStyle = this.freezeTimer > 0 ? '#00ffff' : this.color;
-        if (this.shape === 'circle') { ctx.beginPath(); ctx.arc(this.x, this.y, this.size/2, 0, Math.PI*2); ctx.fill(); }
-        else if (this.shape === 'triangle') { ctx.beginPath(); ctx.moveTo(this.x, this.y-this.size/2); ctx.lineTo(this.x+this.size/2, this.y+this.size/2); ctx.lineTo(this.x-this.size/2, this.y+this.size/2); ctx.fill(); }
-        else { ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size); }
-        if (this.shape === 'rhombus') {
-                ctx.beginPath(); ctx.moveTo(this.x, this.y-this.size/2); ctx.lineTo(this.x+this.size/2, this.y); ctx.lineTo(this.x, this.y+this.size/2); ctx.lineTo(this.x-this.size/2, this.y); ctx.fill();
-            } else if (this.shape === 'hexagon') {
-                // Simplificado como círculo com borda
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.size/2, 0, Math.PI*2); ctx.fill();
-                ctx.strokeStyle='#fff'; ctx.stroke();
-            }
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle + Math.PI/2); // Ajusta rotação se o sprite estiver virado para cima
 
-        if (this.hp < this.maxHp) {
-            const pct = this.hp / this.maxHp;
-            ctx.fillStyle = '#500'; ctx.fillRect(this.x-10, this.y-this.size-8, 20, 4);
-            ctx.fillStyle = '#0f0'; ctx.fillRect(this.x-10, this.y-this.size-8, 20*pct, 4);
+        // Feedback de Dano (Piscar Branco)
+        if (this.hitTimer > 0) {
+            ctx.filter = 'brightness(3) grayscale(1)'; 
+        } else if (this.freezeTimer > 0) {
+            ctx.filter = 'hue-rotate(180deg) brightness(1.2)'; // Efeito azulado
         }
+
+        // Desenha o Sprite
+        if (this.sprite.complete) {
+            ctx.drawImage(this.sprite, -this.size/2, -this.size/2, this.size, this.size);
+        } else {
+            // Fallback caso a imagem ainda não tenha carregado
+            ctx.fillStyle = this.color;
+            ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size);
+        }
+
+        ctx.restore();
+
+        // Barra de vida (fora do save/rotate para não girar junto com o inimigo)
+        if (this.hp < this.maxHp) this.drawHealthBar();
+    }
+
+    drawHealthBar() {
+        const pct = this.hp / this.maxHp;
+        const barWidth = this.size;
+        ctx.fillStyle = '#333';
+        ctx.fillRect(this.x - barWidth/2, this.y - this.size/2 - 10, barWidth, 4);
+        ctx.fillStyle = pct > 0.3 ? '#0f0' : '#f00';
+        ctx.fillRect(this.x - barWidth/2, this.y - this.size/2 - 10, barWidth * pct, 4);
     }
 }
 
