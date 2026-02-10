@@ -173,24 +173,32 @@ export class Enemy {
     }
 
     loadSprite() {
-        const spritePath = `./assets/${this.name}.png`;
-        
+        const candidates = [
+            `./assets/${this.name}.png`,
+            `../../assets/icons/${this.name}.png`,
+            `../../assets/imagens/${this.name}.png`,
+            `../../assets/imagens/${this.name.toLowerCase()}.png`
+        ];
+
         if (!ENEMY_SPRITES[this.name]) {
-            const img = new Image();
-            
-            img.onload = () => {
-                ENEMY_SPRITES[this.name] = img;
-            };
-
-            img.onerror = () => {
-                console.warn(`⚠️ Sprite não encontrado: ${spritePath}.`);
-                // IMPORTANTE: Bloqueamos o objeto Image substituindo-o por null
-                ENEMY_SPRITES[this.name] = "FAILED"; 
-            };
-
-            img.src = spritePath;
-            // Enquanto carrega, deixamos como 'LOADING'
+            // marca como carregando para evitar reentrância
             ENEMY_SPRITES[this.name] = "LOADING";
+
+            const tryNext = (idx) => {
+                if (idx >= candidates.length) {
+                    console.warn(`⚠️ Sprite não encontrado (tente adicionar o arquivo em games/firewall/assets): ${this.name}`);
+                    ENEMY_SPRITES[this.name] = "FAILED";
+                    return;
+                }
+
+                const path = candidates[idx];
+                const img = new Image();
+                img.onload = () => { ENEMY_SPRITES[this.name] = img; };
+                img.onerror = () => { tryNext(idx + 1); };
+                img.src = path;
+            };
+
+            tryNext(0);
         }
     }
 
