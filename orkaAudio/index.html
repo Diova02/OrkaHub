@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OrkaAudio v2.0 - Demo Oficial</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; background: #0d1117; color: #c9d1d9; line-height: 1.6; }
+        .container { max-width: 800px; margin: auto; background: #161b22; padding: 20px; border-radius: 12px; border: 1px solid #30363d; }
+        h1 { color: #58a6ff; text-align: center; margin-bottom: 0; }
+        .version { color: #8b949e; font-size: 0.5em; vertical-align: middle; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+        .card { background: #21262d; padding: 15px; border-radius: 8px; border: 1px solid #30363d; }
+        button { background: #238636; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; width: 100%; margin: 5px 0; font-weight: bold; transition: 0.2s; }
+        button:hover { background: #2ea043; }
+        button:disabled { background: #30363d; color: #8b949e; cursor: not-allowed; }
+        /* Canvas com alta definição */
+        canvas { background: #000; border: 2px solid #30363d; border-radius: 8px; width: 100%; height: 300px; cursor: crosshair; touch-action: none; }
+        #log { background: #010409; color: #7ee787; padding: 10px; height: 120px; overflow-y: auto; font-family: monospace; font-size: 12px; border-radius: 6px; border: 1px solid #30363d; margin-bottom: 10px; }
+        .slider-group { margin: 10px 0; }
+        input[type="range"] { width: 100%; cursor: pointer; }
+        select { width: 100%; padding: 8px; background: #0d1117; color: white; border: 1px solid #30363d; border-radius: 4px; margin-top: 5px; }
+        label { font-size: 0.9em; color: #8b949e; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>OrkaAudio <span class="version">v2.0</span></h1>
+    <p style="text-align: center; margin-top: 5px;">Portal de Jogos Orka Hub - API de Áudio Espacial</p>
+
+    <div id="log">>> Aguardando inicialização do sistema...</div>
+
+    <div class="grid">
+        <div class="card">
+            <h3>⚙️ Sistema (Master)</h3>
+            <button id="btnInit">Inicializar Contexto</button>
+            <button id="btnLoad" disabled>Carregar Assets</button>
+            <div class="slider-group">
+                <label>Master Volume</label>
+                <input type="range" id="sldMaster" min="0" max="1" step="0.05" value="0.5">
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>🎵 Mixagem por Bus</h3>
+            <div style="margin-bottom: 10px;">
+                <label>Efeito Música:</label>
+                <select id="selMusicEffect">
+                    <option value="normal">Normal</option>
+                    <option value="muffled">Muffled (Abafado)</option>
+                    <option value="radio">Radio Effect</option>
+                </select>
+            </div>
+            <div>
+                <label>Efeito SFX:</label>
+                <select id="selSfxEffect">
+                    <option value="normal">Normal</option>
+                    <option value="muffled">Muffled (Abafado)</option>
+                    <option value="radio">Radio Effect</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>🕹️ Playground Espacial & Fades</h3>
+        <p><small>Arraste o <b>Player</b> ou o <b>Fantasma</b>. Use os botões abaixo para testar o sistema de Fade suave.</small></p>
+        <canvas id="gameCanvas"></canvas>
+        
+        <div class="grid" style="margin-top:10px; grid-template-columns: 1fr 1fr 1fr;">
+            <button id="btnPlaySFX">Tocar Impact</button>
+            <button id="btnFadeOut" style="background: #e94560;">Fade OUT Music</button>
+            <button id="btnFadeIn" style="background: #4ecca3;">Fade IN Music</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>⏳ Controle de Tempo (Pitch)</h3>
+        <label>Velocidade do Jogo (Master):</label>
+        <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 5px;">
+            <button id="slow-btn">0.5x (Slow)</button>
+            <button id="normalspd-btn">1.0x (Normal)</button>
+            <button id="fast-btn">1.5x (Fast)</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>🎵 Sistema de Transição Épica</h3>
+        <p><small>Troque entre as trilhas carregadas com efeito de Pitch Bend e Fade.</small></p>
+        <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+            <button id="btnSwitchTheme" style="background: #f39c12;">Switch to Theme</button>
+            <button id="btnSwitchAction" style="background: #d35400;">Switch to Action</button>
+        </div>
+    </div>
+
+
+<script type="module">
+    import { OrkaAudio } from './OrkaAudio.ts';
+
+    const logDiv = document.getElementById('log');
+    const logger = (msg) => {
+        logDiv.innerHTML += `<div>> ${msg}</div>`;
+        logDiv.scrollTop = logDiv.scrollHeight;
+    };
+
+    // --- CONFIGURAÇÃO DO CANVAS (High DPI) ---
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    // Estados da Demo
+    let isLoaded = false;
+    let musicInstance = null;
+    let ghostInstance = null;
+    let dragTarget = null;
+
+    const player = { x: 80, y: 150, r: 12, color: "#58a6ff", label: "Player (Listener)" };
+    const ghost = { x: 400, y: 150, r: 15, color: "#f85149", label: "Gatinho (Source)" };
+
+    document.getElementById('slow-btn').onclick  = () => {OrkaAudio.setPlaybackRate('master', 0.5) };
+    document.getElementById('normalspd-btn').onclick  = () => {OrkaAudio.setPlaybackRate('master', 1) };
+    document.getElementById('fast-btn').onclick = () => {OrkaAudio.setPlaybackRate('master', 1.5) };
+
+    // --- INTERAÇÕES DO SISTEMA ---
+
+    document.getElementById('btnInit').onclick = async () => {
+        await OrkaAudio.init();
+        logger("OrkaAudio inicializado. Volumes restaurados.");
+        document.getElementById('btnInit').disabled = true;
+        document.getElementById('btnLoad').disabled = false;
+        document.getElementById('sldMaster').value = OrkaAudio.volumes.master;
+    };
+
+    document.getElementById('btnLoad').onclick = async () => {
+        logger("Carregando assets...");
+        
+        await OrkaAudio.loadAll({
+            'impact': '../assets/sounds/squeaky-toy.mp3',
+            'theme': '../games/firewall/music/back_music.mp3',
+            'theme2': '../assets/sounds/alchemist-theme.mp3',
+            'ghost': '../assets/sounds/pet-squeaky.mp3'
+        });
+
+        logger("Assets carregados.");
+        isLoaded = true;
+        
+        // Iniciar música e fantasma
+        musicInstance = OrkaAudio.playMusic('theme', { volume: 0.5 });
+        ghostInstance = OrkaAudio.play('ghost', 'sfx', { loop: true, volume: 0 });
+        OrkaAudio.setFollow(ghostInstance, ghost, player, 400);
+        
+        document.getElementById('btnLoad').disabled = true;
+    };
+
+    // --- CONTROLES DE ÁUDIO ---
+
+    document.getElementById('sldMaster').oninput = (e) => {
+        OrkaAudio.setVolume('master', parseFloat(e.target.value));
+    };
+
+    // Efeitos individuais por Bus
+    document.getElementById('selMusicEffect').onchange = (e) => {
+        OrkaAudio.setEffect(e.target.value, 'music');
+        logger(`Efeito "${e.target.value}" aplicado ao Bus de Música.`);
+    };
+
+    document.getElementById('selSfxEffect').onchange = (e) => {
+        OrkaAudio.setEffect(e.target.value, 'sfx');
+        logger(`Efeito "${e.target.value}" aplicado ao Bus de SFX.`);
+    };
+
+    document.getElementById('btnPlaySFX').onclick = () => {
+        if(!isLoaded) return logger("Carregue os sons primeiro!");
+        OrkaAudio.playSFX('impact');
+    };
+
+    // Lógica de Fade Suave
+    document.getElementById('btnFadeOut').onclick = () => {
+        if(musicInstance) {
+            OrkaAudio.fade(musicInstance, 0, 2.5);
+            logger("Fade OUT da música iniciado (2.5s)...");
+        }
+    };
+
+    document.getElementById('btnFadeIn').onclick = () => {
+        if(musicInstance) {
+            const target = OrkaAudio.volumes.music || 1.0;
+            OrkaAudio.fade(musicInstance, target, 2.5);
+            logger(`Fade IN da música iniciado para ${target.toFixed(2)}...`);
+        }
+    };
+
+    document.getElementById('btnSwitchTheme').onclick = () => {
+        if(!isLoaded) return logger("Carregue os sons!");
+        OrkaAudio.switchMusic('theme2', { duration: 2.0, useBend: true });
+    };
+
+    document.getElementById('btnSwitchAction').onclick = () => {
+        if(!isLoaded) return logger("Carregue os sons!");
+        OrkaAudio.switchMusic('theme', { duration: 2.0, useBend: true, volume: 0.3 });
+    };
+
+    // --- LÓGICA DO CANVAS E DRAG ---
+
+    canvas.onmousedown = (e) => {
+        const m = getMousePos(e);
+        [player, ghost].forEach(obj => {
+            if(Math.hypot(m.x - obj.x, m.y - obj.y) < obj.r + 10) dragTarget = obj;
+        });
+    };
+
+    window.onmousemove = (e) => {
+        if(!dragTarget) return;
+        const m = getMousePos(e);
+        dragTarget.x = Math.max(0, Math.min(rect.width, m.x));
+        dragTarget.y = Math.max(0, Math.min(rect.height, m.y));
+    };
+
+    window.onmouseup = () => dragTarget = null;
+
+    function getMousePos(e) {
+        const cRect = canvas.getBoundingClientRect();
+        return { x: e.clientX - cRect.left, y: e.clientY - cRect.top };
+    }
+
+    function render() {
+        ctx.clearRect(0, 0, rect.width, rect.height);
+        
+        // Área de audição
+        ctx.strokeStyle = "#30363d";
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath(); ctx.arc(player.x, player.y, 400, 0, Math.PI*2); ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Entidades
+        [ghost, player].forEach(obj => {
+            ctx.shadowBlur = 15; ctx.shadowColor = obj.color;
+            ctx.fillStyle = obj.color;
+            ctx.beginPath(); ctx.arc(obj.x, obj.y, obj.r, 0, Math.PI*2); ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = "#8b949e";
+            ctx.font = "10px Arial";
+            ctx.fillText(obj.label, obj.x - 30, obj.y - 20);
+        });
+
+        requestAnimationFrame(render);
+    }
+    render();
+</script>
+</body>
+</html>

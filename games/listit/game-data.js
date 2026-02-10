@@ -8,6 +8,7 @@ export const TYPE_TRANSLATIONS = {
     'temperatura': { pt: 'do mais FRIO ao mais QUENTE', en: 'from COLDEST to HOTTEST' },
     'ano': { pt: 'do mais ANTIGO ao mais RECENTE', en: 'from OLDEST to NEWEST' },
     'duracao': { pt: 'do mais CURTO ao mais LONGO', en: 'from SHORTEST to LONGEST' },
+    'lifespan': { pt: 'do que vive MENOS para o que vive MAIS', en: 'from SHORTEST to LONGEST lifespan' },
     'populacao': { pt: 'do MENOS habitado ao MAIS habitado', en: 'from LEAST populated to MOST populated' },
     'bilheteria': { pt: 'da MENOR bilheteria à MAIOR bilheteria', en: 'from LOWEST box office to HIGHEST' },
     'imdb': { pt: 'da PIOR nota ao MELHOR avaliado (IMDB)', en: 'from LOWEST rated to HIGHEST rated' },
@@ -25,7 +26,6 @@ export const TYPE_TRANSLATIONS = {
 
 // Banco de Dados (Sempre 8 itens ordenados)
 const DB = [
-    // --- DADOS ORIGINAIS (Padronizados) ---
     {
         type: "peso",
         theme: "Animais",
@@ -73,6 +73,12 @@ const DB = [
         theme: "Games",
         elements: ["Pong", "Pac-Man", "Super Mario Bros", "Doom", "GTA San Andreas", "Minecraft", "Fortnite", "GTA VI (Trailer)"],
         resposta: ["1972", "1980", "1985", "1993", "2004", "2011", "2017", "2023"]
+    },
+    {
+        type: "lifespan",
+        theme: "Animais",
+        elements: ["Formiga", "Rato", "Gato Doméstico", "Cão Doméstico", "Vaca", "Elefante Africano", "Baleia Azul", "Tigre"],
+        resposta: ["~1 ano", "~2 anos", "~15 anos", "~12 anos", "~20 anos", "~70 anos", "~90 anos", "~15 anos"]
     },
     {
         type: "duracao",
@@ -250,13 +256,13 @@ const DB = [
         resposta: ["29", "39", "48", "55", "62", "115", "77", "79"]
     },
     {
-        type: "area", // Usando 'area' como medida genérica de tamanho/comprimento ou crie 'comprimento'
+        type: "duracao",
         theme: "Geografia",
         elements: ["Rio Tâmisa", "Rio Sena", "Rio Colorado", "Rio São Francisco", "Rio Mississipi", "Rio Yangtzé", "Rio Amazonas", "Rio Nilo"],
         resposta: ["346 km", "777 km", "2.330 km", "2.830 km", "3.730 km", "6.300 km", "6.400 km", "6.650 km"]
     },
     {
-        type: "populacao", // Reaproveitando tipo população para "quantidade de pessoas"
+        type: "populacao",
         theme: "Estádios Esportivos",
         elements: ["Vila Belmiro", "Allianz Parque", "Arena Neo Química", "La Bombonera", "Old Trafford", "Maracanã", "Santiago Bernabéu", "Camp Nou"],
         resposta: ["~16 mil", "~43 mil", "~49 mil", "~54 mil", "~74 mil", "~78 mil", "~81 mil", "~99 mil"]
@@ -292,11 +298,31 @@ const DB = [
         resposta: ["1977", "1980", "1983", "1999", "2005", "2015", "2016", "2019"]
     },
     {
-        type: "duracao",
+        type: "lispan",
         theme: "Animais",
         elements: ["Mosca", "Rato", "Coelho", "Gato Doméstico", "Leão", "Chimpanzé", "Elefante Africano", "Tartaruga de Galápagos"],
         resposta: ["28 dias", "2 anos", "10 anos", "15 anos", "20 anos", "40 anos", "70 anos", "170 anos"]
+    },
+    {
+        type: "duracao",
+        theme: "Séries de TV (n de temporadas)",
+        //elementos devem estar em ordem de duração crescente, do menor para o mais longo
+        elements: ["Fleabag", "Chernobyl", "The Queen's Gambit", "Stranger Things", "Breaking Bad", "Game of Thrones", "Grey's Anatomy", "The Simpsons"],
+        resposta: ["1 temporada", "1 temporada", "2 temporadas", "4 temporadas", "5 temporadas", "8 temporadas", "19 temporadas", "34 temporadas"]
+    },
+    {
+        type: "peso",
+        theme: "Frutas",
+        elements: ["Morango", "Limão", "Maçã", "Laranja", "Abacaxi", "Melancia", "Abóbora", "Coco"],
+        resposta: ["~20g", "~100g", "~150g", "~200g", "~1kg", "~2kg", "~5kg", "~15kg"]
+    },
+    {
+        type: "peso",
+        theme: "Animais Marinhos",
+        elements: ["Água-viva", "Peixe-palhaço", "Tartaruga Marinha", "Golfinho", "Foca", "Leão-marinho", "Orca", "Baleia Azul"],
+        resposta: ["~2kg", "~250g", "~150kg", "~300kg", "~400kg", "~1.000kg", "~6.000kg", "~140.000kg"]
     }
+    //crie novas entradas aqui seguindo o mesmo formato, sem repetir a mesma sequência de elementos e sempre com 8 elementos ordenados do menor para o maior + as respostas corretas.
 ];
 
 export const GameData = {

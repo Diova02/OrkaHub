@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ES6",
+    "lib": ["DOM", "ES2020"],
+    "skipLibCheck": true,
+    "moduleResolution": "node",
+    "strict": true,
+    "outDir": "./dist" 
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules"]
+}

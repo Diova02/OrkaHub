@@ -3,28 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orka Jinx | Conexão mental</title>
+    <title>Firewall</title>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="../../assets/icons/firewall-logo.png">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
-    <button id="settings-btn">⚙️</button>
-
-    <div id="settings-modal">
-        <h2 style="color: #fff; text-transform: uppercase; letter-spacing: 3px;">Configurações</h2>
-        
+    <div id="settings-modal" class="modal-overlay"> <h2 style="color: #fff; text-transform: uppercase; letter-spacing: 3px;">Configurações</h2>
+    
         <div class="setting-row">
             <span>Volume Geral</span>
-            <input type="range" min="0" max="1" step="0.1" value="0.5" onchange="audioSys.setVolume('master', this.value)">
+            <input type="range" id="vol-master" min="0" max="1" step="0.1" value="0.5">
         </div>
         <div class="setting-row">
             <span>Música</span>
-            <input type="range" min="0" max="1" step="0.1" value="0.5" onchange="audioSys.setVolume('music', this.value)">
+            <input type="range" id="vol-music" min="0" max="1" step="0.1" value="0.5">
         </div>
         <div class="setting-row">
             <span>Efeitos (SFX)</span>
-            <input type="range" min="0" max="1" step="0.1" value="0.5" onchange="audioSys.setVolume('sfx', this.value)">
+            <input type="range" id="vol-sfx" min="0" max="1" step="0.1" value="0.5">
         </div>
 
         <button id='btn-back-game' class="continue-btn" style="margin-top: 20px;">Voltar ao Jogo</button>
@@ -43,8 +40,8 @@
         <div class="enemy-alert-box">
             <div style="color: #666; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px;">Nova Ameaça Detectada</div>
             <div class="enemy-shape" id="new-enemy-visual"></div>
-            <div class="enemy-name" id="new-enemy-name">NOME</div>
-            <div class="enemy-desc" id="new-enemy-desc">Descrição aqui.</div>
+            <div class="enemy-name" id="new-enemy-name">INIMIGO</div>
+            <div class="enemy-desc" id="new-enemy-desc">Estoure os miolos dele.</div>
             <button id="btn-continue" class="continue-btn">VEM PRO PAU</button>
         </div>
     </div>
@@ -63,6 +60,7 @@
                 <div id="artifacts-container"></div>
             </div>
             <div class="stat-box gold-text">Ouro: <span id="gold">0</span></div>
+            <button id="settings-btn" style="margin-top: 20px;">⚙️</button>
         </div>
         <div id="wave-timer">Próxima onda: <span id="timer">30</span>s</div>
         <div id="shop-container"></div>
