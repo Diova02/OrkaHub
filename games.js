@@ -13,7 +13,7 @@ export const gamesTags = {
     zoo: ['logica', 'puzzle', 'diario'],
     listit: ['logica', 'puzzle', 'diario'],
     jinx: ['logica', 'mp_closed', 'casual'],
-    firewall: ['roguelike', 'leaderboard', 'estrategia', 'acao']
+    firewall: ['roguelike', 'estrategia', 'acao']
 };
 
 export const shelves = {
