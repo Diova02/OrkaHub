@@ -6,7 +6,9 @@ import { checkLevelUp, updateShopUI, endGame } from "./script.js";
 export class Player {
     constructor() {
         this.x = window.canvas.width/2; this.y = window.canvas.height/2;
-        this.size = 25; this.color = '#00ffcc';
+        this.size = 60; this.color = '#00ffcc';
+        this.sprite = new Image();
+        this.sprite.src = '../../assets/imagens/firewall/player.png';
         this.maxHp = game.upgrades.hp.currentVal; this.hp = this.maxHp;
         this.range = game.upgrades.range.currentVal;
         this.damage = game.upgrades.damage.currentVal;
@@ -48,7 +50,7 @@ export class Player {
                     // Desenha raio visual (simples linha amarela)
                     const ctx = window.ctx;
                     ctx.strokeStyle = '#ffeb3b'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(target.x, target.y); ctx.stroke();
-                    OrkaAudio.playSFX('shoot', options={ volume: 0.7 });
+                    OrkaAudio.playSFX('shoot', { volume: 0.7 });
                 }
             }
         }
@@ -95,6 +97,9 @@ export class Player {
             return;
         }
         this.hp -= amount; this.regenTimer = Date.now();
+        //aplicar a classe "glitch" no sprite do player para indicar dano sofrido
+        this.sprite.classList.add('damage-glitch');
+        setTimeout(() => this.sprite.classList.remove('damage-glitch'), 500);
         window.ui.dmgOverlay.style.opacity = 0.5; setTimeout(() => window.ui.dmgOverlay.style.opacity = 0, 100);
         this.updateHpUI();
         OrkaAudio.playSFX('hit');
@@ -109,6 +114,7 @@ export class Player {
     }
 
     draw() {
+        //desenhar sprite ao invés do quadrado, centralizado na posição do player
         const ctx = window.ctx;
         ctx.save(); ctx.translate(this.x, this.y); 
         if (window.game.artifacts.poison) {
@@ -116,9 +122,14 @@ export class Player {
             ctx.fillStyle = 'rgba(0, 255, 0, 0.1)'; ctx.fill();
         }
         ctx.rotate(this.angle);
-        ctx.fillStyle = '#222'; ctx.fillRect(-14, -14, 28, 28);
-        ctx.fillStyle = this.color; ctx.fillRect(-12, -12, 24, 24);
-        ctx.fillStyle = '#fff'; ctx.fillRect(5, -4, 20, 8);
+        //if (this.spriteLoaded)
+        ctx.drawImage(this.sprite, -this.size/2, -this.size/2, this.size, this.size);
+        //como centralizar o eixo de rotação no meio do sprite, considerando que o sprite tem 28x28 pixels?
+
+        //else {
+        //    ctx.fillStyle = '#fff'; ctx.fillRect(-14, -14, 28, 28);
+        //}
+        //ctx.fillStyle = '#fff'; ctx.fillRect(5, -4, 20, 8);
         ctx.restore();
         if (this.shieldActive) {
             ctx.strokeStyle = '#0072ff'; ctx.lineWidth = 3;
@@ -174,6 +185,7 @@ export class Enemy {
 
     loadSprite() {
         const candidates = [
+            `../../assets/imagens/firewall/${this.name}.png`,
             `./assets/${this.name}.png`,
             `../../assets/icons/${this.name}.png`,
             `../../assets/imagens/${this.name}.png`,

@@ -62,6 +62,10 @@ input[type=range] { width: 200px; cursor: pointer; }
 .card-type { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; font-weight: bold; }
 .new-power .card-type { color: #00c6ff; }
 .upgrade-power .card-type { color: #ffd700; }
+@media (max-width: 500px) {
+    .card-container { flex-direction: row; }
+    .card { width: 120px; height: 180px; }
+}
 
 /* Alerts */
 .enemy-alert-box { border: 4px solid #ff0055; padding: 40px; background: #111; text-align: center; max-width: 400px; border-radius: 20px; box-shadow: 0 0 50px rgba(255, 0, 85, 0.3); }
@@ -73,6 +77,20 @@ input[type=range] { width: 200px; cursor: pointer; }
 
 /* Utils */
 #damage-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: red; opacity: 0; pointer-events: none; transition: opacity 0.1s; z-index: 50; }
+/* Criar animação de glitch ao receber dano que afeta a tela inteira */
+@keyframes glitch {
+    0% { clip: rect(0, 9999px, 0, 0); transform: translate(0); }
+    20% { clip: rect(0, 9999px, 100%, 0); transform: translate(-5px, -5px); }
+    40% { clip: rect(0, 9999px, 0, 0); transform: translate(5px, 5px); }
+    60% { clip: rect(0, 9999px, 100%, 0); transform: translate(-5px, 5px); }
+    80% { clip: rect(0, 9999px, 0, 0); transform: translate(5px, -5px); }
+    100% { clip: rect(0, 9999px, 100%, 0); transform: translate(0); }
+}
+/* Aplicar animação de glitch ao receber dano */
+.damage-glitch { animation: glitch 0.5s; }
+/* como aplicar essa animação no JavaScript: damageOverlay.classList.add('damage-glitch'); setTimeout(() => damageOverlay.classList.remove('damage-glitch'), 500); */
+
+
 #notification { position: absolute; top: 20%; left: 50%; transform: translate(-50%, -50%); font-size: 2.5rem; font-weight: bold; color: #fff; opacity: 0; transition: opacity 0.5s; text-shadow: 0 0 10px #000; z-index: 80; pointer-events: none; text-align: center; width: 100%; }
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }

@@ -414,7 +414,7 @@ function nextWave() {
         ui.newEnemy.name.style.color = def.color;
         ui.newEnemy.desc.innerText = def.desc;
 
-        ui.newEnemy.visual.innerHTML = `<img src="./assets/${def.name}.png" 
+        ui.newEnemy.visual.innerHTML = `<img src="../../assets/imagens/firewall/${def.name}.png" 
             style="width:100%; height:100%; object-fit:contain;" 
             onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCI+PHJlY3Qgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSIlMjNmNDQ0NCIvPjwvc3ZnPg=='">`;
         
