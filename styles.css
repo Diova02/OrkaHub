@@ -830,7 +830,7 @@ main{
     position: relative;
 }
 .employee-frame::before { /* Faixa de título */
-    content: "⭐ Funcionário do Mês ⭐";
+    /*content: "⭐ Funcionário do Mês ⭐";*/
     position: absolute;
     top: -12px; left: 50%; transform: translateX(-50%);
     background: #d4af37; color: #000;
@@ -1065,4 +1065,23 @@ main{
     
     /* Remove botão de seta para economizar espaço vertical
     .card-action { display: none; } */
+}
+
+/* Animação de Pop para o Evento Especial */
+@keyframes orka-bday-pop {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    70% {
+        transform: scale(1.08); /* Estica um pouco mais */
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1); /* Volta para o tamanho original */
+    }
+}
+
+.modal-birthday-active {
+    animation: orka-bday-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }

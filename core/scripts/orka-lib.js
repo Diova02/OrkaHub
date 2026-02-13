@@ -192,7 +192,7 @@ export const OrkaFX = {
             // Estilos inline para evitar CSS externo obrigatório
             Object.assign(c.style, {
                 position: 'fixed', top: '-10px', width: '10px', height: '10px',
-                zIndex: '9999', opacity: '0.9', borderRadius: '2px', pointerEvents: 'none',
+                zIndex: '999999', opacity: '0.9', borderRadius: '2px', pointerEvents: 'none',
                 left: Math.random() * 100 + 'vw',
                 backgroundColor: colors[Math.floor(Math.random() * colors.length)]
             });

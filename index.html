@@ -556,6 +556,27 @@
         </div>
     </div>
 
+    <div id="modal-birthday" class="modal-overlay active" style="display:none; z-index: 10000;">
+        <div class="modal-content glass-accent" style="max-width: 400px; text-align: center; border: 2px solid #ffcc00;">
+            <div class="employee-frame" style="margin: 0 auto 20px auto;">
+                <div class="employee-photo-wrapper">
+                    <img src="assets/icons/diova-real.jpeg" alt="Aniversariante" class="employee-photo">
+                </div>
+                <div class="employee-quote">"Hoje é dia de festa!"</div>
+            </div>
+            
+            <h2 style="color:#ffcc00;">SEJA BEM VINDO DE VOLTA! 🍰</h2>
+            <p>Hoje é o aniversário do criador da Orka Hub! Por isso, que tal comermorarmos com um bolo?</p>
+            
+            <div class="profile-section" style="margin-top: 20px;">
+                <input type="text" id="bday-msg" placeholder="Deixe um parabéns..." class="orka-input-box" style="margin-bottom:10px; width:100%;">
+                <button id="btn-congratulate" class="orka-btn-primary" style="width:100%; background: linear-gradient(45deg, #ffcc00, #ff6b6b); border:none; border-radius: 4px;cursor: pointer; padding:5px; justify-content: center;">
+                    <span class="material-icons">cake</span> DAR OS PARABÉNS
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Registra o Service Worker se o navegador suportar
         if ('serviceWorker' in navigator) {
