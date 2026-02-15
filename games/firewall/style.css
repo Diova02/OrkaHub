@@ -80,10 +80,10 @@ input[type=range] { width: 200px; cursor: pointer; }
 /* Criar animação de glitch ao receber dano que afeta a tela inteira */
 @keyframes glitch {
     0% { clip: rect(0, 9999px, 0, 0); transform: translate(0); }
-    20% { clip: rect(0, 9999px, 100%, 0); transform: translate(-5px, -5px); }
-    40% { clip: rect(0, 9999px, 0, 0); transform: translate(5px, 5px); }
-    60% { clip: rect(0, 9999px, 100%, 0); transform: translate(-5px, 5px); }
-    80% { clip: rect(0, 9999px, 0, 0); transform: translate(5px, -5px); }
+    20% { clip: rect(0, 9999px, 100%, 0); transform: translate(-1px, -1px); }
+    40% { clip: rect(0, 9999px, 0, 0); transform: translate(1px, 1px); }
+    60% { clip: rect(0, 9999px, 100%, 0); transform: translate(-1px, 1px); }
+    80% { clip: rect(0, 9999px, 0, 0); transform: translate(1px, -1px); }
     100% { clip: rect(0, 9999px, 100%, 0); transform: translate(0); }
 }
 /* Aplicar animação de glitch ao receber dano */
@@ -94,3 +94,54 @@ input[type=range] { width: 200px; cursor: pointer; }
 #notification { position: absolute; top: 20%; left: 50%; transform: translate(-50%, -50%); font-size: 2.5rem; font-weight: bold; color: #fff; opacity: 0; transition: opacity 0.5s; text-shadow: 0 0 10px #000; z-index: 80; pointer-events: none; text-align: center; width: 100%; }
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* style.css */
+#ui-layer, #hp-container, #bars-container {
+    display: none; /* Começam ocultos, o script.js revela no startGame */
+}
+
+.glitch-title {
+    font-family: 'Courier New', monospace;
+    font-weight: 900;
+    position: relative;
+    animation: glitch 0.8s infinite;
+}
+
+/* Efeito de brilho no botão */
+.continue-btn {
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.continue-btn:hover {
+    transform: scale(1.1);
+    filter: brightness(1.2);
+}
+
+.skin-button {
+    background: radial-gradient(circle, rgba(0, 255, 204, 0.15) 0%, transparent 75%);
+    border: none;
+    cursor: pointer;
+    padding: 10px;
+    margin: 20; /* Remove o espaço extra */
+    outline: none;
+    transition: transform 0.3s ease;
+    align-items: center;
+}
+
+.skin-button:hover {
+    transform: scale(1.1);
+}
+
+#menu-cannon-canvas {
+    width: 150px; /* Tamanho visual controlado */
+    height: 150px;
+    display: block;
+}
+
+.skin-label {
+    color: #00ffcc;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    margin-top: -5px;
+    opacity: 0.8;
+}

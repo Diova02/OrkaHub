@@ -25,10 +25,39 @@
         </div>
 
         <button id='btn-back-game' class="continue-btn" style="margin-top: 20px;">Voltar ao Jogo</button>
-        <button id='btn-clear-rank' class="danger-btn">APAGAR RANKING</button>
+        <button id='btn-clear-rank' class="danger-btn">VOLTAR AO MENU</button>
+        <!-- <button id='btn-back-menu' class="danger-btn">VOLTAR AO MENU</button> -->
     </div>
 
     <div id="damage-overlay"></div>
+
+    <div id="main-menu-screen" class="overlay-screen visible">
+        <div class="menu-content" style="text-align: center;">
+            <h1 class="glitch-title" style="color: #00ffcc; font-size: 5rem; letter-spacing: 15px; margin-bottom: 0;">FIREWALL</h1>
+            
+            <button id="btn-custom-skin" class="skin-button" title="Personalizar Canhão">
+                <img src="../../assets/imagens/firewall/player.png" alt="Cannon" style="width: 200px; height: 200px;">
+                <!-- <div class="skin-label"><i class="material-icons">palette</i></div> -->
+                <!-- adicionar menu-cannon-canvas -->
+                <!-- <canvas id="menu-cannon-canvas" width="200" height="200"></canvas> -->
+            </button>
+            
+            <div id="menu-spacer" style="height: 60;"></div>
+
+            <button id="btn-play" class="continue-btn" style="font-size: 2rem; padding: 15px 50px; box-shadow: 0 0 20px rgba(0, 255, 204, 0.4);">
+                HARDWARE I
+            </button>
+        </div>
+    </div>
+
+    <!-- <div id="skin-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>Customizar Sistema</h2>
+            <div id="skin-list" class="skin-grid">
+                </div>
+            <button onclick="closeSkinModal()" class="continue-btn">Salvar</button>
+        </div>
+    </div> -->
 
     <div id="levelup-screen" class="overlay-screen">
         <h1 style="color: #00c6ff; text-transform: uppercase; font-size: 3rem; margin: 0;">Level Up!</h1>

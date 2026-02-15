@@ -9,7 +9,7 @@ export const UPGRADES_DEF = {
 export const ARTIFACTS_DEF = {
     poison: { name: "Nuvem Tóxica", icon: "☠️", color: "#0f0", maxLvl: 5, desc: "Cria toxina ao redor.", upgDesc: "Ainda mais mortal.", baseDmg: 0.2, rangePct: 0.35 },
     freeze: { name: "Balas Cryo", icon: "❄️", color: "#00ffff", maxLvl: 5, desc: "Congela seus alvos.", upgDesc: "+ Tempo congelado.", duration: 30 },
-    shield: { name: "Escudo Eletro", icon: "🛡️", color: "#0072ff", maxLvl: 5, desc: "Te protege de um golpe por recarga.", upgDesc: "Recarrega + rápido.", cooldown: 1800 },
+    shield: { name: "Escudo Eletro", icon: "🛡️", color: "#0072ff", maxLvl: 5, desc: "Te protege de um golpe por recarga.", upgDesc: "Recarrega + rápido.", cooldown: 900 },
     midas: { name: "Toque de Midas", icon: "💰", color: "#ffd700", maxLvl: 5, desc: "Transforma dor em lucro.", upgDesc: "+ Chance de dropar dinheiro ao contato.", chance: 1.0 },
     vampire: { name: "Vampirismo", icon: "🩸", color: "#ff0000", maxLvl: 5, desc: "Cura ao matar.", upgDesc: "+ Cura por abate.", heal: 2 },
     explosive: { name: "Munição Explosiva", icon: "💥", color: "#ffaa00", maxLvl: 5, desc: "Explode em área no impacto.", upgDesc: "+ Área e dano.", radius: 30, dmgPct: 0.5 },
@@ -47,16 +47,33 @@ export const ENEMIES_DEF = {
     hexagon: { 
         name: "Clérigo", color: "#00ff00", desc: "Dificulta o seu trabalho.",
         hpMult: 1.5, speed: 0.9, size: 25, dmg: 15, goldChance: 0.4, minWave: 6, crowdVol: 2, eliteChance: 0.1,
-        behavior: 'healer', healRange: 300, healAmount: 10, healCooldown: 60
+        behavior: 'healer', healRange: 150, healAmount: 10, healCooldown: 60
     }
 };
 
 export const AUDIOS_DEF = {
     'shoot': 'sfx/shoot.mp3',
     'hit': 'sfx/playerhit.mp3',
-    'explosion': 'sfx/explosion.mp3',
+    //'explosion': 'sfx/explosion.mp3',
     'coin': 'sfx/coin.mp3',
     'levelup': 'sfx/levelup.mp3',
     'gameover': 'sfx/gameover.mp3',
-    'bgm': 'music/back_music.mp3'
-}
+    'bgm': 'music/back_music.mp3',
+    'glitch': 'sfx/glitch_appear.wav',
+    'bgm-menu': 'music/menu_music.mp3'
+};
+
+// --- NEW: Wave Spawning System ---
+export const waveMap = {
+    1: [1],
+    2: [1, 1],
+    3: [2],
+    4: [1, 2],
+    5: [2, 1],
+    6: [2, 2],
+    7: [2, 2, 1],
+    8: [1, 3, 2],
+    9: [3, 2, 2],
+    10: [3, 3, 2],
+    11: [3, 3, 3]
+};

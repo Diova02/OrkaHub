@@ -15,10 +15,14 @@ export class Player {
         this.fireRate = game.upgrades.speed.currentVal;
         this.angle = 0; this.cooldown = 0; this.regenTimer = 0;
         this.shieldActive = false; this.shieldTimer = 0; this.poisonTimer = 0;
+        this.firstShieldActivated = false;
     }
 
     update() {
-        this.x = window.canvas.width/2; this.y = window.canvas.height/2;
+        if (window.game.state === 'MENU') return; // Bloqueia lógica de combate no menu
+    
+        this.x = window.canvas.width/2; 
+        this.y = window.canvas.height/2;
 
         // Regen
         if (Date.now() - this.regenTimer > 3000 && this.hp < this.maxHp) {
@@ -29,6 +33,7 @@ export class Player {
         if (window.game.artifacts.shield) {
             const def = ARTIFACTS_DEF.shield;
             const cd = Math.max(600, def.cooldown - (window.game.artifacts.shield * 200));
+            if (this.firstShieldActivated) {cd = 1;}
             if (!this.shieldActive) {
                 this.shieldTimer++;
                 if (this.shieldTimer >= cd) { this.shieldActive = true; showNotification("ESCUDO PRONTO", "#0072ff"); }
@@ -156,6 +161,7 @@ export class Enemy {
         this.baseSpeed = def.speed;
         this.goldChance = def.goldChance;
         this.color = def.color; // Mantido para partículas e efeitos
+        this.dmg = def.dmg;
         
         // Vida escalável
         // deixar a curva menos íngrime para as primeiras ondas, aumentando mais depois da onda 10
@@ -174,13 +180,20 @@ export class Enemy {
         // Carregamento do Sprite
         this.loadSprite();
 
-        // Posição inicial
-        if (spawnX !== null && spawnY !== null) {
-            this.x = spawnX;
-            this.y = spawnY;
-        } else {
-            this.initSpawnPosition();
+        // Força o uso das coordenadas calculadas pela função centralizada
+        this.x = spawnX;
+        this.y = spawnY;
+        
+        // Se por algum motivo vier nulo (fallback de segurança)
+        if (this.x === null || this.y === null) {
+            const angle = Math.random() * Math.PI * 2;
+            this.x = window.player.x + Math.cos(angle) * 1000;
+            this.y = window.player.y + Math.sin(angle) * 1000;
         }
+
+        OrkaAudio.playSFX('glitch', { volume: 0.5 });
+        this.spawning = true;
+        this.spawnTimer = 10;
     }
 
     loadSprite() {
@@ -218,6 +231,18 @@ export class Enemy {
         const ctx = window.ctx;
         ctx.save();
         ctx.translate(this.x, this.y);
+
+        if (this.spawning) {
+            // Efeito Glitch: Desenha pedaços do sprite ou quadrados em posições levemente erradas
+            for (let i = 0; i < 3; i++) {
+                const shiftX = (Math.random() - 0.5) * 20;
+                const shiftY = (Math.random() - 0.5) * 20;
+                ctx.globalAlpha = Math.random();
+                ctx.fillStyle = Math.random() > 0.5 ? this.color : '#fff';
+                ctx.fillRect(-this.size/2 + shiftX, -this.size/2 + shiftY, this.size, this.size);
+            }
+        } else {
+
         ctx.rotate(this.angle + Math.PI/2);
 
         if (this.hitTimer > 0) ctx.filter = 'brightness(3) grayscale(1)';
@@ -236,6 +261,7 @@ export class Enemy {
         } else {
             this.drawFallback();
         }
+    }
 
         ctx.restore();
         if (this.hp < this.maxHp) this.drawHealthBar();
@@ -260,6 +286,12 @@ export class Enemy {
     }
 
     update() {
+        if (this.spawning) {
+            this.spawnTimer--;
+            if (this.spawnTimer <= 0) this.spawning = false;
+            return; // Sai da função para não mover nem girar
+        }
+
         if (this.hitTimer > 0) this.hitTimer--;
         if (this.freezeTimer > 0) { this.freezeTimer--; return; }
 
@@ -272,7 +304,7 @@ export class Enemy {
             ctx.save();
             ctx.translate(this.x, this.y);
             ctx.beginPath();
-            ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+            ctx.arc(0, 0, def.healRange, 0, Math.PI * 2);
             ctx.fillStyle = 'rgba(0, 255, 0, 0.08)';
             ctx.fill();
             ctx.restore();

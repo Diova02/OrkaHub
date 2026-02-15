@@ -600,7 +600,7 @@ document.getElementById('btn-send-code')?.addEventListener('click', async () => 
         updateAuthMsg("Código enviado!", "correct");
         els.inputOtp.focus();
     } else {
-        updateAuthMsg("Erro ao enviar.", "wrong");
+        updateAuthMsg("Erro ao enviar. Por favor, aguarde um minuto e tente novamente.", "wrong");
         console.error(error);
     }
 });
@@ -986,48 +986,48 @@ async function fetchDailyStatus() {
 // ==========================================
 // EVENTO TEMPORÁRIO: ANIVERSÁRIO
 // ==========================================
-async function initBirthdayEvent() {
-    const modal = document.getElementById('modal-birthday');
-    const btn = document.getElementById('btn-congratulate');
-    const input = document.getElementById('bday-msg');
-    const modalContent = modal.querySelector('.modal-content');
+// async function initBirthdayEvent() {
+//     const modal = document.getElementById('modal-birthday');
+//     const btn = document.getElementById('btn-congratulate');
+//     const input = document.getElementById('bday-msg');
+//     const modalContent = modal.querySelector('.modal-content');
 
-    // 1. Verifica se o usuário já pegou o bolo de hoje (usando a tabela de claims ou localStorage)
-    const hasClaimed = localStorage.getItem('orka_bday_2026_claimed');
-    if (hasClaimed) return;
+//     // 1. Verifica se o usuário já pegou o bolo de hoje (usando a tabela de claims ou localStorage)
+//     const hasClaimed = localStorage.getItem('orka_bday_2026_claimed');
+//     if (hasClaimed) return;
 
-    modal.style.display = 'flex';
-    modalContent.classList.add('modal-birthday-active');
+//     modal.style.display = 'flex';
+//     modalContent.classList.add('modal-birthday-active');
 
-    btn.onclick = async () => {
-        const msg = input.value.trim();
+//     btn.onclick = async () => {
+//         const msg = input.value.trim();
         
-        // Desabilita para evitar múltiplos cliques
-        btn.disabled = true;
-        btn.innerHTML = '<span class="material-icons orka-spin">refresh</span> ENVIANDO...';
+//         // Desabilita para evitar múltiplos cliques
+//         btn.disabled = true;
+//         btn.innerHTML = '<span class="material-icons orka-spin">refresh</span> ENVIANDO...';
 
-        try {
-            // A. Salva a mensagem no Banco (usando uma RPC ou salvando num save_game especial)
-            const today = new Date().toISOString().split('T')[0]; 
-            await OrkaCloud.saveGame('orkahub', { message: msg }, today);
+//         try {
+//             // A. Salva a mensagem no Banco (usando uma RPC ou salvando num save_game especial)
+//             const today = new Date().toISOString().split('T')[0]; 
+//             await OrkaCloud.saveGame('orkahub', { message: msg }, today);
 
-            // B. Dá o Bolo (Aproveitando sua função addBolo)
-            await OrkaCloud.addBolo(5); // 5 fatias de presente!
+//             // B. Dá o Bolo (Aproveitando sua função addBolo)
+//             await OrkaCloud.addBolo(5); // 5 fatias de presente!
 
-            // C. Efeito Visual
-            OrkaFX.confetti(200);
-            OrkaFX.toast("Você ganhou 5 fatias de bolo! 🍰", "success");
+//             // C. Efeito Visual
+//             OrkaFX.confetti(200);
+//             OrkaFX.toast("Você ganhou 5 fatias de bolo! 🍰", "success");
 
-            // D. Salva que já participou e fecha
-            localStorage.setItem('orka_bday_2026_claimed', 'true');
-            setTimeout(() => modal.style.display = 'none', 1500);
+//             // D. Salva que já participou e fecha
+//             localStorage.setItem('orka_bday_2026_claimed', 'true');
+//             setTimeout(() => modal.style.display = 'none', 1500);
 
-        } catch (e) {
-            OrkaFX.toast("Erro ao processar presente.", "wrong");
-            btn.disabled = false;
-        }
-    };
-}
+//         } catch (e) {
+//             OrkaFX.toast("Erro ao processar presente.", "wrong");
+//             btn.disabled = false;
+//         }
+//     };
+// }
 
 // Chame isso no final do seu window.addEventListener('load', ...)
-initBirthdayEvent();
+//initBirthdayEvent();

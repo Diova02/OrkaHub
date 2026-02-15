@@ -1,7 +1,7 @@
 //incluir o sistema de sessões simples da OrkaCloud.js
 import { OrkaCloud } from  '../../core/scripts/orka-cloud.js';
 import { OrkaFX, OrkaStorage, OrkaUI, OrkaMath, Utils } from '../../core/scripts/orka-lib.js';
-import { UPGRADES_DEF, ARTIFACTS_DEF, ENEMIES_DEF, CLASSES_DEF, AUDIOS_DEF } from './data.js';
+import { UPGRADES_DEF, ARTIFACTS_DEF, ENEMIES_DEF, CLASSES_DEF, AUDIOS_DEF, waveMap } from './data.js';
 import { Drop, Bullet, Enemy, Player } from './classes.js';
 import { OrkaAudio } from '../../orkaAudio/dist/orka-audio.js';
 
@@ -33,7 +33,8 @@ async function initializeDOM() {
         screens: {
             levelup: document.getElementById('levelup-screen'),
             newEnemy: document.getElementById('new-enemy-screen'),
-            gameOver: document.getElementById('game-over-screen')
+            gameOver: document.getElementById('game-over-screen'),
+            mainMenu: document.getElementById('main-menu-screen')
         },
         newEnemy: {
             visual: document.getElementById('new-enemy-visual'),
@@ -54,7 +55,7 @@ async function initializeDOM() {
 
 // --- GAME STATE (Updated) ---
 let game = {
-    state: 'PLAYING', score: 0, gold: 0, level: 1, xp: 0, xpNext: 100,
+    state: 'MENU', score: 0, gold: 0, level: 1, xp: 0, xpNext: 100,
     wave: 1, waveTimer: 30, spawnRate: 160, lastTime: 0,
     upgrades: {}, artifacts: {}, spawnPool: ['square'], isRunning: true,
     // NEW: Wave spawning system
@@ -130,8 +131,8 @@ async function startMusic() {
     }
     
     if (!game.currentMusic) {
-        // Use a chave correta que está no seu AUDIOS_DEF (provavelmente 'bgm')
-        OrkaAudio.playMusic('bgm', { volume: 0.5 }); 
+        OrkaAudio.playMusic('bgm-menu', { volume: 0.8 }); 
+        OrkaAudio.setEffect("muffled", "music");
     }
 }
 
@@ -160,26 +161,25 @@ function saveScoreLocal() {
     return rank;
 }
 
-function clearData() {
-    OrkaUI.confirm("Tem certeza, frangote?", "Isso apagará seu recorde para sempre.", () => {
-        localStorage.removeItem('firewall_rank');
-        OrkaFX.toast("Ranking resetado!", "info");
-        toggleSettings();
-    });
-}
+// function clearData() {
+//     OrkaUI.confirm("Tem certeza, frangote?", "Isso apagará seu recorde para sempre.", () => {
+//         localStorage.removeItem('firewall_rank');
+//         OrkaFX.toast("Ranking resetado!", "info");
+//         toggleSettings();
+//     });
+// }
 
 function getLeaderboardHTML(rankData) {
-    return '<div style="color:#666; margin-top:10px;">...</div>';
-    if (!rankData || rankData.length === 0) return '<div style="color:#666; margin-top:10px;">Sem registros...</div>';
-    let html = '<div class="leaderboard-box"><div class="lb-header">TOP 5 JOGADORES</div>';
-    rankData.forEach((r, i) => {
-        html += `<div class="lb-row"><span>#${i+1} ${r.date}</span><span>W:${r.wave} PTS:${r.score}</span></div>`;
-    });
-    html += '</div>';
-    return html;
+    return '<div style="color:#666; margin-top:10px;">...</div>'; //desativado por enquanto
+    // if (!rankData || rankData.length === 0) return '<div style="color:#666; margin-top:10px;">Sem registros...</div>';
+    // let html = '<div class="leaderboard-box"><div class="lb-header">TOP 5 JOGADORES</div>';
+    // rankData.forEach((r, i) => {
+    //     html += `<div class="lb-row"><span>#${i+1} ${r.date}</span><span>W:${r.wave} PTS:${r.score}</span></div>`;
+    // });
+    // html += '</div>';
+    // return html;
 }
 
-// Atualize sua função toggleSettings existente
 function toggleSettings() {
     const modal = ui.settingsModal;
     modal.classList.toggle('visible');
@@ -462,21 +462,6 @@ export function endGame() {
     OrkaAudio.fadeAll('music', 0, 1); // Abaixa a música até 0 suavemente em 1s
 }
 
-// --- NEW: Wave Spawning System ---
-const waveMap = {
-    1: [1],
-    2: [1, 1],
-    3: [2],
-    4: [1, 2],
-    5: [2, 1],
-    6: [2, 2],
-    7: [2, 2, 1],
-    8: [1, 3, 2],
-    9: [3, 2, 2],
-    10: [3, 3, 2],
-    11: [3, 3, 3]
-};
-
 function startWaveSpawning() {
     game.currentWaveSet = 0;
     game.currentCrowdIndex = 0;
@@ -525,30 +510,15 @@ function selectRandomEnemy() {
 }
 
 function getRandomSpawnPoint() {
-    // Spawn from edges (top, bottom, left, right)
-    const edge = Math.floor(Math.random() * 4);
-    let x, y;
-    
-    switch(edge) {
-        case 0: // Top
-            x = Math.random() * canvas.width;
-            y = -50;
-            break;
-        case 1: // Bottom
-            x = Math.random() * canvas.width;
-            y = canvas.height + 50;
-            break;
-        case 2: // Left
-            x = -50;
-            y = Math.random() * canvas.height;
-            break;
-        case 3: // Right
-            x = canvas.width + 50;
-            y = Math.random() * canvas.height;
-            break;
-    }
-    
-    return { x, y };
+    // Definimos uma distância fixa que é garantidamente fora da tela 
+    // independente do dispositivo (ex: 1000 pixels do centro)
+    const spawnDistance = 500; 
+    const angle = Math.random() * Math.PI * 2; // Ângulo aleatório de 0 a 360°
+
+    return {
+        x: player.x + Math.cos(angle) * spawnDistance,
+        y: player.y + Math.sin(angle) * spawnDistance
+    };
 }
 
 function updateCrowdSpawning() {
@@ -597,6 +567,16 @@ function updateCrowdSpawning() {
 // --- LOOP ---
 function loop(now) {
     animationId = requestAnimationFrame(loop);
+    
+    // Fundo sempre limpo
+    ctx.fillStyle = 'rgba(21, 21, 21, 1)'; 
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    if (game.state === 'MENU') {
+        renderMenuScene();
+        return; 
+    }
+
     if (game.state !== 'PLAYING') return;
 
     if (now - game.lastTime >= 1000) {
@@ -616,9 +596,13 @@ function loop(now) {
     entities.enemies.forEach((e, i) => {
         e.update(); e.draw();
         // Colisão Player
-        if (Math.hypot(player.x-e.x, player.y-e.y) < player.size + e.size/2) {
+        if (Math.hypot(player.x-e.x, player.y-e.y) < player.size/2.5 + e.size/2) {
             if (game.artifacts.midas) entities.drops.push(new Drop(e.x, e.y, 'gold'));
             //player tomará dano igual ao atributo 'dmg' do inimigo:
+            //"e" não está definido dentro desse trecho!
+            e = entities.enemies[i]; // Re-define "e" para garantir que temos a referência correta após possíveis mutações
+            //o que é "i"? É o índice do inimigo atual no loop, necessário para acessar o inimigo correto na lista de entidades após possíveis mutações (como morte ou remoção).
+            console.log(`Player hit by ${e.name} for ${e.dmg} damage!`);
             player.takeDamage(e.dmg);
             //OrkaAudio.playSFX('playerhit');
             e.die(); entities.enemies.splice(i, 1); return;
@@ -632,7 +616,7 @@ function loop(now) {
                 let finalDmg = b.dmg;
                 if (game.artifacts.sniper) {
                     const dist = Math.hypot(b.x - b.startX, b.y - b.startY);
-                    const mult = 1 + (dist * (ARTIFACTS_DEF.sniper.mult * game.artifacts.sniper));
+                    const mult = .8 + (dist * (ARTIFACTS_DEF.sniper.mult * game.artifacts.sniper));
                     finalDmg *= mult;
                 }
 
@@ -681,6 +665,59 @@ function loop(now) {
     entities.particles = entities.particles.filter(p => { p.update(); p.draw(); return p.life>0; });
 }
 
+//precisamos fazer com que o player.sprite seja renderizado antes do loop começar, para que o canhão do menu tenha algo para mostrar. Então, no início do jogo, carregamos o sprite do player e só depois iniciamos o loop.
+
+
+function renderMenuScene() {
+    // Faz o canhão girar lentamente no centro
+    player.x = canvas.width / 2;
+    player.y = canvas.height / 2;
+    player.angle += 0.005; // Rotação lenta de menu
+    player.sprite = new Image();
+    //player.sprite.src = `../../assets/imagens/firewall/${player.currentSkin}.png`;
+    player.sprite.src = `../../assets/imagens/firewall/player.png`;
+
+    // Desenha apenas o sprite, sem radar ou veneno
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    ctx.rotate(player.angle);
+    // Desenhamos o canhão maior no menu (size * 2)
+    ctx.drawImage(player.sprite, -60, -60, 120, 120); 
+    ctx.restore();
+}
+
+// Funções de Transição
+window.goToMenu = function() {
+    game.state = 'MENU';
+    ui.screens.gameOver.classList.remove('visible');
+    ui.screens.mainMenu.classList.add('visible');
+    // Esconder UI de gameplay
+    document.getElementById('ui-layer').style.display = 'none';
+    document.getElementById('hp-container').style.display = 'none';
+    
+    OrkaAudio.switchMusic('bgm-menu'); // Troca para música de menu
+};
+
+function startGameFromMenu() {
+    ui.screens.mainMenu.classList.remove('visible');
+    
+    // Feedback visual de início
+    ui.dmgOverlay.style.opacity = 1;
+    OrkaAudio.playSFX('levelup'); // Som de confirmação
+    
+    setTimeout(() => {
+        ui.dmgOverlay.style.opacity = 0;
+        // Exibir UI de gameplay
+        document.getElementById('ui-layer').style.display = 'flex';
+        document.getElementById('hp-container').style.display = 'block';
+        
+        init(); // Reinicia os atributos da partida
+        game.state = 'PLAYING';
+        OrkaAudio.switchMusic('bgm'); // Troca para música de ação
+        OrkaAudio.setEffect("normal", "music");
+    }, 500);
+}
+
 // --- INICIALIZAÇÃO E LISTENERS ---
 document.addEventListener('DOMContentLoaded', async () => {
     // Initialize DOM first
@@ -692,7 +729,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Listeners de UI
     document.getElementById('settings-btn').addEventListener('click', toggleSettings);
     document.getElementById('btn-back-game').addEventListener('click', toggleSettings);
-    document.getElementById('btn-clear-rank').addEventListener('click', clearData);
+    //document.getElementById('btn-clear-rank').addEventListener('click', clearData);
+    //btn-clear-rank vai ativar as funções "goToMenu" e "toggleSettings", para fechar o modal de configurações.
+    document.getElementById('btn-clear-rank').addEventListener('click', function() {
+        goToMenu();
+        toggleSettings();
+    });
+    //document.getElementById('btn-back-menu').addEventListener('click', goToMenu);
     document.getElementById('btn-continue').addEventListener('click', resumeGame);
     
     // Referências dos Sliders
@@ -725,6 +768,51 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     window.addEventListener('click', handleFirstInteraction);
 
+    updateMenuCannon();
+    
+    document.getElementById('btn-custom-skin').onclick = openSkinModal;
+
     // Inicia o jogo
-    init();
+    //init();
 });
+
+//quando o jogador sair da aba ou minimizar, abre o menu de pausa (configurações)
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden && game.state === 'PLAYING') {
+        toggleSettings();
+    }
+});
+
+document.getElementById('btn-play').addEventListener('click', startGameFromMenu);
+
+let menuCannonAngle = 0;
+const menuCannonCanvas = document.getElementById('menu-cannon-canvas');
+const menuCannonCtx = menuCannonCanvas.getContext('2d');
+
+function updateMenuCannon() {
+    if (game.state !== 'MENU') return;
+
+    menuCannonCtx.clearRect(0, 0, menuCannonCanvas.width, menuCannonCanvas.height);
+    menuCannonAngle += 0.01;
+
+    menuCannonCtx.save();
+    menuCannonCtx.translate(100, 100);
+    menuCannonCtx.rotate(menuCannonAngle);
+    
+    // Usamos o sprite do player atual (que já está carregado)
+    if (player && player.sprite.complete) {
+        menuCannonCtx.drawImage(player.sprite, -50, -50, 100, 100);
+    }
+    menuCannonCtx.restore();
+
+    requestAnimationFrame(updateMenuCannon);
+}
+
+function openSkinModal() {
+    document.getElementById('skin-modal').classList.add('visible');
+    OrkaAudio.playSFX('levelup'); // Feedback sonoro
+}
+
+window.closeSkinModal = function() {
+    document.getElementById('skin-modal').classList.remove('visible');
+}
