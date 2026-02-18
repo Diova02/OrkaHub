@@ -1,6 +1,6 @@
 /**
  * OrkaAudio API v2.0
- * Desenvolvido por Geovani (Orka Hub)
+ * Desenvolvido por Geovani Costa || A.k.a: Diova - Orka
  */
 // --- CLASSE PRINCIPAL ---
 class OrkaAudioEngine {
@@ -17,6 +17,7 @@ class OrkaAudioEngine {
         };
         this.volumes = { master: 0.5, sfx: 1.0, music: 1.0 };
         this.currentMusic = null;
+        this.analysers = {};
     }
     // --- CICLO DE VIDA ---
     async init() {
@@ -64,6 +65,11 @@ class OrkaAudioEngine {
             effect: effectNode,
             currentEffect: 'normal'
         };
+        const analyser = this.context.createAnalyser();
+        analyser.fftSize = 256;
+        effectNode.connect(analyser); // Conecta o efeito no analisador
+        analyser.connect(this.masterGain);
+        this.analysers[name] = analyser;
     }
     enableConfigSave(bool) {
         this.config.saveEnabled = bool;
@@ -105,6 +111,20 @@ class OrkaAudioEngine {
             localStorage.setItem(this.config.storageKey, JSON.stringify(this.volumes));
         }
     }
+    getVolume(bus = 'master') {
+    // Retorna o valor que está na memória da API
+    return this.volumes[bus] !== undefined ? this.volumes[bus] : 1.0;
+    }
+    // Útil para quando o Dev quer saber se um efeito está ativo antes de mudar o ícone na UI
+    getBusSettings(busName) {
+        const bus = this.buses[busName];
+        if (!bus) return null;
+        return {
+            volume: this.volumes[busName],
+            effect: bus.currentEffect,
+            playbackRate: this.rates[busName] || 1
+        };
+    }
     setEffect(effect, busName) {
         if (!this.context)
             return;
@@ -132,6 +152,12 @@ class OrkaAudioEngine {
     }
     getEffect(bus) {
         return this.buses[bus]?.currentEffect || 'normal';
+    }
+    setMuffled(bus, active = true) {
+    this.setEffect(active ? 'muffled' : 'normal', bus);
+    }
+    setRadio(bus, active = true) {
+        this.setEffect(active ? 'radio' : 'normal', bus);
     }
     // --- REPRODUÇÃO ---
     play(key, busName = 'sfx', options = {}) {
@@ -305,6 +331,13 @@ class OrkaAudioEngine {
         //
         return newMusic;
     }
+    getFrequencyData(busName) {
+        const analyser = this.analysers[busName];
+        if (!analyser) return null;
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(dataArray);
+        return dataArray; // O dev usa isso para desenhar no Canvas
+    }
     _unlockAudio() {
         const unlock = async () => {
             if (this.context && this.context.state === 'suspended') {
@@ -322,3 +355,14 @@ class OrkaAudioEngine {
     }
 }
 export const OrkaAudio = new OrkaAudioEngine();
+// Inicialização Automática de Eventos
+if (typeof window !== 'undefined') {
+    const autoInit = () => {
+        OrkaAudio.init(); // Garante que o contexto seja criado/resumido no primeiro clique
+        // O próprio init já chama o _unlockAudio que você criou
+        window.removeEventListener('click', autoInit);
+        window.removeEventListener('touchstart', autoInit);
+    };
+    window.addEventListener('click', autoInit);
+    window.addEventListener('touchstart', autoInit);
+}

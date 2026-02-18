@@ -1,12 +1,15 @@
 //incluir o sistema de sessões simples da OrkaCloud.js
 import { OrkaCloud } from  '../../core/scripts/orka-cloud.js';
 import { OrkaFX, OrkaStorage, OrkaUI, OrkaMath, Utils } from '../../core/scripts/orka-lib.js';
-import { UPGRADES_DEF, ARTIFACTS_DEF, ENEMIES_DEF, CLASSES_DEF, AUDIOS_DEF, waveMap } from './data.js';
+import { UPGRADES_DEF, ARTIFACTS_DEF, ENEMIES_DEF, AUDIOS_DEF, waveMap, SKINS_CONFIG, userInventory } from './data.js';
 import { Drop, Bullet, Enemy, Player } from './classes.js';
 import { OrkaAudio } from '../../orkaAudio/dist/orka-audio.js';
 
 // --- 2. CONFIGURAÇÕES GERAIS ---
 let canvas, ctx, ui;
+
+const player = new Player();
+window.player = player;
 
 async function initializeDOM() {
     canvas = document.getElementById('gameCanvas');
@@ -44,7 +47,16 @@ async function initializeDOM() {
     };
     window.ui = ui;
 
-    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    //fazer com que os inimigos sempre fiquem na distância correta do centro da tela, quando a tela for redimensionada, para isso, precisamos atualizar a posição dos inimigos com base no novo centro da tela. Podemos fazer isso dentro do evento de resize, iterando sobre os inimigos e ajustando suas posições relativas ao novo centro.
+    function resize() { 
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight; 
+        // Atualiza posições dos inimigos com base no novo centro
+        entities.enemies.forEach(e => {
+            //a posição do inimigo é relativa ao centro da tela, cada inimigo deve manter a mesma distância do centro E o mesmo ângulo em relação a ele, então podemos calcular a nova posição usando a fórmula: novaX = centroX + (velhaX - centroX) * (novaDistância / velhaDistância) e novaY = centroY + (velhaY - centroY) * (novaDistância / velhaDistância). Mas como queremos manter a mesma distância, podemos simplificar para novaX = centroX + (velhaX - centroX) e novaY = centroY + (velhaY - centroY), o que é equivalente a dizer que a posição do inimigo é relativa ao centro da tela, então podemos simplesmente recalcular a posição do inimigo com base no novo centro da tela, usando a fórmula: novaX = canvas.width / 2 + (velhaX - canvas.width / 2) e novaY = canvas.height / 2 + (velhaY - canvas.height / 2).
+            e.x = canvas.width / 2 + (e.x - canvas.width / 2);
+            e.y = canvas.height / 2 + (e.y - canvas.height / 2);
+        });
+    }
     window.addEventListener('resize', resize);
     resize();
 
@@ -66,7 +78,6 @@ let game = {
     crowdSpawnInterval: 8, // ms between each enemy in a crowd
     crowdWaitTime: 4000, // 4 seconds between crowd sets
 };
-let player;
 let entities = { bullets: [], enemies: [], particles: [], drops: [] };
 window.entities = entities; // Acesso global pelas classes
 let spawnTimer = 0;
@@ -104,8 +115,6 @@ function init() {
         game.upgrades[k].level = 1; game.upgrades[k].currentVal = game.upgrades[k].val; game.upgrades[k].cost = game.upgrades[k].baseCost;
     }
 
-    player = new Player();
-    window.player = player; // Acesso global para colisões e lógica de inimigos
     entities = { bullets: [], enemies: [], particles: [], drops: [] };
     window.entities = entities;
     spawnTimer = 0;
@@ -203,10 +212,15 @@ export function updateShopUI() {
         const btn = document.createElement('div');
         btn.className = `shop-btn ${game.gold >= upg.cost ? '' : 'disabled'}`;
         btn.onclick = () => buyBaseUpgrade(key);
+        
+        // Estilo novo: Valor real acima, Emoji/Nível no centro, Preço embaixo
         btn.innerHTML = `
-            <div class="btn-header"><span class="btn-icon">${upg.icon}</span> <span class="btn-lvl">Lv.${upg.level}</span></div>
-            <div class="btn-desc">${upg.desc}</div>
-            <div class="btn-cost">$${upg.cost}</div>
+            <div class="btn-stat-val">${upg.currentVal.toFixed(1)}</div>
+            <div class="btn-main-info">
+                <span class="btn-icon">${upg.icon}</span>
+                <span class="btn-big-lvl">${upg.level}</span>
+            </div>
+            <div class="btn-cost-tag">$${upg.cost}</div>
         `;
         ui.shopContainer.appendChild(btn);
     }
@@ -238,12 +252,13 @@ export function checkLevelUp() {
         ui.xpBar.style.width = '0%';
         game.state = 'PAUSED_LVL'; OrkaAudio.setEffect("muffled", "master"); OrkaAudio.playSFX('levelup');
         
+        // escolha de classe pausada por enquanto.
         // ESPECIAL LEVEL 5: ESCOLHA DE CLASSE
-        if (game.level === 5) {
-            generateClassCards();
-        } else {
-            generateCards();
-        }
+        // if (game.level === 5) {
+        //     generateClassCards();
+        // } else {
+        generateCards();
+        //}
         
         ui.screens.levelup.classList.add('visible');
         saveScoreLocal();
@@ -456,7 +471,7 @@ export function endGame() {
         <h1 style="color: #ff0055; font-size: 4rem; margin-bottom: 10px;">GAME OVER</h1>
         <p style="color: #fff; font-size: 1.2rem;">Onda alcançada: <span style="color:#fff; font-weight:bold">${game.wave}</span></p>
         ${rankHTML}
-        <button class="continue-btn" onclick="restartGame()" style="margin-top:20px">Tentar Novamente</button>
+        <button class="continue-btn" onclick="goToMenu()" style="margin-top:20px">Voltar ao Menu Principal</button>
     `;
     goScreen.classList.add('visible');
     OrkaAudio.fadeAll('music', 0, 1); // Abaixa a música até 0 suavemente em 1s
@@ -471,7 +486,9 @@ function startWaveSpawning() {
 }
 
 function spawnNextCrowd() {
-    const waveSets = waveMap[game.wave] || [4,4,4,4];
+    //por algum motivo, quando passa do n de ondas máximos do waveMap, o array de sets gera só 1 set de 4 multidões, ao invés de repetir as 4 multidões 4 vezes como esperado
+    
+    const waveSets = waveMap[game.wave] || [game.wave - 8, game.wave - 8, game.wave - 8, game.wave - 8].map(w => Math.max(1, w)); // fallback para ondas acima do definido, usando a fórmula (onda - 8) para manter a dificuldade crescente
     
     // Verifica se terminamos todos os sets da wave atual
     if (game.currentCrowdIndex >= waveSets.length) return;
@@ -569,7 +586,7 @@ function loop(now) {
     animationId = requestAnimationFrame(loop);
     
     // Fundo sempre limpo
-    ctx.fillStyle = 'rgba(21, 21, 21, 1)'; 
+    ctx.fillStyle = 'rgb(4, 4, 17)'; 
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     if (game.state === 'MENU') {
@@ -585,8 +602,6 @@ function loop(now) {
         if (game.waveTimer <= 0 || entities.enemies.length === 0) nextWave();
         game.lastTime = now;
     }
-
-    ctx.fillStyle = 'rgba(21, 21, 21, 0.3)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // NEW: Update crowd spawning instead of random spawnRate
     updateCrowdSpawning();
@@ -665,37 +680,51 @@ function loop(now) {
     entities.particles = entities.particles.filter(p => { p.update(); p.draw(); return p.life>0; });
 }
 
-//precisamos fazer com que o player.sprite seja renderizado antes do loop começar, para que o canhão do menu tenha algo para mostrar. Então, no início do jogo, carregamos o sprite do player e só depois iniciamos o loop.
-
-
 function renderMenuScene() {
-    // Faz o canhão girar lentamente no centro
+    // Limpa o fundo com a cor do jogo
+    ctx.fillStyle = 'rgba(21, 21, 21, 1)'; 
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    if (!player) return;
+
     player.x = canvas.width / 2;
     player.y = canvas.height / 2;
-    player.angle += 0.005; // Rotação lenta de menu
-    player.sprite = new Image();
-    //player.sprite.src = `../../assets/imagens/firewall/${player.currentSkin}.png`;
-    player.sprite.src = `../../assets/imagens/firewall/player.png`;
+    player.angle += 0.005; // Rotação lenta
 
-    // Desenha apenas o sprite, sem radar ou veneno
     ctx.save();
     ctx.translate(player.x, player.y);
     ctx.rotate(player.angle);
-    // Desenhamos o canhão maior no menu (size * 2)
-    ctx.drawImage(player.sprite, -60, -60, 120, 120); 
+    
+    // Tamanho unificado (120 ou o dobro do player.size para destaque)
+    const displaySize = player.size * 10; 
+
+    if (player.sprite.complete) {
+        ctx.drawImage(player.sprite, -displaySize/2, -displaySize/2, displaySize, displaySize);
+    }
     ctx.restore();
 }
 
 // Funções de Transição
 window.goToMenu = function() {
     game.state = 'MENU';
+    // 1. Interrompe o loop de animação atual
+    if (animationId) cancelAnimationFrame(animationId);
+    game.isRunning = false;
+
     ui.screens.gameOver.classList.remove('visible');
     ui.screens.mainMenu.classList.add('visible');
     // Esconder UI de gameplay
     document.getElementById('ui-layer').style.display = 'none';
     document.getElementById('hp-container').style.display = 'none';
+
+     // 3. Esvazia as entidades para que não fiquem processando no fundo
+    entities.enemies = [];
+    entities.bullets = [];
+    entities.drops = [];
+    entities.particles = [];
     
     OrkaAudio.switchMusic('bgm-menu'); // Troca para música de menu
+    OrkaAudio.fadeAll('music', 0.8, 1); // Aumenta o volume da música de menu suavemente
 };
 
 function startGameFromMenu() {
@@ -704,6 +733,9 @@ function startGameFromMenu() {
     // Feedback visual de início
     ui.dmgOverlay.style.opacity = 1;
     OrkaAudio.playSFX('levelup'); // Som de confirmação
+    OrkaAudio.setEffect("normal", "master");
+    OrkaAudio.setVolume('music', OrkaAudio.volumes.music);
+
     
     setTimeout(() => {
         ui.dmgOverlay.style.opacity = 0;
@@ -715,7 +747,7 @@ function startGameFromMenu() {
         game.state = 'PLAYING';
         OrkaAudio.switchMusic('bgm'); // Troca para música de ação
         OrkaAudio.setEffect("normal", "music");
-    }, 500);
+    }, 200);
 }
 
 // --- INICIALIZAÇÃO E LISTENERS ---
@@ -768,7 +800,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     window.addEventListener('click', handleFirstInteraction);
 
-    updateMenuCannon();
+    //updateMenuCannon();
     
     document.getElementById('btn-custom-skin').onclick = openSkinModal;
 
@@ -796,12 +828,11 @@ function updateMenuCannon() {
     menuCannonAngle += 0.01;
 
     menuCannonCtx.save();
-    menuCannonCtx.translate(100, 100);
+    menuCannonCtx.translate(75, 75); // Metade do tamanho do canvas (150/2)
     menuCannonCtx.rotate(menuCannonAngle);
     
-    // Usamos o sprite do player atual (que já está carregado)
-    if (player && player.sprite.complete) {
-        menuCannonCtx.drawImage(player.sprite, -50, -50, 100, 100);
+    if (player.sprite.complete) {
+        menuCannonCtx.drawImage(player.sprite, -30, -30, 60, 60);
     }
     menuCannonCtx.restore();
 
@@ -809,10 +840,59 @@ function updateMenuCannon() {
 }
 
 function openSkinModal() {
-    document.getElementById('skin-modal').classList.add('visible');
-    OrkaAudio.playSFX('levelup'); // Feedback sonoro
+    const modal = document.getElementById('skin-modal');
+    const list = document.getElementById('skin-list');
+    modal.classList.add('visible');
+    
+    list.innerHTML = '';
+
+    for (const [id, info] of Object.entries(SKINS_CONFIG)) {
+        const isOwned = userInventory.ownedSkins.includes(id);
+        const isSelected = userInventory.currentSkin === id;
+        
+        const div = document.createElement('div');
+        div.className = `skin-item ${isOwned ? '' : 'locked'} ${isSelected ? 'selected' : ''}`;
+        
+        div.innerHTML = `
+            <img src="${info.path}" style="width: 60px; height: 60px;">
+            <p style="margin: 5px 0 0; color: #fff;">${info.name}</p>
+            ${!isOwned ? `<p style="color: #ffd700; font-size: 1.2rem;">🍰 ${info.price}</p>` : ''}
+        `;
+
+        if (isOwned) {
+            div.onclick = () => selectSkin(id);
+        } else {
+            div.onclick = () => {
+                OrkaAudio.playSFX('error'); // Som de erro se quiser adicionar
+                alert("Você precisa comprar esta skin com fatias de bolo!");
+            };
+        }
+        
+        list.appendChild(div);
+    }
 }
 
-window.closeSkinModal = function() {
-    document.getElementById('skin-modal').classList.remove('visible');
+function selectSkin(skinId) {
+    userInventory.currentSkin = skinId;
+    player.sprite.src = SKINS_CONFIG[skinId].path;
+    
+    // Feedback visual imediato no menu
+    updateMenuCannon(); 
+    
+    closeSkinModal();
 }
+
+function closeSkinModal() {
+    document.getElementById('skin-modal').classList.remove('visible');
+    
+    // Retoma o áudio/estado se estava pausado
+    if (game.state === 'PAUSED_SKIN') {
+        game.state = 'PLAYING';
+        OrkaAudio.setEffect("normal", "master");
+    }
+}
+
+// Lembre-se de registrar as funções no window para o HTML acessar
+window.openSkinModal = openSkinModal;
+window.selectSkin = selectSkin;
+window.closeSkinModal = closeSkinModal;

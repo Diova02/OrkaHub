@@ -36,13 +36,13 @@
             <h1 class="glitch-title" style="color: #00ffcc; font-size: 5rem; letter-spacing: 15px; margin-bottom: 0;">FIREWALL</h1>
             
             <button id="btn-custom-skin" class="skin-button" title="Personalizar Canhão">
-                <img src="../../assets/imagens/firewall/player.png" alt="Cannon" style="width: 200px; height: 200px;">
+                <!-- <img src="../../assets/imagens/firewall/player.png" alt="Cannon" style="width: 200px; height: 200px;"> -->
                 <!-- <div class="skin-label"><i class="material-icons">palette</i></div> -->
                 <!-- adicionar menu-cannon-canvas -->
-                <!-- <canvas id="menu-cannon-canvas" width="200" height="200"></canvas> -->
+                <canvas id="menu-cannon-canvas" width="200" height="200"></canvas>
             </button>
             
-            <div id="menu-spacer" style="height: 60;"></div>
+            <div id="menu-spacer" style="height: 120;"></div>
 
             <button id="btn-play" class="continue-btn" style="font-size: 2rem; padding: 15px 50px; box-shadow: 0 0 20px rgba(0, 255, 204, 0.4);">
                 HARDWARE I
@@ -50,14 +50,14 @@
         </div>
     </div>
 
-    <!-- <div id="skin-modal" class="modal-overlay">
-        <div class="modal-content">
+    <div id="skin-modal" class="modal-overlay" style="z-index: 100000; color: beige; display: none; align-items: center; justify-content: center;">
+        <div class="modal-content" style="text-align: center; max-width: 400px; width: 90%; background: rgba(0, 0, 0, 0.9); border: 2px solid #00ffcc; border-radius: 10px; padding: 20px; box-shadow: 0 0 20px rgba(0, 255, 204, 0.5);">
             <h2>Customizar Sistema</h2>
             <div id="skin-list" class="skin-grid">
                 </div>
-            <button onclick="closeSkinModal()" class="continue-btn">Salvar</button>
+            <button onclick="closeSkinModal()" class="continue-btn" style="background: linear-gradient(45deg, #00ffcc, #00c6ff); color: #000; border: none; padding: 12px 24px; border-radius: 5px; font-weight: bold; cursor: pointer; transition: all 0.3s ease-in-out;">Salvar</button>
         </div>
-    </div> -->
+    </div>
 
     <div id="levelup-screen" class="overlay-screen">
         <h1 style="color: #00c6ff; text-transform: uppercase; font-size: 3rem; margin: 0;">Level Up!</h1>

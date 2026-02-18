@@ -5,17 +5,30 @@ import { checkLevelUp, updateShopUI, endGame } from "./script.js";
 // --- CLASSES ---
 export class Player {
     constructor() {
-        this.x = window.canvas.width/2; this.y = window.canvas.height/2;
-        this.size = 60; this.color = '#00ffcc';
+        // Inicializa com 0 ou valores padrão caso o canvas não esteja pronto
+        this.x = window.canvas ? window.canvas.width / 2 : 0; 
+        this.y = window.canvas ? window.canvas.height / 2 : 0;
+        this.size = 60; 
+        this.color = '#00ffcc';
         this.sprite = new Image();
         this.sprite.src = '../../assets/imagens/firewall/player.png';
-        this.maxHp = game.upgrades.hp.currentVal; this.hp = this.maxHp;
-        this.range = game.upgrades.range.currentVal;
-        this.damage = game.upgrades.damage.currentVal;
-        this.fireRate = game.upgrades.speed.currentVal;
-        this.angle = 0; this.cooldown = 0; this.regenTimer = 0;
-        this.shieldActive = false; this.shieldTimer = 0; this.poisonTimer = 0;
+        
+        // Proteção contra undefined no objeto game
+        const upgrades = window.game ? window.game.upgrades : null;
+        this.maxHp = upgrades ? upgrades.hp.currentVal : 100; 
+        this.hp = this.maxHp;
+        this.range = upgrades ? upgrades.range.currentVal : 200;
+        this.damage = upgrades ? upgrades.damage.currentVal : 10;
+        this.fireRate = upgrades ? upgrades.speed.currentVal : 50;
+        
+        this.angle = 0; 
+        this.cooldown = 0; 
+        this.regenTimer = 0;
+        this.shieldActive = false; 
+        this.shieldTimer = 0; 
+        this.poisonTimer = 0;
         this.firstShieldActivated = false;
+        this.currentSkin = 'player';
     }
 
     update() {
@@ -153,22 +166,24 @@ export class Enemy {
         const key = enemyType || game.spawnPool[Math.floor(Math.random() * game.spawnPool.length)];
         const def = ENEMIES_DEF[key];
 
-        // Atributos Base
+        // --- LÓGICA DE ELITE ---
+        this.isElite = Math.random() < (def.eliteChance || 0);
+        const eliteMult = this.isElite ? 1.5 : 1;
+        const sizeMult = this.isElite ? 1.25 : 1;
+        const dmgMult = this.isElite ? 1.5 : 1;
+
+        // Atributos Base (aplicando multiplicadores se for elite)
         this.key = key;
         this.name = def.name;
-        this.size = def.size;
+        this.size = def.size * sizeMult;
         this.speed = def.speed;
         this.baseSpeed = def.speed;
-        this.goldChance = def.goldChance;
-        this.color = def.color; // Mantido para partículas e efeitos
-        this.dmg = def.dmg;
+        this.goldChance = def.goldChance * eliteMult; // 1.5x mais chance de ouro
+        this.color = def.color;
+        this.dmg = def.dmg * dmgMult; // 1.5x mais dano
         
         // Vida escalável
-        // deixar a curva menos íngrime para as primeiras ondas, aumentando mais depois da onda 10
-        this.maxHp = (5 + (wave * 3)) * (def.hpMult || 1);
-        // comentar aqui os multiplicadores de hp para cada inimigo, para facilitar ajustes futuros:
-        // Multiplicadores de HP: Cubo=1.0, Velocista=0.6, Tanque=2.5, Ladino=1.2, Clérigo=1.5
-
+        this.maxHp = ((5 + (wave * 3)) * (def.hpMult || 1)) * eliteMult; // 1.5x de HP
         this.hp = this.maxHp;
 
         // Estados e Timers
@@ -231,6 +246,15 @@ export class Enemy {
         const ctx = window.ctx;
         ctx.save();
         ctx.translate(this.x, this.y);
+
+        if (this.isElite && !this.spawning) {
+            ctx.strokeStyle = '#ff0000';
+            ctx.lineWidth = 4;
+            // Desenha um círculo ou retângulo de aura dependendo do feedback que preferir
+            ctx.beginPath();
+            ctx.arc(0, 0, this.size / 1.2, 0, Math.PI * 2);
+            ctx.stroke();
+        }
 
         if (this.spawning) {
             // Efeito Glitch: Desenha pedaços do sprite ou quadrados em posições levemente erradas
@@ -369,16 +393,32 @@ export class Enemy {
             window.entities.particles.push(new Particle(player.x, player.y, '#ff0000'));
         }
 
-        window.game.score++;
-        window.ui.score.innerText = window.game.score;
+        // Multiplicador de XP para Elites
+        const xpAmount = this.isElite ? 22 : 15; // 1.5x aproximado de 15
+        
+        // --- PREPARAÇÃO PARA O SISTEMA DE TECH ---
+        const techChance = this.isElite ? 0.3 : 0.05; // Elites dropam muito mais
+        if (Math.random() < techChance) {
+             // window.entities.drops.push(new Drop(this.x, this.y, 'tech')); 
+             console.log("Dropou TECH (Lógica futura)");
+        }
 
-        // Efeitos visuais e sonoros
-        for(let i=0; i<8; i++) window.entities.particles.push(new Particle(this.x, this.y, this.color));
+        // Efeitos visuais (mais partículas se for elite)
+        const particleCount = this.isElite ? 20 : 8;
+        for(let i=0; i < particleCount; i++) window.entities.particles.push(new Particle(this.x, this.y, this.isElite ? '#ff0000' : this.color));
+
         OrkaAudio.playSFX('explosion');
 
-        // Drops
+        // Drops de Ouro e XP
         if (Math.random() < this.goldChance) window.entities.drops.push(new Drop(this.x, this.y, 'gold'));
-        window.entities.drops.push(new Drop(this.x, this.y, 'xp'));
+        
+        // Criamos o drop de XP passando o valor customizado
+        const xpDrop = new Drop(this.x, this.y, 'xp');
+        xpDrop.value = xpAmount; // Atribuindo o valor ao drop
+        window.entities.drops.push(xpDrop);
+
+        window.game.score++;
+        window.ui.score.innerText = window.game.score;
     }
 
     drawHealthBar() {
@@ -419,7 +459,34 @@ export class Particle {
 }
 
 export class Drop {
-    constructor(x,y,t) { this.x=x; this.y=y; this.t=t; this.timer=30; this.del=false; this.vx=(Math.random()-0.5)*5; this.vy=(Math.random()-0.5)*5; }
+    constructor(x, y, t) { 
+        this.x=x; this.y=y; this.t=t; 
+        this.timer=30; this.del=false; 
+        this.vx=(Math.random()-0.5)*5; this.vy=(Math.random()-0.5)*5;
+        this.value = t === 'gold' ? 10 : 15; // Valor padrão
+    }
+    update() {
+        // ... lógica de movimento ...
+        if(Math.hypot(player.x-this.x, player.y-this.y)<30) {
+            this.del=true;
+            if(this.t==='gold') { 
+                game.gold += this.value; 
+                OrkaAudio.playSFX('coin'); 
+                ui.gold.innerText=game.gold; 
+                updateShopUI(); 
+            }
+            else if(this.t === 'xp') { 
+                game.xp += this.value; 
+                checkLevelUp(); 
+            }
+            // Lógica futura para TECH
+            else if(this.t === 'tech') {
+                // game.tech += 1;
+                showNotification("+1 TECH DATA", "#a020f0");
+            }
+        }
+    }
+ 
     update() {
         const player = window.player;
         const game = window.game;
