@@ -349,11 +349,11 @@
     }
 
 async function syncProfile() {
-    // 1. O initAuth apenas recupera a sessão que o Hub já salvou no navegador
-    // É uma operação quase instantânea (não pede senha nem nada)
+    // 1. Identifica o usuário (Sempre o primeiro passo)
     await OrkaCloud.initAuth();
+    
     const user = OrkaCloud.getUser();
-    const gameId = params.get('id'); // ID do jogo para a query
+    const gameId = params.get('id');
 
     // BUSCAR TOTAL DE LIKES
     const supabase = OrkaCloud.getClient();
@@ -369,6 +369,12 @@ async function syncProfile() {
 
     // VERIFICAR SE O USUÁRIO LOGADO JÁ CURTIU
     if (user) {
+
+        // 🚀 A MÁGICA ACONTECE AQUI:
+        // O Console inicia os batimentos cardíacos para este jogo específico.
+        // Se o usuário fechar a aba, o OrkaCloud para de pulsar automaticamente.
+        OrkaCloud.startHeartbeatSession(gameId);
+
         const { data: userLike } = await supabase
             .from('game_likes')
             .select('id')

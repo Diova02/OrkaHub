@@ -122,7 +122,7 @@ header { position: relative; z-index: 500; height: 60px; }
     border: 1px solid rgba(255, 255, 255, 0.2);
     color: white; border-radius: 50%; background: rgba(0,0,0,0.5);
     display: flex; justify-content: center; align-items: center;
-    cursor: pointer; transition: transform 0.2s;
+    transition: transform 0.2s;
 }
 .float-home-btn:hover { background: rgba(255,255,255,0.1); transform: scale(1.1); }
 .float-home-btn img { width: 40px; height: 40px; object-fit: contain; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.8)); }
@@ -243,7 +243,7 @@ header { position: relative; z-index: 500; height: 60px; }
 .target {
     position: absolute; width: 5.6%; aspect-ratio: 1/1; border-radius: 50%;
     background: #ef4444; border: 0.25vw solid white; box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-    cursor: crosshair; z-index: 100; pointer-events: auto; 
+    z-index: 100; pointer-events: auto; 
     transform: translate(-50%, -50%); /* Centraliza */
     
     /* ANIMAÇÃO DE POP RESTAURADA (Mais "seca" e rápida) */
@@ -255,7 +255,7 @@ header { position: relative; z-index: 500; height: 60px; }
 .target.armored::before { background: #3b82f6; }
 .target.moving { animation-timing-function: ease-in-out; animation-direction: alternate; animation-iteration-count: infinite; }
 
-#miss-click-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: auto; cursor: crosshair; }
+#miss-click-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: auto; }
 
 /* Efeitos */
 .perfect-flash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(132, 204, 22, 0.4); pointer-events: none; z-index: 500; animation: flash 0.2s linear; }
@@ -321,4 +321,37 @@ header { position: relative; z-index: 500; height: 60px; }
     opacity: 0;
     transform: translateY(-20px);
     pointer-events: none; /* Garante que o usuário não clique nela sem querer */
+}
+
+/* Esconde o cursor padrão no palco do jogo */
+#game-stage {
+    cursor: none;
+}
+
+#custom-cursor {
+    width: 30px;
+    height: 30px;
+    border: 2px solid #facc15;
+    border-radius: 50%;
+    position: fixed;
+    pointer-events: none; /* Importante para não interceptar cliques */
+    z-index: 10000;
+    transform: translate(-50%, -50%);
+    display: none; /* Escondido por padrão (ex: mobile) */
+    mix-blend-mode: difference;
+}
+
+#custom-cursor::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 4px; height: 4px;
+    background: #facc15;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* Só exibe se for um dispositivo com ponteiro (PC) */
+@media (pointer: fine) {
+    #custom-cursor { display: block; }
 }

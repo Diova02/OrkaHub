@@ -4,7 +4,8 @@ export const gamesList = [
     { id: 'jinx', type: 'web', title: 'ORKA JINX', allowPortrait: true, releaseDate: '2026-01-13', active: true },
     { id: 'eagle', type: 'daily', title: 'EAGLE AIM', allowPortrait: false, releaseDate: '2026-01-17', active: true },
     { id: 'listit', type: 'daily', title: 'LISTIT', allowPortrait: true, releaseDate: '2026-01-25', active: true },
-    { id: 'firewall', type: 'web', title: 'FIREWALL', allowPortrait: false, releaseDate: '2026-02-10', active: true, demo: true }
+    { id: 'firewall', type: 'web', title: 'FIREWALL', allowPortrait: false, releaseDate: '2026-02-10', active: true },
+    { id: 'busproject', type: 'web', title: 'BUS PROJECT', allowPortrait: false, releaseDate: '2026-02-20', active: true }
 ];
 
 // 2. Mapeamento de Tags por Jogo (Facilita a manutenção)
@@ -13,7 +14,8 @@ export const gamesTags = {
     zoo: ['logica', 'puzzle', 'diario'],
     listit: ['logica', 'puzzle', 'diario'],
     jinx: ['logica', 'mp_closed', 'casual'],
-    firewall: ['roguelike', 'estrategia', 'acao']
+    firewall: ['roguelike', 'estrategia', 'acao'],
+    busproject: ['simulacao', 'estrategia', 'mp_open']
 };
 
 export const shelves = {

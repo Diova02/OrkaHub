@@ -10,7 +10,9 @@ const supabase = createClient(CONFIG.url, CONFIG.key);
 
 let state = {
     user: null,
-    profile: null
+    profile: null,
+    activeSessionId: null, // [NOVO] Controle interno de sessão
+    pulseInterval: null    // [NOVO] Referência do setInterval
 };
 
 // =================================================================
@@ -22,40 +24,27 @@ async function initAuth() {
     
     if (session) {
         state.user = session.user;
-        state.session = session; // [NOVO] Guarda a sessão para uso síncrono
     } else {
-        const { data, error } = await supabase.auth.signInAnonymously();
-        if (error) console.error("OrkaCloud: Erro de Auth", error);
+        const { data } = await supabase.auth.signInAnonymously();
         state.user = data?.user;
-        state.session = data?.session; // [NOVO]
     }
 
-    // 2. Garantia de Existência do Perfil (Bootstrapping)
     if (state.user) {
-        // Tenta buscar o perfil
-        const { data } = await supabase.from('players').select('*').eq('id', state.user.id).maybeSingle();
-        state.profile = data;
-
-        if (!state.profile) {
-            console.log("🆕 Novo usuário detectado (Ghost). Criando linha na tabela players...");
-            
-            // CRÍTICO: Cria a linha inicial para satisfazer a Foreign Key da tabela sessions
-            const { error: insertError } = await supabase.from('players').insert([
+        // [TAPA DE QUALIDADE]: Uso de .select().single() para evitar buscas duplas
+        const { data: profile } = await supabase.from('players').select('*').eq('id', state.user.id).maybeSingle();
+        
+        if (!profile) {
+            console.log("🆕 Criando perfil Ghost...");
+            const { data: newProfile } = await supabase.from('players').insert([
                 { id: state.user.id, nickname: 'Ghost', is_registered: false }
-            ]);
-
-            if (insertError) {
-                console.error("❌ Falha fatal ao criar player:", insertError);
-            } else {
-                // Busca de novo para garantir que temos o objeto atualizado
-                await _syncProfile();
-            }
+            ]).select().single();
+            state.profile = newProfile;
         } else {
-            // Se já existe, apenas atualiza o 'visto por último'
-            await supabase.from('players').update({ last_seen_at: new Date() }).eq('id', state.user.id);
+            state.profile = profile;
+            // Atualiza last_seen de forma assíncrona (não trava o carregamento)
+            supabase.from('players').update({ last_seen_at: new Date() }).eq('id', state.user.id).then();
         }
     }
-    
     return state.user;
 }
 
@@ -75,6 +64,67 @@ async function updateProfile(updates) {
 
     const payload = { id: state.user.id, ...safeUpdates, last_seen_at: new Date() };
     await supabase.from('players').upsert(payload);
+}
+
+// =================================================================
+//  2. O NOVO SISTEMA DE SESSÃO (HEARTBEAT)
+// =================================================================
+
+/**
+ * Inicia uma sessão com batimentos automáticos de 30s.
+ * @param {string} gameId - O ID do jogo ou 'hub'.
+ */
+async function startHeartbeatSession(gameId) {
+    if (!state.user) return;
+
+    // Se já existe uma sessão rodando, encerra o pulso anterior
+    if (state.pulseInterval) clearInterval(state.pulseInterval);
+
+    state.activeSessionId = crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    const payload = {
+        id: state.activeSessionId,
+        player_id: state.user.id,
+        game_id: gameId,
+        started_at: now,
+        last_heartbeat_at: now,
+        platform_info: { 
+            mobile: /Mobi/i.test(navigator.userAgent),
+            vendor: navigator.vendor 
+        }
+    };
+
+    const { error } = await supabase.from('sessions').insert(payload);
+
+    if (!error) {
+        console.log(`💓 Sessão iniciada: ${gameId} (${state.activeSessionId})`);
+        
+        // Inicia o pulso automático (30 segundos)
+        state.pulseInterval = setInterval(async () => {
+            const pulseTime = new Date().toISOString();
+            
+            const { error: pulseError } = await supabase
+                .from('sessions')
+                .update({ last_heartbeat_at: pulseTime })
+                .eq('id', state.activeSessionId);
+
+            if (pulseError) console.warn("💔 Pulso falhou:", pulseError.message); else { console.log("💓 Heartbeat atualizado"); }
+        }, 30000);
+    }
+}
+
+/**
+ * Para o pulso e limpa o estado. 
+ * Útil para trocas de contexto sem fechar a aba.
+ */
+function stopHeartbeat() {
+    if (state.pulseInterval) {
+        clearInterval(state.pulseInterval);
+        state.pulseInterval = null;
+        state.activeSessionId = null;
+        console.log("🛑 Batimentos interrompidos.");
+    }
 }
 
 // =================================================================
@@ -236,41 +286,6 @@ async function updateSession(sessionId, payload) {
     }).eq('id', sessionId);
 }
 
-function endSessionBeacon(sessionId, finalPayload) {
-    if (!sessionId) return;
-    
-    const url = `${CONFIG.url}/rest/v1/sessions?id=eq.${sessionId}`;
-    
-    // Tenta pegar o token do localStorage se o state sumiu
-    const storageKey = `sb-${new URL(CONFIG.url).hostname.split('.')[0]}-auth-token`;
-    const savedSession = JSON.parse(localStorage.getItem(storageKey));
-    const token = state.session?.access_token || savedSession?.access_token;
-
-    const body = JSON.stringify({
-        ...finalPayload,
-        ended_at: new Date().toISOString(),
-        last_heartbeat_at: new Date().toISOString()
-    });
-
-    const headers = {
-        'apikey': CONFIG.key,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
-    };
-
-    // Só adiciona Authorization se realmente tiver um token
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    fetch(url, { 
-        method: 'PATCH', 
-        headers: headers, 
-        body: body, 
-        keepalive: true 
-    }).catch(e => {}); // No fechamento da aba, não adianta muito o console.warn
-}
-
 // =================================================================
 //  4. ECONOMIA (RPCs)
 // =================================================================
@@ -282,8 +297,11 @@ async function secureTransaction(rpcName, params) {
 
 export const OrkaCloud = {
     initAuth,
+    startHeartbeatSession, // [NOVA FUNÇÃO]
+    stopHeartbeat,          // [NOVA FUNÇÃO]
     getUser: () => state.user,
     getProfile: () => state.profile,
+    getClient: () => supabase,
     updateProfile,
     
     loadSave,
@@ -294,12 +312,8 @@ export const OrkaCloud = {
     
     startSession,
     updateSession,
-    endSessionBeacon,
     getClient: () => supabase,
 
-    // [IMPORTANTE] Certifique-se que suas RPCs no Supabase foram atualizadas 
-    // para inserir na tabela 'cake_transactions' em vez de update direto no player.
-    // JS Sugerido
     addBolo: (amount) => {
         // Garante que é um número inteiro antes de enviar
         const cleanAmount = parseInt(amount, 10);

@@ -106,10 +106,12 @@ window.addEventListener('pagehide', () => {
 
 async function initHub() {
     // 1. Inicializa Conexão V5
-    await OrkaCloud.initAuth();
+    const user = await OrkaCloud.initAuth();
     
-    // 2. Inicia Sessão de Navegação (Hub)
-    await OrkaCloud.startSession('orkahub');
+    if (user) {
+        // [NOVO] Inicia o heartbeat do Hub assim que o player é validado
+        OrkaCloud.startHeartbeatSession('orkahub'); 
+    }
     
     // 3. Lógica do "Recepcionista" (Check Redirect)
     const params = new URLSearchParams(window.location.search);
@@ -363,89 +365,6 @@ function applyHubTranslation(langFull) {
     renderDynamicHub(lang);
 }
 
-// function renderGames(lang) {
-//     const t = translations[lang];
-//     const role = OrkaCloud.getProfile()?.role || 'user';
-
-//     // Limpa os containers antes de renderizar
-//     ['daily', 'web', 'soon', 'pnp'].forEach(type => {
-//         const container = document.getElementById(`list-${type}`);
-//         if(container) container.innerHTML = '';
-//     });
-
-//     gamesList.forEach(game => {
-//         if (!game.releaseDate && role !== 'admin') return;
-
-//         const container = document.getElementById(`list-${game.type}`);
-//         if (!container) return;
-
-//         // Usa a helper para pegar os dados limpos
-//         const data = getGameData(game);
-
-//         const card = document.createElement(data.active ? 'a' : 'div');
-//         card.className = 'game-card-horizontal';
-        
-//         if (!data.active) {
-//             card.style.opacity = '0.5';
-//             card.style.cursor = 'default';
-//         } else {
-//             card.href = data.playUrl;
-//             card.onclick = (e) => {
-//                 e.preventDefault();
-//                 setTimeout(() => window.location.href = data.playUrl, 150);
-//             };
-//         }
-
-//         // Lógica de Tags: NOVO (7 dias) e Recompensa (Bolo)
-//         const isNew = checkIsNew(data.releaseDate);
-//         const isUpdated = checkIsUpdated(data.lastUpdate); // Nova verificação
-
-//         let tagHTML = '';
-//         if (data.active) {
-//             if (isNew) {
-//                 tagHTML = `<span class="tag-new">NOVO</span>`;
-//             } else if (isUpdated) {
-//                 tagHTML = `<span class="tag-updated">ATUALIZADO</span>`;
-//             }
-//         }
-        
-//         let rewardHTML = '';
-//         if (data.type === 'daily' && data.active && !dailyStatus[data.id]) {
-//             rewardHTML = `
-//             <div class="tag-reward" title="Recompensa disponível!">
-//                 <span class="material-icons" style="font-size:0.9rem;">cake</span>
-//             </div>`;
-//         }
-
-//         const printSrc = data.print || `assets/prints/print-default.png`;
-//         const printHTML = data.active ? 
-//             `<div class="print-container" style="position:relative;">
-//                 <img src="${printSrc}" class="card-print" style="height:100%; width:100%; object-fit:cover; border:none;" onerror="this.src='assets/icons/orka-logo.png'">
-//                 ${tagHTML}
-//                 ${rewardHTML} 
-//              </div>` :
-//             `<div class="card-print" style="display:flex; align-items:center; justify-content:center; color:#444; font-size:1.5rem;">🚧</div>`;
-
-//         const desc = t[data.descKey] || '...';
-//         const iconHTML = data.active ? `<img src="${data.icon}" class="card-icon">` : '';
-
-//         card.innerHTML = `
-//             ${printHTML}
-//             <div class="card-content">
-//                 <div class="card-info-top">
-//                     ${iconHTML}
-//                     <div class="card-text">
-//                         <h3>${data.title}</h3> 
-//                         <p>${desc}</p>
-//                     </div>
-//                 </div>
-//                 ${data.active ? '<div class="card-action"><span class="material-icons">play_arrow</span></div>' : ''}
-//             </div>
-//         `;
-//         container.appendChild(card);
-//     });
-// }
-
 async function renderDynamicHub(langSimple) {
     const mainContainer = document.getElementById('main-hub-content');
     if (!mainContainer) return;
@@ -663,94 +582,71 @@ function updateAuthMsg(text, type) {
 //  ADMIN DASHBOARD 2.0 (BI Edition)
 // =========================================================
 
-let adminDataCache = null;
+// =========================================================
+//  ADMIN DASHBOARD 2.0 (BI Edition) - CONSOLIDADO
+// =========================================================
 
-// Helper de formatação de tempo
+// Helper de formatação de tempo (Único e Centralizado)
 function formatDuration(seconds) {
-    if (!seconds) return '0s';
+    if (!seconds || seconds < 0) return '0s';
     if (seconds < 60) return `${Math.floor(seconds)}s`;
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${Math.floor(seconds % 60)}s`;
     return `${(seconds / 3600).toFixed(1)}h`;
 }
 
+// 1. CARREGAMENTO PRINCIPAL
 async function loadAdminDashboard() {
     const supabase = OrkaCloud.getClient();
-    // RPC V2 (Carrega tudo: raw e clean)
-    const { data, error } = await supabase.rpc('get_analytics_report');
-    
-    if (error) return console.error("Admin Error:", error);
-    
-    adminDataCache = data;
-    renderAdminUI();
+    updateAuthMsg("Carregando BI da View SQL...", "info");
+
+    try {
+        const { data, error } = await supabase
+            .from('game_sessions_dashboard')
+            .select('*')
+            .order('total_play_time_seconds', { ascending: false });
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            updateAuthMsg("Nenhum dado encontrado", "info");
+            return;
+        }
+
+        renderAdminTable(data);
+        renderAdminChart(data);
+
+        const totalUsers = data.reduce((acc, curr) => acc + (curr.unique_players || 0), 0);
+        updateElement('adm-users', totalUsers);
+
+        updateAuthMsg("Dashboard atualizado!", "correct");
+
+    } catch (error) {
+        console.error("Erro ao carregar Dashboard:", error);
+        OrkaFX.toast(error.message, "wrong");
+    }
 }
 
-function renderAdminUI() {
-    // Se não tiver dados carregados ainda, aborta
-    if (!adminDataCache) return;
-
-    // Toggle: Dados Limpos (sem devs) vs Dados Brutos
-    // Nota: A lógica de filtrar devs deve acontecer ANTES, na função fetchAdminData, 
-    // gerando o objeto 'clean' e 'raw'. Aqui só escolhemos qual mostrar.
-    const hideAdmins = document.getElementById('toggle-admin-data') && document.getElementById('toggle-admin-data').checked;
-    const dataset = hideAdmins ? adminDataCache.clean : adminDataCache.raw;
-
-    // --- 1. KPIs GERAIS ---
-    // Total de Jogadores (Tabela players)
-    updateElement('adm-users', dataset.users);
-    
-    // Sessões Ativas Agora (Baseado no last_heartbeat_at)
-    updateElement('adm-sessions', `${dataset.sessions} (${dataset.active_sessions} on)`); // Mudado de 'sessions' total para 'ativas agora' que é mais útil
-    
-    // --- 2. ECONOMIA (Novidade!) ---
-    // Mostra quantos bolos foram gerados vs queimados
-    if (dataset.economy) {
-        const netEconomy = dataset.economy.minted + dataset.economy.burned; // Burned geralmente é negativo
-        updateElement('adm-economy', `🎂 ${netEconomy} (Global)`);
-        // Dica: Você pode criar um tooltip mostrando: +${dataset.economy.minted} / ${dataset.economy.burned}
-    }
-
-    // --- 3. TEMPO (Hub vs Jogo) ---
-    updateElement('adm-game-time', formatDuration(dataset.game_time));
-    updateElement('adm-hub-time', formatDuration(dataset.hub_time));
-
-    // --- 4. TABELA DE PERFORMANCE DOS JOGOS ---
+// 2. RENDERIZAÇÃO DA TABELA
+function renderAdminTable(stats) {
     const tbody = document.querySelector('#adm-games-table tbody');
     if (!tbody) return;
     
     tbody.innerHTML = '';
-    
-    // Ordena por tempo total de jogo
-    const sortedGames = (dataset.games_stats || []).sort((a, b) => b.time - a.time);
 
-    if (sortedGames.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px;">Sem dados nas novas tabelas.</td></tr>';
-        return;
-    }
-
-    sortedGames.forEach(stat => {
-        // Identifica se é o Hub
-        const isHub = stat.game_id === 'hub' || stat.game_id === 'orkahub'; // Ajuste conforme seu ID real no banco
-        
-        // Busca nome bonitinho na lista de jogos (gamesList do script.js)
+    stats.forEach(stat => {
         const gameInfo = gamesList.find(g => g.id === stat.game_id);
+        const title = gameInfo ? gameInfo.title : stat.game_id.toUpperCase();
+        const icon = gameInfo ? `<img src="assets/icons/${gameInfo.id}-logo.png" style="width:20px; margin-right:8px;">` : '';
         
-        let title = gameInfo ? gameInfo.title : stat.game_id;
-        let iconHtml = gameInfo ? `<img src="assets/icons/${gameInfo.icon}" style="width:20px; vertical-align:middle; margin-right:5px;">` : '';
-
-        if (isHub) {
-            title = "🏠 ORKA HUB (Navegação)";
-            iconHtml = '';
-        }
-
         const row = `
-            <tr style="${isHub ? 'background: rgba(255,255,255,0.05); font-style:italic;' : ''}">
-                <td style="text-align:left;">
-                    ${iconHtml}
-                    <span style="${isHub ? 'opacity:0.7' : 'font-weight:bold'}">${title}</span>
+            <tr>
+                <td style="text-align:left; font-weight:bold; display:flex; align-items:center;">
+                    ${icon} ${title}
                 </td>
-                <td>${stat.plays}</td>
-                <td>${stat.uniques}</td> <td style="color:${isHub ? '#999' : 'var(--orka-accent)'}; font-family:monospace;">
-                    ${formatDuration(stat.time)}
+                <td>${stat.total_sessions}</td>
+                <td>${stat.unique_players}</td>
+                <td title="Média/Player: ${formatDuration(stat.avg_time_per_player_seconds)}" style="color:var(--orka-accent); font-family:monospace;">
+                    ${formatDuration(stat.total_play_time_seconds)}
                 </td>
             </tr>
         `;
@@ -758,172 +654,92 @@ function renderAdminUI() {
     });
 }
 
-// Helper simples para não quebrar se o elemento não existir no HTML
-function updateElement(id, value) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = value;
+// 3. RENDERIZAÇÃO DO GRÁFICO (Chart.js)
+function renderAdminChart(stats) {
+    const canvas = document.getElementById('orkaTimeChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    if (window.orkaChartInstance) window.orkaChartInstance.destroy();
+
+    window.orkaChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: stats.map(s => {
+                const info = gamesList.find(g => g.id === s.game_id);
+                return info ? info.title : s.game_id;
+            }),
+            datasets: [{
+                data: stats.map(s => s.total_play_time_seconds),
+                backgroundColor: ['#0055ff', '#ffcc00', '#ff6b6b', '#20c997', '#6f42c1', '#fd7e14'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#fff', font: { family: 'Inter' } } }
+            }
+        }
+    });
 }
 
-// Toggle Listener
-document.getElementById('toggle-admin-data')?.addEventListener('change', renderAdminUI);
-
-// Botão Refresh
-document.getElementById('btn-refresh-adm')?.addEventListener('click', loadAdminDashboard);
-
-// Botão Cleaner
-document.getElementById('btn-run-cleaner')?.addEventListener('click', async () => {
-    if(!confirm("⚠️ Limpar usuários fantasmas inativos?\nIsso pode remover visitantes que não logaram.")) return;
-    
-    const supabase = OrkaCloud.getClient();
-    const { data, error } = await supabase.rpc('clean_ghost_users');
-    
-    if (error) alert("Erro: " + error.message);
-    else {
-        alert(data || "Limpeza concluída!");
-        loadAdminDashboard();
-    }
-});
-
-// --- GERADOR DE RELATÓRIO (PDF) ---
-
-document.getElementById('btn-generate-report')?.addEventListener('click', async () => {
+// 4. RELATÓRIO PDF (Consolidado: Usa a versão createPDF que é mais completa)
+async function handleReportGeneration() {
     const btn = document.getElementById('btn-generate-report');
     btn.disabled = true;
     btn.innerHTML = '<span class="material-icons orka-spin">refresh</span> Gerando...';
 
     try {
-        await generateWeeklyReport();
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Captura o gráfico atual para o PDF
+        const canvas = document.getElementById('orkaTimeChart');
+        const imgData = canvas ? canvas.toDataURL('image/png') : null;
+
+        // Layout do PDF
+        doc.setFillColor(20, 20, 20);
+        doc.rect(0, 0, 210, 40, 'F');
+        doc.setTextColor(255, 204, 0); 
+        doc.setFontSize(22);
+        doc.text("ORKA HUB ANALYTICS", 20, 25);
+        
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(10);
+        doc.text(`Relatório extraído em: ${new Date().toLocaleString()}`, 20, 50);
+
+        if (imgData) {
+            doc.text("Distribuição de Tempo por Jogo:", 20, 65);
+            doc.addImage(imgData, 'PNG', 15, 70, 180, 100);
+        }
+
+        doc.save(`Orka_BI_${new Date().toISOString().split('T')[0]}.pdf`);
+        OrkaFX.toast("Relatório gerado!", "correct");
     } catch (e) {
         console.error(e);
-        alert("Erro ao gerar relatório: " + e.message);
+        alert("Erro ao gerar PDF: " + e.message);
     } finally {
         btn.disabled = false;
         btn.innerHTML = '<span class="material-icons">picture_as_pdf</span> Relatório Semanal';
     }
+}
+
+// --- LISTENERS E AUXILIARES ---
+function updateElement(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+}
+
+document.getElementById('btn-refresh-adm')?.addEventListener('click', loadAdminDashboard);
+document.getElementById('btn-generate-report')?.addEventListener('click', handleReportGeneration);
+
+document.getElementById('btn-run-cleaner')?.addEventListener('click', async () => {
+    if(!confirm("⚠️ Limpar usuários fantasmas inativos?")) return;
+    const { data, error } = await OrkaCloud.getClient().rpc('clean_ghost_users');
+    if (error) alert("Erro: " + error.message);
+    else { alert(data || "Limpeza concluída!"); loadAdminDashboard(); }
 });
-
-async function generateWeeklyReport() {
-    const supabase = OrkaCloud.getClient();
-    
-    // Datas: Semana Passada (Dom -> Sab)
-    const today = new Date();
-    const dayOfWeek = today.getDay(); 
-    
-    const end = new Date(today);
-    end.setDate(today.getDate() - (dayOfWeek + 1)); 
-    end.setHours(23, 59, 59, 999);
-
-    const start = new Date(end);
-    start.setDate(end.getDate() - 6);
-    start.setHours(0, 0, 0, 0);
-
-    // Datas: Semana Retrasada (Para Comparação)
-    const prevEnd = new Date(start);
-    prevEnd.setDate(start.getDate() - 1);
-    prevEnd.setHours(23, 59, 59, 999);
-    
-    const prevStart = new Date(prevEnd);
-    prevStart.setDate(prevEnd.getDate() - 6);
-    prevStart.setHours(0, 0, 0, 0);
-
-    const { data: currentWeek } = await supabase.rpc('get_analytics_report', { start_date: start, end_date: end });
-    const { data: prevWeek } = await supabase.rpc('get_analytics_report', { start_date: prevStart, end_date: prevEnd });
-
-    // Salva LocalStorage
-    const reportKey = `orka_report_${formatDate(end)}`;
-    localStorage.setItem(reportKey, JSON.stringify(currentWeek.clean));
-
-    // Gera PDFs
-    createPDF(currentWeek.clean, prevWeek.clean, start, end, true); 
-    createPDF(currentWeek.clean, prevWeek.clean, start, end, false); 
-}
-
-function createPDF(curr, prev, start, end, isPublic) {
-    // CORREÇÃO: Usa jsPDF global (carregado via script tag)
-    const { jsPDF } = window.jspdf; 
-    const doc = new jsPDF();
-    const rangeStr = `${formatDate(start)} - ${formatDate(end)}`;
-    
-    // Header
-    doc.setFillColor(20, 20, 20);
-    doc.rect(0, 0, 210, 40, 'F');
-    doc.setTextColor(255, 204, 0); 
-    doc.setFontSize(22);
-    doc.text("ORKA STUDIO", 20, 20);
-    
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(12);
-    doc.text(isPublic ? "RELATÓRIO SEMANAL" : "RELATÓRIO INTERNO (COMPARATIVO)", 20, 30);
-    doc.text(rangeStr, 150, 30);
-
-    // Corpo
-    doc.setTextColor(0, 0, 0);
-    let y = 60;
-
-    doc.setFontSize(16);
-    doc.text("Métricas Gerais", 20, y);
-    y += 10;
-
-    const metrics = [
-        { label: "Jogadores Ativos", val: curr.users, prev: prev.users },
-        { label: "Sessões Totais", val: curr.sessions, prev: prev.sessions },
-        { label: "Horas Jogadas (Games)", val: (curr.game_time / 3600).toFixed(1) + 'h', prev: (prev.game_time / 3600).toFixed(1) + 'h' },
-        { label: "Horas no Hub", val: (curr.hub_time / 3600).toFixed(1) + 'h', prev: (prev.hub_time / 3600).toFixed(1) + 'h' }
-    ];
-
-    metrics.forEach(m => {
-        doc.setFontSize(12);
-        doc.text(`${m.label}:`, 20, y);
-        doc.text(`${m.val}`, 80, y);
-
-        if (!isPublic) {
-            const valNum = parseFloat(m.val);
-            const prevNum = parseFloat(m.prev);
-            
-            if (!isNaN(valNum) && !isNaN(prevNum) && prevNum > 0) {
-                const diff = ((valNum - prevNum) / prevNum) * 100;
-                const symbol = diff > 0 ? "▲" : (diff < 0 ? "▼" : "=");
-                const color = diff > 0 ? [0, 150, 0] : (diff < 0 ? [200, 0, 0] : [100, 100, 100]);
-                
-                doc.setTextColor(...color);
-                doc.text(`${symbol} ${Math.abs(diff).toFixed(1)}%`, 110, y);
-                doc.setTextColor(0, 0, 0);
-            } else {
-                doc.setTextColor(150, 150, 150);
-                doc.text("(Sem dados prev)", 110, y);
-                doc.setTextColor(0, 0, 0);
-            }
-        }
-        y += 10;
-    });
-
-    // Detalhe Jogos
-    y += 20;
-    doc.setFontSize(16);
-    doc.text("Performance por Jogo", 20, y);
-    y += 10;
-
-    (curr.games_stats || []).forEach(game => {
-        if (game.game_id === 'orkahub') return;
-        const name = game.game_id.toUpperCase().replace('_', ' ');
-        const duration = (game.time / 60).toFixed(1) + ' min';
-        
-        doc.setFontSize(11);
-        doc.text(`• ${name}: ${game.plays} plays | ${duration}`, 25, y);
-        y += 8;
-    });
-
-    doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
-    doc.text("Gerado automaticamente pelo Orka Command Center", 20, 280);
-
-    const filename = isPublic ? `Orka_Relatorio_${formatDate(end)}.pdf` : `Orka_INTERNO_${formatDate(end)}.pdf`;
-    doc.save(filename);
-}
-
-function formatDate(date) {
-    return date.toISOString().split('T')[0];
-}
 
 // Verifica quais jogos o usuário já interagiu hoje (ganhou ou perdeu)
 // No script.js, substitua a antiga checkDailyStatus por esta:

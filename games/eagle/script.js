@@ -81,9 +81,21 @@ const toolbar = document.querySelector('.game-toolbar');
 // 1. INICIALIZAÇÃO (REFATORADA)
 // =========================
 async function init() {
-    // 1. Inicializa via Game Manager (Resolve Auth, Nickname, Proteção e Sessão)
-    const { profile } = await Game.init();
-    state.profile = profile;
+    // // 1. Inicializa via Game Manager (Resolve Auth, Nickname, Proteção e Sessão)
+   console.log("Iniciando Eagle Aim...");
+    
+    // PASSO 1: Aguarda o Supabase dizer quem é o usuário
+    const user = await OrkaCloud.initAuth(); 
+    console.log("Status da Autenticação:", user ? "Logado" : "Visitante");
+    
+    await Game.init();
+    state.profile = OrkaCloud.getProfile(); // Pega o perfil atualizado após init
+
+    // Se o Manager não achou perfil mas o user está logado, 
+    // significa que precisamos do modal de Nick
+    if (user && !state.profile) {
+        OrkaFX.modal('modal-nick', 'open');
+    }
 
     state.currentDate.setHours(0,0,0,0);
     updateDateDisplay();
@@ -129,6 +141,15 @@ async function init() {
     
     document.getElementById('game-stage').addEventListener('mousedown', () => {
         if(state.isPlaying) OrkaAudio.play('shoot', 0.3);
+    });
+
+    // No final do init()
+    document.addEventListener('mousemove', (e) => {
+        const cursor = document.getElementById('custom-cursor');
+        if (cursor) {
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+        }
     });
 
     els.saveNickBtn.addEventListener('click', saveNicknameAndSubmit);
@@ -364,10 +385,10 @@ function startCountdown() {
     // V5: Inicia Sessão já foi feito no init(), mas para cada partida podemos
     // mandar um "checkpoint" de início ou criar nova sessão se o design permitir.
     // Como o Manager V5 cria UMA sessão por visita, vamos usar checkpoints.
-    Game.checkpoint({ 
-        status: 'countdown_started', 
-        attempt_date: new Date() 
-    });
+    // Game.checkpoint({ 
+    //     status: 'countdown_started', 
+    //     attempt_date: new Date() 
+    // });
 
     state.levelData = generateDailyLevel(state.currentDate);
     els.splatLayer.innerHTML = ''; 
@@ -405,7 +426,7 @@ function startGame() {
     state.startTime = performance.now();
     
     // V5: Checkpoint de início de jogo
-    Game.checkpoint({ status: 'game_started', wave: 0 });
+    //Game.checkpoint({ status: 'game_started', wave: 0 });
 
     spawnWave(0);
     state.timerInterval = requestAnimationFrame(updateTimerLoop);
@@ -426,10 +447,10 @@ function spawnWave(index) {
     }
     
     // V5: Checkpoint de progresso
-    Game.checkpoint({ 
-        wave_completed: index, 
-        current_time: els.timer.textContent 
-    });
+    // Game.checkpoint({ 
+    //     wave_completed: index, 
+    //     current_time: els.timer.textContent 
+    // });
 
     state.waveIndex = index;
     els.wave.textContent = `ONDA ${index + 1}/${TOTAL_WAVES}`;
@@ -567,30 +588,33 @@ async function finishGame() {
     // Isso evita que uma partida ruim sobrescreva seu recorde no banco
     const isRecord = !state.bestTime || floatTime <= state.bestTime;
     
-    if (isRecord) {
-        // Se for recorde, enviamos o score para o Cloud
-        await Game.endGame('win', { 
-            score: floatTime, 
-            wave: TOTAL_WAVES,
-            penalties: state.penaltyTime,
-            perfect_bonus: state.bonusTime
-        });
+   if (isRecord) {
+        state.bestTime = floatTime;
         
-        // Força atualização visual imediata
-        const profile = OrkaCloud.getProfile();
-        if (profile && profile.nickname) {
-            OrkaFX.toast('🏆 Novo Recorde Salvo!', 'success');
-            loadLeaderboardInline(); 
-            refreshDashboardUI(); 
+        // Garantimos que a data seja uma string YYYY-MM-DD para o banco
+        const dateToSave = state.currentDate instanceof Date 
+            ? state.currentDate.toISOString().split('T')[0] 
+            : state.currentDate;
+
+        try {
+            console.log("Iniciando submitScore para:", dateToSave);
+            const response = await OrkaCloud.submitScore(GAME_ID, floatTime, dateToSave);
+
+            // Verifica se a resposta existe antes de ler .error
+            if (response && response.error) {
+                console.error("Erro no Leaderboard:", response.error);
+                OrkaFX.toast("Erro ao registrar: " + response.error, "error");
+            } else if (response) {
+                OrkaFX.toast("Recorde registrado!", "success");
+                loadLeaderboardInline();
+            } else {
+                console.warn("OrkaCloud retornou vazio. Verifique a conexão.");
+            }
+        } catch (err) {
+            console.error("Falha crítica no submitScore:", err);
         }
-    } else {
-        // Se não foi recorde, apenas finalizamos a sessão sem enviar score novo
-        // Passamos 'abandoned' ou um status customizado para não triggerar o submitScore interno do Manager
-        // Mas para manter analytics, podemos passar 'lose' ou apenas não passar score
-        await Game.endGame('win', { 
-            final_score: floatTime, // Salva no metadata para analytics, mas não no leaderboard
-            is_record: false
-        });
+        refreshDashboardUI(); // Atualiza dashboard localmente
+        loadLeaderboardInline(); // Atualiza ranking inline
     }
 
     els.btnPlay.textContent = 'JOGAR NOVAMENTE';
@@ -616,17 +640,31 @@ function updateDateDisplay() {
 }
 
 async function saveNicknameAndSubmit() {
-    const name = els.nickInput.value.trim();
-    if (!name) return OrkaFX.shake('modal-nick');
+    const nickInput = document.getElementById('nick-input');
+    const nickname = nickInput.value.trim();
     
-    // V5: updateProfile
-    await OrkaCloud.updateProfile({ nickname: name });
+    if (nickname.length < 3) {
+        OrkaFX.toast('O apelido deve ter pelo menos 3 caracteres', 'error');
+        return;
+    }
+
+    // Tenta atualizar o perfil no banco de dados (Supabase)
+    const { data, error } = await OrkaCloud.updateProfile({ nickname: nickname });
+
+    if (error) {
+        OrkaFX.toast('Erro ao registrar: ' + error.message, 'error');
+        return;
+    }
+
+    // Se salvou o perfil com sucesso, agora envia o score
+    OrkaFX.modal('modal-nick', 'close');
     
-    els.modalNick.classList.remove('active');
-    refreshDashboardUI();
-    if(state.bestTime) await OrkaCloud.submitScore(GAME_ID, state.bestTime);
+    // Pega o tempo do estado atual do jogo
+    const scoreToSubmit = state.lastGameTime; 
+    await OrkaCloud.submitScore(GAME_ID, scoreToSubmit, state.currentDate);
+    
+    OrkaFX.toast('Perfil criado e recorde salvo!', 'success');
     loadLeaderboardInline();
-    loadSeasonRankings();
 }
 
 async function loadLeaderboardInline() {

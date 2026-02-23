@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Orka Bus Project</title>
+    <style>
+        :root {
+            --bg: #0a0a0c;
+            --primary: #0055ff;
+            --surface: #1c1c1e;
+            --text: #ffffff;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            touch-action: manipulation;
+        }
+
+        #game-container {
+            position: relative;
+            width: 90vw;
+            max-width: 400px;
+            aspect-ratio: 1/1;
+            background: var(--surface);
+            border-radius: 16px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 8px;
+            padding: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .cell {
+            background: #2c2c2e;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            transition: transform 0.1s, background 0.3s;
+            user-select: none;
+        }
+
+        .cell.active {
+            background: var(--primary);
+            box-shadow: 0 0 15px var(--primary);
+            transform: scale(1.05);
+        }
+
+        #ui {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .stat-label { font-size: 0.8rem; color: #888; text-transform: uppercase; }
+        .stat-value { font-size: 1.8rem; font-weight: 800; margin-bottom: 10px; }
+
+        .btn-start {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 40px;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+        /* Estilos do Toast para bater com a Lib */
+        #toast-container { position: fixed; top: 20px; width: 100%; display: flex; justify-content: center; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <div class="stat-label">Pontuação</div>
+        <div id="score" class="stat-value">0</div>
+    </div>
+
+    <div id="game-container">
+        </div>
+
+    <button id="start-btn" class="btn-start">COMEÇAR</button>
+
+    <script type="module">
+        import { OrkaMath, OrkaFX, Utils } from '../../core/scripts/orka-lib.js';
+
+        const container = document.getElementById('game-container');
+        const scoreEl = document.getElementById('score');
+        const startBtn = document.getElementById('start-btn');
+        
+        let score = 0;
+        let gameActive = false;
+        let targetIndex = -1;
+        let timer = null;
+        let speed = 1000;
+
+        // Inicializa Grid
+        for (let i = 0; i < 16; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.dataset.index = i;
+            cell.addEventListener('pointerdown', (e) => handleTap(i));
+            container.appendChild(cell);
+        }
+
+        function spawn() {
+            if (!gameActive) return;
+
+            // Limpa anterior
+            document.querySelectorAll('.cell').forEach(c => c.classList.remove('active'));
+
+            // OrkaMath determinando o próximo alvo
+            targetIndex = OrkaMath.randomRange(0, 15);
+            const targetCell = container.children[targetIndex];
+            targetCell.classList.add('active');
+
+            // Aceleração progressiva
+            speed = Math.max(400, 1000 - (score * 10));
+            timer = setTimeout(gameOver, speed);
+        }
+
+        function handleTap(index) {
+            if (!gameActive) return;
+
+            if (index === targetIndex) {
+                clearTimeout(timer);
+                score++;
+                scoreEl.textContent = score;
+                OrkaFX.shake('game-container', 2);
+                
+                if (score % 10 === 0) {
+                    OrkaFX.confetti(20);
+                }
+                
+                spawn();
+            } else {
+                gameOver();
+            }
+        }
+
+        function gameOver() {
+            gameActive = false;
+            clearTimeout(timer);
+            document.querySelectorAll('.cell').forEach(c => c.classList.remove('active'));
+            
+            OrkaFX.toast(`Fim de jogo! Score: ${score}`, 'error');
+            startBtn.style.display = 'block';
+            startBtn.textContent = 'TENTAR NOVAMENTE';
+        }
+
+        startBtn.addEventListener('click', () => {
+            score = 0;
+            scoreEl.textContent = '0';
+            speed = 1000;
+            gameActive = true;
+            startBtn.style.display = 'none';
+            spawn();
+        });
+    </script>
+</body>
+</html>
