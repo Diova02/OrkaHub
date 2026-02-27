@@ -123,16 +123,20 @@
             align-items: center;
             justify-content: center;
             backdrop-filter: blur(3px); 
-            transition: opacity 0.3s, transform 0.2s;
             pointer-events: auto; /* Garante que o clique funcione */
+            opacity: 0.5;
+            pointer-events: auto; 
+            transition: transform 0.2s ease, opacity 0.2s ease;
         }
 
         #fs-exit-btn.visible { 
             display: flex; 
         }
 
+        /* Feedback visual ao tocar no botão */
         #fs-exit-btn:active { 
             transform: scale(0.9); 
+            opacity: 0.9;
             background: rgba(0, 0, 0, 0.8);
             color: #fff;
         }
@@ -522,13 +526,10 @@ const likeBtn = document.getElementById('btn-like');
         icon.textContent = isFS ? 'fullscreen_exit' : 'fullscreen';
         wrapper.classList.toggle('fullscreen', isFS);
         
-        // Botão flutuante para mobile
         if (isFS) {
             fsExitBtn.classList.add('visible');
-            setTimeout(() => { if(document.fullscreenElement) fsExitBtn.style.opacity = "0.05"; }, 4000);
         } else {
             fsExitBtn.classList.remove('visible');
-            fsExitBtn.style.opacity = "0.4";
         }
     });
 
