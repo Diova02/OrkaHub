@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Orka Console | Player</title>
     
-    <link rel="stylesheet" href="core/styles/orka-base.css">
+    <link rel="stylesheet" href="core/orka-base.css">
     <link id="favicon" rel="icon" type="image/png" href="assets/icons/orka-logo.png">
     <link rel="stylesheet" href="styles.css"> 
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -33,16 +33,18 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 20px;
+            /* justify-content: center;
+            padding: 20px; */
             box-sizing: border-box;
+            justify-content: flex-start; 
+            padding: 0; /* Tiramos o padding lateral para expandir ao máximo */
         }
 
         /* Container do Iframe (Mix de Visual 1 com Melhorias do 2) */
         .game-wrapper {
             position: relative;
             width: 100%;
-            max-width: 940px; /* Largura aprimorada do Arq 2 */
+            max-width: 1200px; /* Permite ficar bem largo no PC */
             aspect-ratio: 16 / 9;
             background: #000;
             border-radius: 12px;
@@ -61,6 +63,16 @@
             z-index: 9999;
             border-radius: 0;
             border: none;
+        }
+
+        iframe ::-webkit-scrollbar {
+            display: none; /* Esconde a scrollbar do iframe para uma aparência mais limpa */
+        }
+        .console-container ::-webkit-scrollbar {
+            display: none; /* Esconde a scrollbar do iframe para uma aparência mais limpa */
+        }
+        .game-wrapper ::-webkit-scrollbar {
+            display: none; /* Esconde a scrollbar do iframe para uma aparência mais limpa */
         }
 
         iframe {
@@ -165,7 +177,7 @@
         @media (max-width: 768px) {
             .game-wrapper.portrait-mode {
                 aspect-ratio: 9 / 16;
-                max-width: 450px;
+                max-width: 97vw;
             }
             .action-text { display: none; }
             .btn-console { padding: 10px; border-radius: 50%; }
@@ -238,9 +250,197 @@
             transition: all 0.2s ease;
             display: inline-block;
         }
+
+        /* Forçando a sobreposição ao orka-base.css */
+        body {
+            overflow-x: hidden; /* Evita scroll horizontal indesejado */
+        }
+
+        .console-container {
+            padding: 0 !important;
+            max-width: 100% !important;
+            width: 100vw !important; /* Força a largura total da tela */
+            justify-content: flex-start; 
+        }
+
+        .game-wrapper {
+            max-width: 65vw !important; /* Quebra qualquer limite do orka-base */
+            width: 100% !important;
+        }
+
+        .console-controls {
+            padding: 20px; /* Mantém o respiro apenas nos botões de baixo */
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        @media (max-height: 600px) {
+            .console-container {
+                padding: 0 !important;
+                height: 100dvh !important;
+                justify-content: center !important;
+            }
+
+            /* O jogo estica para preencher 100% da tela deitada */
+            .game-wrapper {
+                height: 100dvh !important;
+                width: 90vw !important;
+                max-width: none !important;
+                margin: 0;
+            }
+        }
+
+        /* ========================================================= */
+        /* MODO LANDSCAPE (CELULAR DEITADO) - IMERSÃO AUTOMÁTICA     */
+        /* ========================================================= */
+        @media (orientation: landscape) and (max-height: 600px) {
+            /* Esconde o cabeçalho e a barra de controles para não roubar espaço */
+            /* .console-header, 
+            .console-controls {
+                display: none !important;
+            } */
+
+            /* Remove o padding do body (caso tenha o safe-area-inset-top) */
+            body {
+                padding-top: 0 !important; 
+            }
+
+            /* O container passa a ocupar exatamente o tamanho da tela */
+            .console-container {
+                padding: 0 !important;
+                height: 100dvh !important;
+                justify-content: center !important;
+            }
+
+            /* O jogo estica para preencher 100% da tela deitada */
+            .game-wrapper {
+                height: 100dvh !important;
+                width: 90vw !important;
+                max-width: none !important;
+            }
+        }
+
+        /* Seção de Influenciadores */
+        .influencers-tray {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding: 10px 20px;
+            width: 100%;
+            scrollbar-width: none; /* Firefox */
+        }
+        .influencers-tray::-webkit-scrollbar { display: none; } /* Chrome/Safari */
+
+        .influencer-card {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.05);
+            padding: 6px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            white-space: nowrap;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .influencer-card:hover { background: rgba(0,85,255,0.2); }
+        .influencer-card img { width: 24px; height: 24px; border-radius: 50%; }
+
+        /* Seção de Descrição */
+        .dev-description-box {
+            margin: 15px 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.03);
+            border-radius: 12px;
+            border-left: 4px solid var(--orka-accent);
+            max-height: 80px; /* Altura fixa inicial */
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+            transition: max-height 0.4s ease;
+        }
+        .dev-description-box.expanded {
+            max-height: 500px; /* Expande */
+        }
+
+        /* Container Padrão para manter alinhamento e margens */
+.console-section {
+    width: 100%;
+    max-width: 940px;
+    margin: auto; /* Centralizado, respeitando o limite */
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
+/* Seção de Influenciadores */
+.influencers-tray {
+    display: flex;
+    gap: 15px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    scrollbar-width: none;
+}
+.influencers-tray::-webkit-scrollbar { display: none; }
+
+.influencer-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.04);
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.1);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.influencer-card:hover { border-color: var(--orka-accent); background: rgba(0,85,255,0.1); }
+.influencer-card img { width: 28px; height: 28px; border-radius: 50%; }
+
+/* Seção de Descrição (Expansível) */
+.dev-info-box {
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(139, 139, 139, 0.05);
+    border-radius: 12px;
+    padding: 20px;
+    color: #ccc;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    max-height: 120px; /* Altura inicial */
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    transition: max-height 0.5s ease, background 0.3s;
+}
+.dev-info-box:hover { background: rgba(255,255,255,0.04); }
+.dev-info-box.expanded { max-height: 1000px; } /* Altura máxima expansiva */
+.dev-info-box::after {
+    content: "LER MAIS...";
+    position: absolute;
+    bottom: 0; right: 0;
+    padding: 20px 20px 10px 50px;
+    background: linear-gradient(to right, transparent, #050505 40%);
+    font-size: 0.7rem; color: var(--orka-accent);
+    font-weight: bold;
+}
+.dev-info-box.expanded::after { content: "OCULTAR"; }
     </style>
 </head>
 <body>
+    <aside class="orka-ad-lateral ad-left" id="ad-container-left">
+        <a href="#" target="_blank" id="ad-link-left">
+            <img src="" id="ad-img-left" alt="Patrocinador Orka Hub">
+        </a>
+        <span class="ad-label">PATROCINADO</span>
+    </aside>
+
+    <aside class="orka-ad-lateral ad-right" id="ad-container-right">
+        <a href="#" target="_blank" id="ad-link-right">
+            <img src="" id="ad-img-right" alt="Patrocinador Orka Hub">
+        </a>
+        <span class="ad-label">PATROCINADO</span>
+    </aside>
+
     <header class="console-header">
         <div class="header-left">
             <a href="/" class="home-link" title="Orka Studio">
@@ -307,12 +507,29 @@
                 </button>
             </div>
         </div>
+
+        <section id="influencers-section" class="console-section" style="display: none;">
+            <h3 style="font-size: 0.7rem; color: #666; margin-bottom: 10px; letter-spacing: 1px;">JOGADO POR</h3>
+            <div class="influencers-tray" id="influencers-list"></div>
+        </section>
+
+        <section id="dev-info-section" class="console-section" style="display: none;">
+            <h3 style="font-size: 0.7rem; color: #666; margin-bottom: 10px; letter-spacing: 1px;">SOBRE O JOGO</h3>
+            <div id="dev-info-box" class="dev-info-box" onclick="this.classList.toggle('expanded')">
+                <div id="game-description-text"></div>
+            </div>
+        </section>
     </main>
+
+    <footer style="text-align: center; color: #444; padding: 40px; font-size: 0.8rem;">
+        <span data-t="footerCopy">&copy; 2026 Orka Studio. Todos os direitos reservados.</span>
+    </footer>
 
 <script type="module">
     // Importações do Arquivo 2
-    import { OrkaCloud } from './core/scripts/orka-cloud.js';
-    import { OrkaFX } from './core/scripts/orka-lib.js';
+    import { OrkaCloud } from './core/orka-cloud.js';
+    import { OrkaFX } from './core/orka-lib.js';
+    import { OrkaAdsManager } from './core/orka-ads.js';
 
     const params = new URLSearchParams(window.location.search);
     const gameId = params.get('id');
@@ -416,6 +633,34 @@ async function syncProfile() {
 // Chama assim que o DOM carregar
 syncProfile();
 
+import { gamesList } from './games.js';
+
+function loadGameMetadata(gameId) {
+    const game = gamesList.find(g => g.id === gameId);
+    if (!game) return;
+    
+    // Influenciadores
+    if (game && game.influencers && game.influencers.length > 0) {
+        document.getElementById('influencers-section').style.display = 'block';
+        const list = document.getElementById('influencers-list');
+        list.innerHTML = game.influencers.map(inf => `
+            <div class="influencer-card" onclick="window.open('${inf.channel}', '_blank')">
+                <img src="${inf.avatar}" alt="${inf.nick}">
+                <span>${inf.nick}</span>
+            </div>
+        `).join('');
+    }
+
+    // Descrição
+    if (game && game.description) {
+        document.getElementById('dev-info-section').style.display = 'block';
+        document.getElementById('game-description-text').innerHTML = game.description;
+    }
+}
+
+// Chame ao carregar:
+loadGameMetadata(gameId);
+
 function updateLikeUI(count, active) {
     const counterDisplay = document.getElementById('like-count');
     const likeBtn = document.getElementById('btn-like');
@@ -504,7 +749,7 @@ const likeBtn = document.getElementById('btn-like');
         } catch (err) { console.warn(err) }
     };
 
-    // --- LÓGICA DE TELA CHEIA (Arquivo 1 + Botão Flutuante do 2) ---
+    // --- LÓGICA DE TELA CHEIA ---
     const btnFullscreen = document.getElementById('btn-fullscreen');
     const fsExitBtn = document.getElementById('fs-exit-btn');
 
@@ -533,7 +778,7 @@ const likeBtn = document.getElementById('btn-like');
         }
     });
 
-    // Prevenção de gestos (Arquivo 2)
+    // Prevenção de gestos
     document.addEventListener('touchmove', (e) => {
         if (e.scale !== 1) e.preventDefault();
     }, { passive: false });

@@ -1,4 +1,3 @@
-// core/scripts/orka-game-manager.js
 import { OrkaCloud } from './orka-cloud.js';
 
 export class OrkaGameManager {

@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Orka Pulse - Overdrive</title>
+    <style>
+        :root {
+            --bg: #050508;
+            --surface: #0d0d12;
+            --primary: 0, 242, 255; /* RGB para manipular opacidade */
+            --danger: 255, 62, 62;
+            --gold: 228, 176, 15;
+            --text: #ffffff;
+        }
+
+        body {
+            margin: 0; background: var(--bg); color: var(--text);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            height: 100vh; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; overflow: hidden;
+            touch-action: none; user-select: none;
+        }
+
+        #ui-top {
+            display: grid; grid-template-columns: 1fr 1fr 1fr;
+            width: 90vw; max-width: 400px; margin-bottom: 15px; text-align: center;
+        }
+
+        .stat-label { font-size: 9px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+        .stat-num { font-size: 20px; font-weight: 900; }
+        #mult-display { color: #e4b00f; }
+
+        #game-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+            width: 85vw; max-width: 400px; aspect-ratio: 1;
+            padding: 12px; background: var(--surface);
+            border-radius: 16px; border: 1px solid #1a1a20;
+        }
+
+        .cell {
+            background: #15151a; border-radius: 8px;
+            transition: transform 0.1s; position: relative;
+            overflow: hidden; border: 1px solid #202025;
+        }
+
+        #overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; z-index: 100; text-align: center;
+        }
+
+        .btn-play {
+            background: #fff; color: #000; border: none;
+            padding: 15px 40px; border-radius: 4px;
+            font-weight: 900; cursor: pointer; margin-top: 20px;
+        }
+
+        #afk-bar {
+            position: absolute; bottom: 0; left: 0; height: 4px;
+            background: var(--danger); width: 0%; transition: width 0.1s linear;
+        }
+
+        /* Efeito de Fundo (Shockwave) */
+        #bg-fx {
+            position: fixed; inset: 0; z-index: -1;
+            transition: background 0.3s ease-out;
+            opacity: 0;
+        }
+        @keyframes shockwave-anim {
+            0% { opacity: 0.3; transform: scale(0.5); }
+            100% { opacity: 0; transform: scale(1.5); }
+        }
+
+        /* Antecipação (Próxima Célula) */
+        .cell.hint {
+            background: #46464f !important;
+            border: 1px #747070 !important;
+        }
+
+        /* Erro (Clique em Vazio) */
+        @keyframes flash-error {
+            0%, 100% { background: #15151a; }
+            50% { background: #ff3e3e; box-shadow: 0 0 20px #ff3e3e; }
+        }
+        .cell.error { animation: flash-error 0.3s ease; }
+
+        /* Pulso de Geração */
+        @keyframes pulse-spawn {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(0.95); opacity: 1; }
+        }
+        .pulse-anim { animation: pulse-spawn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    </style>
+</head>
+<body>
+
+    <div id="ui-top">
+        <div class="stat-box">
+            <div class="stat-label">Score</div>
+            <div id="score" class="stat-num">0</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">Combo</div>
+            <div id="mult-display" class="stat-num">x1.0</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">Vidas</div>
+            <div id="lives" class="stat-num" style="color:#ff3e3e">❤❤❤</div>
+        </div>
+    </div>
+
+    <div id="game-grid"></div>
+
+    <div id="overlay">
+        <h1 id="msg-main" style="margin:0; font-size: 3rem;">PULSE</h1>
+        <p id="msg-sub" style="color:#666">TOQUE NAS CÉLULAS NO RITMO</p>
+        <div id="high-score-display" style="margin-top:10px; font-weight:bold; color:#00f2ff"></div>
+        <button class="btn-play" id="start-btn">INICIAR FREQUÊNCIA</button>
+    </div>
+
+    <script type="module">
+        import { OrkaMath, OrkaFX, OrkaStorage, Utils } from '../../core/orka-lib.js';
+
+        const grid = document.getElementById('game-grid');
+        const scoreEl = document.getElementById('score');
+        const multEl = document.getElementById('mult-display');
+        const livesEl = document.getElementById('lives');
+        const overlay = document.getElementById('overlay');
+        const startBtn = document.getElementById('start-btn');
+        const highScoreEl = document.getElementById('high-score-display');
+
+        let cells = [];
+        let state = {
+            score: 0,
+            mult: 1.0,
+            lives: 3,
+            active: false,
+            lastNormalClick: Date.now(),
+            best: OrkaStorage.load('pulse_v3_best', 0),
+            next: { idx: -1, type: 'normal' }, // Controle de antecipação
+            lastSpawnTime: 0
+        };
+
+        highScoreEl.textContent = `RECORDE: ${state.best.toLocaleString()}`;
+
+        // Inicialização do Grid
+        for(let i=0; i<16; i++) {
+            const div = document.createElement('div');
+            div.className = 'cell';
+            grid.appendChild(div);
+            cells.push({
+                el: div,
+                type: 'none', // 'none', 'normal', 'danger', 'gold'
+                power: 0,
+                active: false,
+                spawnTime: 0,
+                deathTime: 0
+            });
+            div.addEventListener('pointerdown', () => handleHit(i));
+        }
+
+        function startGame() {
+            state.score = 0;
+            state.mult = 1.0;
+            state.lives = 3;
+            state.active = true;
+            state.lastNormalClick = Date.now();
+            overlay.style.display = 'none';
+            
+            // Limpa células antigas
+            cells.forEach(c => resetCell(c));
+            
+            updateUI();
+            spawn('normal');
+            requestAnimationFrame(gameLoop);
+        }
+
+        function resetCell(cell) {
+            cell.type = 'none';
+            cell.power = 0;
+            cell.active = false;
+            cell.el.style.backgroundColor = '';
+            cell.el.style.boxShadow = '';
+        }
+
+        // 1. Nova função para preparar o futuro
+        function prepareNext() {
+            // Limpa hint anterior
+            cells.forEach(c => c.el.classList.remove('hint'));
+            
+            const available = cells.filter(c => !c.active);
+            if (available.length === 0) return;
+
+            state.next.idx = cells.indexOf(OrkaMath.pickRandom(available));
+            
+            const roll = Math.random();
+            if (roll > 0.92) state.next.type = 'gold';
+            else if (roll > 0.80) state.next.type = 'danger';
+            else state.next.type = 'normal';
+
+            // Pinta a célula de cinza claro (Antecipação)
+            cells[state.next.idx].el.classList.add('hint');
+        }
+
+        // 2. Spawn atualizado para usar o que foi preparado
+        function spawn(forcedType = null) {
+            if (!state.active) return;
+            
+            // Se não houver nada preparado (início), prepara agora
+            if (state.next.idx === -1) prepareNext();
+
+            const idx = state.next.idx;
+            const type = forcedType || state.next.type;
+            const cell = cells[idx];
+
+            cell.active = true;
+            cell.type = type;
+            cell.power = 100;
+            cell.spawnTime = Date.now();
+            cell.el.classList.remove('hint');
+            cell.el.classList.add('pulse-anim'); // Animação de pulso
+            
+            setTimeout(() => cell.el.classList.remove('pulse-anim'), 200);
+
+            if (type === 'danger') cell.deathTime = Date.now() + 5000;
+            if (type === 'gold') cell.deathTime = Date.now() + 1500;
+            
+            // Prepara o próximo logo após spawnar este
+            prepareNext();
+
+            // Se for especial, gera um aleatório em 1s (Ciclo automático)
+            if (type !== 'normal') {
+                setTimeout(() => { 
+                    // Só spawna se a célula ainda estiver viva (não foi clicada antes)
+                    if(state.active && cell.active && cell.type === type) spawn(); 
+                }, 1000);
+            }
+        }
+
+        function spawnRandom() {
+            const roll = Math.random();
+            if (roll > 0.9) spawn('gold');
+            else if (roll > 0.75) spawn('danger');
+            else spawn('normal');
+        }
+
+        // 3. Shockwave Effect
+        function triggerShockwave(color) {
+            let fx = document.getElementById('bg-fx');
+            if(!fx) {
+                fx = document.createElement('div');
+                fx.id = 'bg-fx';
+                document.body.appendChild(fx);
+            }
+            fx.style.background = color;
+            fx.style.animation = 'none';
+            void fx.offsetWidth; // Trigger reflow
+            fx.style.animation = 'shockwave-anim 0.5s ease-out forwards';
+        }
+
+        // 4. HandleHit com detecção de erro e spawn em especiais
+        function handleHit(i) {
+            if (!state.active) return;
+            const cell = cells[i];
+
+            // Erro: Clicou em célula vazia
+            if (!cell.active) {
+                cell.el.classList.add('error');
+                setTimeout(() => cell.el.classList.remove('error'), 300);
+                loseLife(); // Penaliza erro
+                return;
+            }
+
+            const color = getComputedStyle(cell.el).backgroundColor;
+            triggerShockwave(color);
+
+            if (cell.type === 'danger') {
+                loseLife();
+                resetCell(cell);
+                spawn(); // Clicar no perigo também gera a próxima célula
+                return;
+            }
+
+            let points = cell.power * state.mult;
+            if (cell.type === 'gold') {
+                points *= 2;
+                OrkaFX.confetti(15);
+                spawn(); // Clicar no dourado gera a próxima imediatamente
+            }
+
+            if (cell.type === 'normal') {
+                if (cell.power >= 80) state.mult += 0.1;
+                else if (cell.power < 40) state.mult = 1.0;
+                state.lastNormalClick = Date.now();
+                spawn(); // Ciclo normal
+            }
+
+            state.score += Math.floor(points);
+            resetCell(cell);
+            updateUI();
+        }
+
+        // 5. UpdateVisual com Decaimento de Brilho em Especiais
+        function updateCellVisual(c) {
+            let color = '';
+            let glow = '';
+            const now = Date.now();
+            let p = c.power / 100;
+
+            // Se for especial, o p (intensidade) é baseado no tempo restante
+            if (c.type === 'gold' || c.type === 'danger') {
+                const totalLife = c.deathTime - c.spawnTime;
+                const remaining = c.deathTime - now;
+                p = Math.max(0, remaining / totalLife);
+            }
+
+            if (c.type === 'normal') {
+                color = `rgba(0, 242, 255, ${0.2 + (p * 0.8)})`;
+                glow = `0 0 ${20 * p}px rgba(0, 242, 255, ${p})`;
+            } else if (c.type === 'danger') {
+                color = `rgba(255, 62, 62, ${p})`;
+                glow = `0 0 ${15 * p}px #ff3e3e`;
+            } else if (c.type === 'gold') {
+                color = `rgba(228, 176, 15, ${p})`;
+                glow = `0 0 ${20 * p}px #e4b00f`;
+            }
+
+            c.el.style.backgroundColor = color;
+            c.el.style.boxShadow = glow;
+        }
+
+        function loseLife() {
+            state.lives--;
+            state.mult = 1.0;
+            OrkaFX.shake('game-grid', 15);
+            if (state.lives <= 0) gameOver();
+            updateUI();
+        }
+
+        function gameLoop() {
+            if (!state.active) return;
+
+            const now = Date.now();
+            
+            // Checar AFK (1 minuto)
+            if (now - state.lastNormalClick > 60000) {
+                loseLife();
+                state.lastNormalClick = now;
+            }
+
+            // Cálculo de decaimento dinâmico
+            const decayBase = 0.5;
+            const decayBonus = Math.min(4.5, Math.floor(state.score / 1000) * 0.1);
+            const currentDecay = decayBase + decayBonus;
+
+            cells.forEach(c => {
+                if (!c.active) return;
+
+                // Decaimento Normal
+                if (c.type === 'normal') {
+                    if (c.power > 20) c.power -= currentDecay;
+                }
+
+                // Decaimento por Tempo (Especiais)
+                if (c.type !== 'normal' && now > c.deathTime) {
+                    resetCell(c);
+                    return;
+                }
+
+                // Renderização Visual
+                updateCellVisual(c);
+            });
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updateUI() {
+            scoreEl.textContent = Math.floor(state.score).toLocaleString();
+            multEl.textContent = `x${state.mult.toFixed(1)}`;
+            livesEl.textContent = "❤".repeat(Math.max(0, state.lives));
+        }
+
+        function gameOver() {
+            state.active = false;
+            overlay.style.display = 'flex';
+            document.getElementById('msg-main').textContent = "PULSE STOP";
+            document.getElementById('msg-sub').textContent = `SCORE FINAL: ${Math.floor(state.score).toLocaleString()}`;
+            
+            // 6. Confetti no Recorde (No final da função gameOver)
+            if (state.score > state.best) {
+                OrkaStorage.save('pulse_v3_best', state.score);
+                state.best = state.score;
+                highScoreEl.textContent = `NOVO RECORDE: ${state.best.toLocaleString()}!`;
+                OrkaFX.confetti(80); // Explosão maior para o recorde
+                OrkaFX.toast("RECORD BREAK! 🔥", "success");
+            }
+        }
+
+        startBtn.onclick = startGame;
+    </script>
+</body>
+</html>

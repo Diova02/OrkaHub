@@ -1,7 +1,7 @@
-import { OrkaCloud } from './core/scripts/orka-cloud.js';
-import { OrkaFX, OrkaMath } from './core/scripts/orka-lib.js'; 
+import { OrkaCloud } from './core/orka-cloud.js';
+import { OrkaFX, OrkaMath } from './core/orka-lib.js'; 
 import { translations } from './translate.js'; 
-import { OrkaPet } from './core/scripts/orka-pet.js'; // PET bro
+import { OrkaPet } from './core/orka-pet.js'; // PET bro
 import { gamesList, shelves, gamesTags } from './games.js'
 
 // NOTA: jsPDF agora é carregado via <script> no HTML, não via import, para evitar erros de módulo.
@@ -579,10 +579,6 @@ function updateAuthMsg(text, type) {
 }
 
 // =========================================================
-//  ADMIN DASHBOARD 2.0 (BI Edition)
-// =========================================================
-
-// =========================================================
 //  ADMIN DASHBOARD 2.0 (BI Edition) - CONSOLIDADO
 // =========================================================
 
@@ -603,6 +599,7 @@ async function loadAdminDashboard() {
         const { data, error } = await supabase
             .from('game_sessions_dashboard')
             .select('*')
+            .not('game_id', 'is', null)
             .order('total_play_time_seconds', { ascending: false });
 
         if (error) throw error;
@@ -615,8 +612,33 @@ async function loadAdminDashboard() {
         renderAdminTable(data);
         renderAdminChart(data);
 
+        // 1. TEMPO BRUTO (Soma de tudo: Jogos + Hub)
+        const totalBrutoSeconds = data.reduce((acc, curr) => acc + (curr.total_play_time_seconds || 0), 0);
+
+        // 2. NAVEGAÇÃO (Apenas quando o game_id é 'orkahub')
+        const navigationData = data.find(s => s.game_id === 'orkahub');
+        const totalNavigationSeconds = navigationData ? navigationData.total_play_time_seconds : 0;
+
+        // 3. TEMPO LÍQUIDO (Total Bruto menos o tempo do Hub)
+        const totalLiquidoSeconds = totalBrutoSeconds - totalNavigationSeconds;
+
+        // --- ATUALIZAÇÃO DOS ELEMENTOS NO HTML ---
+
+        // Tempo BRUTO (Total Geral)
+        updateElement('adm-total-time', formatDuration(totalBrutoSeconds)); 
+
+        // Tempo LÍQUIDO (De fato jogando - adm-playtime)
+        updateElement('adm-playtime', formatDuration(totalLiquidoSeconds));
+
+        // NAVEGAÇÃO (Explorando o Hub - adm-hubtime)
+        updateElement('adm-hubtime', formatDuration(totalNavigationSeconds));
+
+        // Sessões e Usuários (Mantendo a lógica anterior)
         const totalUsers = data.reduce((acc, curr) => acc + (curr.unique_players || 0), 0);
+        const totalSessions = data.reduce((acc, curr) => acc + (curr.total_sessions || 0), 0);
+
         updateElement('adm-users', totalUsers);
+        updateElement('adm-sessions', totalSessions);
 
         updateAuthMsg("Dashboard atualizado!", "correct");
 
@@ -626,7 +648,7 @@ async function loadAdminDashboard() {
     }
 }
 
-// 2. RENDERIZAÇÃO DA TABELA
+// 2. RENDERIZAÇÃO DA TABELA REFORMULADA
 function renderAdminTable(stats) {
     const tbody = document.querySelector('#adm-games-table tbody');
     if (!tbody) return;
@@ -643,9 +665,12 @@ function renderAdminTable(stats) {
                 <td style="text-align:left; font-weight:bold; display:flex; align-items:center;">
                     ${icon} ${title}
                 </td>
-                <td>${stat.total_sessions}</td>
                 <td>${stat.unique_players}</td>
-                <td title="Média/Player: ${formatDuration(stat.avg_time_per_player_seconds)}" style="color:var(--orka-accent); font-family:monospace;">
+                <td>${stat.total_sessions}</td>
+                <td style="color:var(--orka-accent); font-family:monospace;">
+                    ${formatDuration(stat.avg_session_time_seconds)}
+                </td>
+                <td style="font-weight:600;">
                     ${formatDuration(stat.total_play_time_seconds)}
                 </td>
             </tr>
@@ -742,7 +767,6 @@ document.getElementById('btn-run-cleaner')?.addEventListener('click', async () =
 });
 
 // Verifica quais jogos o usuário já interagiu hoje (ganhou ou perdeu)
-// No script.js, substitua a antiga checkDailyStatus por esta:
 // --- FUNÇÃO DE STATUS DIÁRIO ---
 
 async function fetchDailyStatus() {

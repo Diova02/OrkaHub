@@ -7,11 +7,11 @@ import { dictionary } from './trad.js';
 import { 
     OrkaFX, OrkaDate, OrkaStorage, Utils, 
     OrkaI18n, OrkaAutocomplete, OrkaTutorial, OrkaCalendar 
-} from '../../core/scripts/orka-lib.js';
+} from '../../core/orka-lib.js';
 
 // 1. IMPORTAÇÃO DA NOVA ARQUITETURA
-import { OrkaGameManager } from '../../core/scripts/orka-game-manager.js'; 
-import { OrkaCloud } from '../../core/scripts/orka-cloud.js'; // Ainda usada para loads específicos
+import { OrkaGameManager } from '../../core/orka-game-manager.js'; 
+import { OrkaCloud } from '../../core/orka-cloud.js'; // Ainda usada para loads específicos
 
 // ==========================================
 // 1. CONFIGURAÇÃO & DADOS
@@ -179,13 +179,13 @@ function processGuessFromInput(data) {
     saveProgress();
     OrkaAutocomplete.clear("guess-input");
 
-    // NOVO: Checkpoint do Game Manager
-    // Isso garante que se o user sair agora, sabemos que ele tentou X vezes e qual foi o último score
-    Game.checkpoint({
-        attempts: gameState.attemptsCount, // ISSO vai aparecer no metadata agora
-        last_guess: guessObj.nome.pt,
-        current_status: 'guessing'
-    });
+    // // NOVO: Checkpoint do Game Manager
+    // // Isso garante que se o user sair agora, sabemos que ele tentou X vezes e qual foi o último score
+    // Game.checkpoint({
+    //     attempts: gameState.attemptsCount, // ISSO vai aparecer no metadata agora
+    //     last_guess: guessObj.nome.pt,
+    //     current_status: 'guessing'
+    // });
     
     if (guessObj.nome.pt === gameState.targetAnimal.nome.pt) {
         endGame(true);

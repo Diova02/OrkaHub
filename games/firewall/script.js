@@ -1,6 +1,6 @@
 //incluir o sistema de sessões simples da OrkaCloud.js
-import { OrkaCloud } from  '../../core/scripts/orka-cloud.js';
-import { OrkaFX, OrkaStorage, OrkaUI, OrkaMath, Utils } from '../../core/scripts/orka-lib.js';
+import { OrkaCloud } from  '../../core/orka-cloud.js';
+import { OrkaFX, OrkaStorage, OrkaUI, OrkaMath, Utils } from '../../core/orka-lib.js';
 import { UPGRADES_DEF, ARTIFACTS_DEF, ENEMIES_DEF, AUDIOS_DEF, waveMap, SKINS_CONFIG, userInventory } from './data.js';
 import { Drop, Bullet, Enemy, Player } from './classes.js';
 import { OrkaAudio } from '../../orkaAudio/dist/orka-audio.js';

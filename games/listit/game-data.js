@@ -1,4 +1,4 @@
-import { OrkaMath } from '../../core/scripts/orka-lib.js';
+import { OrkaMath } from '../../core/orka-lib.js';
 
 // Mapa de tradução dos tipos de comparação
 export const TYPE_TRANSLATIONS = {

@@ -1,6 +1,6 @@
-import { OrkaCloud } from '../../core/scripts/orka-cloud.js';
-import { OrkaGameManager } from '../../core/scripts/orka-game-manager.js';
-import { OrkaMath, OrkaAudio, OrkaFX, OrkaCalendar, OrkaTutorial, Utils, OrkaStorage } from '../../core/scripts/orka-lib.js';
+import { OrkaCloud } from '../../core/orka-cloud.js';
+import { OrkaGameManager } from '../../core/orka-game-manager.js';
+import { OrkaMath, OrkaAudio, OrkaFX, OrkaCalendar, OrkaTutorial, Utils, OrkaStorage } from '../../core/orka-lib.js';
 import { GameData, TYPE_TRANSLATIONS } from './game-data.js';
 
 const GAME_ID = 'listit';
@@ -55,7 +55,7 @@ async function loadGame(dateObj) {
     btnSubmit.disabled = false;
     document.getElementById('feedback-msg').textContent = "";
 
-    Game.checkpoint({ status: 'level_load', date: getDateKey(dateObj) });
+    // Game.checkpoint({ status: 'level_load', date: getDateKey(dateObj) });
 
     // ... (displays de data mantém igual) ...
     const dateOptions = { day: '2-digit', month: 'long' };
@@ -371,7 +371,7 @@ function handleDrop(e) {
 
         OrkaAudio.play('pop', 0.6);
         renderGrid();
-        Game.checkpoint({ action: 'swap', attempts: state.attempts });
+        // Game.checkpoint({ action: 'swap', attempts: state.attempts });
     }
     return false;
 }
@@ -405,7 +405,7 @@ function handleTouchEnd(e) {
 
         OrkaAudio.play('pop', 0.6);
         renderGrid();
-        Game.checkpoint({ action: 'swap_touch', attempts: state.attempts });
+        // Game.checkpoint({ action: 'swap_touch', attempts: state.attempts });
     }
     touchSrc.classList.remove('dragging');
     touchSrc = null;
@@ -436,7 +436,7 @@ async function handleSubmit() {
 
     if (newLocked.length > 0) OrkaAudio.play('lock');
     
-    Game.checkpoint({ action: 'submit', attempts: state.attempts, correct_count: correctCount });
+    // Game.checkpoint({ action: 'submit', attempts: state.attempts, correct_count: correctCount });
 
     if (correctCount === state.items.length) {
         await finishGame(true);

@@ -1,6 +1,6 @@
-import { OrkaCloud } from '../../core/scripts/orka-cloud.js';
-import { OrkaGameManager } from '../../core/scripts/orka-game-manager.js'; // NOVO IMPORT
-import { OrkaFX, OrkaMath, OrkaStorage, OrkaAudio, OrkaCalendar, Utils, OrkaTutorial } from '../../core/scripts/orka-lib.js';
+import { OrkaCloud } from '../../core/orka-cloud.js';
+import { OrkaGameManager } from '../../core/orka-game-manager.js'; // NOVO IMPORT
+import { OrkaFX, OrkaMath, OrkaStorage, OrkaAudio, OrkaCalendar, Utils, OrkaTutorial } from '../../core/orka-lib.js';
 
 // =========================
 // CONFIGURAÇÕES

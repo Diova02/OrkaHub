@@ -1,4 +1,3 @@
-// core/scripts/orka-cloud.js
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2?bundle&target=browser'
 
 const CONFIG = {
@@ -176,8 +175,6 @@ async function saveGame(gameId, data, dateRef = null) {
 
     if (error) console.error("❌ Erro ao salvar na nuvem:", error);
 }
-
-// core/scripts/orka-cloud.js
 
 async function submitScore(gameId, score, dateRef = null) {
     if (!state.user) {

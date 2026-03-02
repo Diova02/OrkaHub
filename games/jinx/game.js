@@ -1,6 +1,6 @@
-import { OrkaGameManager } from '../../core/scripts/orka-game-manager.js';
-import { OrkaCloud } from '../../core/scripts/orka-cloud.js';
-import { OrkaFX, OrkaUI, OrkaI18n, OrkaAutocomplete, Utils } from '../../core/scripts/orka-lib.js';
+import { OrkaGameManager } from '../../core/orka-game-manager.js';
+import { OrkaCloud } from '../../core/orka-cloud.js';
+import { OrkaFX, OrkaUI, OrkaI18n, OrkaAutocomplete, Utils } from '../../core/orka-lib.js';
 import Traducao from './trad.js';
 import { palavrasPT, palavrasEN } from './palavras.js';
 
@@ -131,7 +131,7 @@ document.getElementById('btn-create').addEventListener('click', async () => {
     if (error) return OrkaFX.toast(OrkaI18n.t('errCreate'), 'error');
     
     // Checkpoint: Criou sala
-    Game.checkpoint({ action: 'create_room', room_code: code });
+    //Game.checkpoint({ action: 'create_room', room_code: code });
     enterRoom(data);
 });
 
@@ -149,7 +149,7 @@ async function joinRoom(code) {
     const { data, error } = await supabase.from('jinx_rooms').select('*').eq('code', code).single();
     if (error || !data) return OrkaFX.toast(OrkaI18n.t('errNotFound'), 'error');
     
-    Game.checkpoint({ action: 'join_room', room_code: code });
+    //Game.checkpoint({ action: 'join_room', room_code: code });
     enterRoom(data);
 }
 
@@ -335,7 +335,7 @@ async function resetRound() {
     await Promise.all(promises);
     await supabase.from('jinx_rooms').update({ used_words: state.usedWords, current_round: nextRound, round_start_time: new Date() }).eq('id', state.roomId);
     
-    Game.checkpoint({ action: 'next_round', round: nextRound });
+    // Game.checkpoint({ action: 'next_round', round: nextRound });
 }
 
 async function resetGameRoom() {
@@ -352,7 +352,7 @@ async function resetGameRoom() {
     );
     await Promise.all(updatePromises);
     
-    Game.checkpoint({ action: 'reset_game' });
+    //Game.checkpoint({ action: 'reset_game' });
 }
 
 async function sendWord() {
@@ -383,19 +383,19 @@ async function sendWord() {
         .eq('player_id', state.playerId).eq('room_id', state.roomId);
         
     // Checkpoint pessoal: Palavra enviada
-    Game.checkpoint({ action: 'word_sent', word_length: finalWord.length });
+    //Game.checkpoint({ action: 'word_sent', word_length: finalWord.length });
 }
 
 async function finishGame(winningWord) {
     // [CORREÇÃO] Não usamos endGame aqui para não matar a sessão do lobby.
     // Usamos checkpoint para registrar que uma rodada foi concluída.
-    Game.checkpoint({ 
-        event: 'round_win',
-        round: state.round, 
-        players_count: state.players.length,
-        role: state.isHost ? 'host' : 'guest',
-        winning_word: winningWord
-    });
+    // Game.checkpoint({ 
+    //     event: 'round_win',
+    //     round: state.round, 
+    //     players_count: state.players.length,
+    //     role: state.isHost ? 'host' : 'guest',
+    //     winning_word: winningWord
+    // });
     
     // Atualiza status da sala no Supabase
     await supabase.from('jinx_rooms')
