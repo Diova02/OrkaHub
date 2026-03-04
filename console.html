@@ -635,20 +635,49 @@ syncProfile();
 
 import { gamesList } from './games.js';
 
-function loadGameMetadata(gameId) {
+async function loadGameMetadata(gameId) {
     const game = gamesList.find(g => g.id === gameId);
     if (!game) return;
     
-    // Influenciadores
-    if (game && game.influencers && game.influencers.length > 0) {
-        document.getElementById('influencers-section').style.display = 'block';
+    // --- SEÇÃO DE INFLUENCIADORES COM FETCH DO BANCO ---
+    if (game.influencers && game.influencers.length > 0) {
+        const influencersSection = document.getElementById('influencers-section');
         const list = document.getElementById('influencers-list');
-        list.innerHTML = game.influencers.map(inf => `
-            <div class="influencer-card" onclick="window.open('${inf.channel}', '_blank')">
-                <img src="${inf.avatar}" alt="${inf.nick}">
-                <span>${inf.nick}</span>
-            </div>
-        `).join('');
+        
+        // 1. Pegamos apenas os IDs dos influenciadores listados no games.js
+        const influencerIds = game.influencers.map(inf => inf.id);
+
+        try {
+            const supabase = OrkaCloud.getClient();
+            
+            // 2. Buscamos no banco os dados reais (nickname e profile_image)
+            const { data: profiles, error } = await supabase
+                .from('players')
+                .select('id, nickname, profile_image')
+                .in('id', influencerIds);
+
+            if (error) throw error;
+
+            if (profiles && profiles.length > 0) {
+                influencersSection.style.display = 'block';
+                
+                // 3. Cruzamos os dados do Banco com o Link do Canal do games.js
+                list.innerHTML = profiles.map(profile => {
+                    const config = game.influencers.find(inf => inf.id === profile.id);
+                    const avatarUrl = `assets/avatars/${profile.profile_image || 'default'}.png`;
+                    
+                    //abrir o canal do influenciador em uma nova aba limpa, sem permanecer nas dependências do site
+                    return ` 
+                        <div class="influencer-card" onclick="window.open('${config.channel}', '_blank')"> 
+                            <img src="${avatarUrl}" alt="${profile.nickname}">
+                            <span>${profile.nickname}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+        } catch (err) {
+            console.error("Erro ao carregar influenciadores:", err);
+        }
     }
 
     // Descrição

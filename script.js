@@ -823,6 +823,42 @@ async function fetchDailyStatus() {
     return statusMap;
 }
 
+// --- LÓGICA DO MODAL DE APOIO (PIX) ---
+const modalSupport = document.getElementById('modal-support');
+const btnOpenSupport = document.querySelector('.btn-coffee'); // Seleciona o link/botão existente
+const btnCloseSupport = document.getElementById('btn-close-support');
+const btnCopyPix = document.getElementById('btn-copy-pix');
+
+// Abrir Modal (Prevenindo o comportamento padrão do link #)
+btnOpenSupport?.addEventListener('click', (e) => {
+    e.preventDefault();
+    modalSupport.classList.add('active');
+});
+
+// Fechar Modal
+btnCloseSupport?.addEventListener('click', () => modalSupport.classList.remove('active'));
+
+// Copiar Chave PIX
+btnCopyPix?.addEventListener('click', async () => {
+    const pixValue = document.getElementById('pix-key-value').value;
+    try {
+        await navigator.clipboard.writeText(pixValue);
+        OrkaFX.toast("Chave copiada! Valeu demais! ☕", "success");
+        
+        // Feedback visual no botão
+        const icon = btnCopyPix.querySelector('.material-icons');
+        icon.textContent = 'check';
+        setTimeout(() => icon.textContent = 'content_copy', 2000);
+    } catch (err) {
+        OrkaFX.toast("Erro ao copiar chave.", "wrong");
+    }
+});
+
+// Fechar ao clicar fora
+modalSupport?.addEventListener('click', (e) => {
+    if (e.target === modalSupport) modalSupport.classList.remove('active');
+});
+
 // ==========================================
 // EVENTO TEMPORÁRIO: ANIVERSÁRIO
 // ==========================================
