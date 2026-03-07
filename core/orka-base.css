@@ -113,7 +113,7 @@ body {
 }
 .modal-overlay.active { opacity: 1; pointer-events: all; }
 .modal-content {
-    background: #111; border: 1px solid var(--orka-border); padding: 25px; border-radius: 8px;
+    background: #111; border: 1px solid var(--orka-border); padding: 15px; border-radius: 8px;
     width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; text-align: center;
     box-shadow: 0 0 30px rgba(0, 85, 255, 0.2);
 }
@@ -128,8 +128,6 @@ body {
 .toast.error { border-left-color: var(--status-wrong); }
 .toast.success { border-left-color: var(--status-correct); }
 
-
-
 /* Animações Genéricas */
 @keyframes fadeInOut { 0% { opacity: 0; transform: translateY(-10px); } 10% { opacity: 1; transform: translateY(0); } 90% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-10px); } }
 @keyframes fall { 0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; } 100% { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
@@ -143,8 +141,6 @@ body {
     z-index: 9999;
     opacity: 0.8;
 }
-
-
 
 /* =========================================
    CALENDÁRIO (Componente Completo)
@@ -287,9 +283,6 @@ body {
 }
 
 /* =========================================
-   ESTILOS ESPECÍFICOS: TUTORIAL (Adicionar ao orka-base.css)
-   ========================================= */
-/* =========================================
    ATUALIZAÇÃO TUTORIAL & BOTÕES
    Adicionar ao final do orka-base.css
    ========================================= */
@@ -351,10 +344,10 @@ body {
     color: var(--orka-accent);
     text-transform: uppercase;
     font-size: 1.2rem;
-    margin-bottom: 10px;
+    margin-bottom: 5px;
     letter-spacing: 1px;
     border-bottom: 1px solid var(--orka-border);
-    padding-bottom: 15px;
+    padding-bottom: 10px;
 }
 
 /* Estilo das Sugestões */
@@ -488,7 +481,6 @@ body {
 }
 
 /* --- NAVEGAÇÃO DE ABAS: Rolagem Lateral --- */
-/* --- CORREÇÃO DAS ABAS (NAV) --- */
 .hub-tabs {
     display: flex !important;
     justify-content: flex-start !important; /* MUDANÇA CHAVE: Garante que o texto comece do início */
@@ -540,7 +532,7 @@ body {
     max-width: 450px;
     max-height: 85vh; /* Garante que nunca saia da tela verticalmente */
     overflow-y: auto;
-    margin: 5vh auto;
+    
     box-sizing: border-box;
 }
 
@@ -644,6 +636,7 @@ body {
 /* ========================================================= */
 /* ORKA ADS - BANNERS LATERAIS (DESKTOP)                     */
 /* ========================================================= */
+
 .orka-ad-lateral {
     position: fixed;
     top: 50%;

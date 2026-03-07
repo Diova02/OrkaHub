@@ -51,11 +51,23 @@ button:disabled { background: #333; opacity: 0.5; }
 .suggestion-item:hover, .suggestion-item.active { background: var(--orka-accent); color: white; }
 
 /* GRID */
-.results-container { width: 95%; max-width: 850px; overflow-x: auto; padding-bottom: 20px; flex-grow: 1; }
+.results-container { width: 100%; max-width: 940px; overflow-x: auto; padding-bottom: 20px; flex-grow: 1; }
 .grid-header, .guess-row {
     display: grid; 
-    grid-template-columns: 2fr 1fr 1.2fr 1.5fr 1.5fr 1.2fr 1.3fr 1fr 1.2fr; 
-    gap: 4px; min-width: 700px; margin-bottom: 4px; margin-left: 30px;
+    grid-template-columns: 60px 140px 80px 100px 120px 130px 100px 80px 80px; 
+    gap: 5px; 
+    min-width: 900px; /* Garante que o scroll horizontal apareça se a tela for pequena */
+    margin-bottom: 4px;
+    margin-left: 0px; /* Removi o margin-left 30px para centralizar melhor */
+}
+
+/* 2. Estilo da miniatura do animal */
+.animal-thumb {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid #333;
 }
 .header-cell { font-size: 0.7rem; text-transform: uppercase; color: #888; text-align: center; }
 .cell {
@@ -81,6 +93,28 @@ button:disabled { background: #333; opacity: 0.5; }
 /* MODAIS & TOASTS */
 .animal-reveal-img { width: 100%; max-width: 300px; height: auto; border-radius: 8px; margin: 15px auto; display: block; }
 .modal-btn { margin-top: 20px; padding: 10px 30px; background: white; color: black; border: none; font-weight: bold; cursor: pointer; border-radius: 20px; }
+#modal-end .modal-content {
+    background: rgba(17, 17, 17, 0.9); /* Transparência leve */
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 85, 255, 0.3); /* Brilho azul Orka */
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 85, 255, 0.1);
+    border-radius: 16px; /* Bordas mais arredondadas são tendência */
+}
+
+#end-title {
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    background: linear-gradient(to bottom, #fff, #888);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+}
+
+/* Opcional: Garante que o parágrafo logo abaixo também não empurre o conteúdo */
+#modal-end p#end-msg {
+    margin-top: 5px;
+}
 
 /* ANIMAÇÕES DAS CÉLULAS */
 @keyframes fadeInOut { 0% { opacity: 0; transform: translateY(-10px); } 10% { opacity: 1; transform: translateY(0); } 90% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-10px); } }
@@ -161,6 +195,21 @@ button:disabled { background: #333; opacity: 0.5; }
     }
 }
 
+/* Ajuste Mobile */
+@media (max-width: 480px) {
+    :root {
+        --mobile-grid-width: 850px; /* Largura fixa total no scroll mobile */
+    }
+    .grid-header, .guess-row {
+        grid-template-columns: 50px 110px 70px 80px 100px 110px 90px 70px 70px;
+        min-width: var(--mobile-grid-width);
+    }
+    .animal-thumb {
+        width: 30px;
+        height: 30px;
+    }
+}
+
 /* Mensagem de Estado Vazio */
 #empty-state {
     text-align: center;
@@ -216,6 +265,7 @@ button:disabled { background: #333; opacity: 0.5; }
     height: auto;    /* Mantém a proporção original */
     z-index: 0;   /* Garante que a imagem fique acima de outros elementos */
     opacity: 10%;
+    pointer-events: none; /* Permite clicar através da imagem */
 }
 
 .imagem-canto-direita {
@@ -224,8 +274,96 @@ button:disabled { background: #333; opacity: 0.5; }
     transform: scaleX(-1);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1000px) {
 .imagem-canto-esquerda, .imagem-canto-direita {
-        width: 0px;
+        display: none;
     }   
+}
+
+@media (max-width: 480px) {
+    :root {
+        /* Reduzimos a largura total para ~580px para que mais colunas caibam na tela */
+        --mobile-grid-width: 580px; 
+        --mobile-scale-font: 0.7rem;
+    }
+
+    .grid-header, .guess-row {
+        /* Ajuste fino das larguras para espremer o conteúdo */
+        /* Foto(40) + Nome(90) + Peso(60) + Dieta(70) + Hab(80) + Cont(80) + Classe(70) + Pop(50) + Ciclo(40) */
+        grid-template-columns: 40px 90px 60px 70px 80px 80px 70px 50px 40px;
+        min-width: var(--mobile-grid-width);
+        gap: 2px;
+    }
+
+    .cell {
+        font-size: var(--mobile-scale-font);
+        padding: 4px 1px;
+    }
+
+    /* Diminuir ícones no mobile para não quebrarem a linha */
+    .cell .material-icons {
+        font-size: 1rem !important;
+    }
+
+    .animal-thumb {
+        width: 25px;
+        height: 25px;
+    }
+}
+
+/* Container Principal */
+.end-summary-box {
+    display: none;
+    width: 95%;
+    max-width: 600px;
+    margin: 20px auto;
+    background: #111;
+    border: 2px solid var(--orka-accent);
+    border-radius: 12px;
+    overflow: hidden; /* IMPORTANTE: Garante que nada vaze */
+    padding: 0; /* Tiramos o padding do box para a imagem encostar se quiser */
+}
+
+.summary-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Container da Imagem com Aspect Ratio */
+.summary-image-container {
+    width: 100%;
+    max-width: 350px;
+    height: 250px; /* Altura fixa para manter o design */
+    margin: 15px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.summary-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Faz a imagem preencher o espaço sem distorcer */
+}
+
+.summary-animal-name {
+    font-size: 1.8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: white;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.summary-stats {
+    color: #ccc;
+    font-size: 1rem;
+    margin-bottom: 20px;
 }

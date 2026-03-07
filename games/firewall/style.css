@@ -292,3 +292,8 @@ input[type=range] { width: 200px; cursor: pointer; }
     border-color: #00ffcc;
     background: rgba(0, 255, 204, 0.1);
 }
+
+
+* {
+    -webkit-tap-highlight-color: transparent;
+}

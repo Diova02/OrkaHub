@@ -201,7 +201,7 @@ document.getElementById("submit-btn").addEventListener("click", () => {
 // ==========================================
 // 5. RENDERIZAÇÃO (REFATORADO)
 // ==========================================
-function renderRow(guess, isReveal = false) {
+async function renderRow(guess, isReveal = false) {
     const row = document.createElement("div");
     row.className = "guess-row";
     if (isReveal) row.classList.add("revealed");
@@ -213,6 +213,18 @@ function renderRow(guess, isReveal = false) {
         div.innerHTML = html;
         row.appendChild(div);
     };
+    
+    const imgCell = document.createElement("div");
+    imgCell.className = "cell img-cell";
+    
+    // Tenta buscar a imagem usando o Utils do Orka
+    const imageData = await Utils.preloadImages([{ name: guess.nome.pt }]);
+    if (imageData[0].imgUrl) {
+        imgCell.innerHTML = `<img src="${imageData[0].imgUrl}" class="animal-thumb">`;
+    } else {
+        imgCell.innerHTML = `<span class="material-icons" style="font-size:1.2rem; color:#444">help_outline</span>`;
+    }
+    row.appendChild(imgCell);
 
     // 1. Nome
     const dName = currentLang === 'pt' ? guess.nome.pt : guess.nome.en;
@@ -252,10 +264,18 @@ function renderRow(guess, isReveal = false) {
     else pArrow = gIdx < tIdx ? "↑" : "↓";
     createCell(`${guess.populacao} <div class='arrow'>${pArrow}</div>`, pClass);
 
-    // --- COLUNA DE VIDA REMOVIDA AQUI ---
+    // 8. Ciclo (Substituindo texto por ícone)
+    const cicloIcons = {
+        "Diurno": "light_mode",
+        "Noturno": "dark_mode",
+        "Crepuscular": "wb_twilight",
+        "Catemeral": "published_with_changes",
+        "Irrelevante": "blur_off"
+    };
 
-    // 8. Ciclo
-    createCell(formatTerm(guess.ciclo), guess.ciclo === target.ciclo ? "correct" : "wrong");
+    const iconName = cicloIcons[guess.ciclo] || "help_outline";
+    const cicloHtml = `<span class="material-icons" title="${formatTerm(guess.ciclo)}">${iconName}</span>`;
+    createCell(cicloHtml, guess.ciclo === target.ciclo ? "correct" : "wrong");
 
     if (isReveal) {
         gridBody.appendChild(row);
@@ -353,39 +373,81 @@ async function loadProgress() {
     }
 }
 
-function getCloudGameId() {
-    const dateStr = gameState.currentDate.toISOString().split('T')[0];
-    return `${GAME_ID}_${dateStr}`;
-}
-
+// --- LÓGICA DE ENCERRAMENTO ---
 async function endGame(win) {
     gameState.isGameOver = true;
     endTime = Date.now();
+    
+    // Bloqueia interações
     document.getElementById("guess-input").disabled = true;
     document.getElementById("submit-btn").disabled = true;
     
-    if (!win) renderRow(gameState.targetAnimal, true);
-    await saveProgress();
+    const dateRef = getCurrentDateRef(); // Pega YYYY-MM-DD
+    const dataParaSalvar = {
+        guessed: Array.from(gameState.guessedNames),
+        over: true,
+        win: win,
+        startT: startTime,
+        endT: endTime,
+        attempts: gameState.attemptsCount
+    };
 
-    fillEndModal(win);
+    // 1. Salva na Nuvem (Prioridade)
+    await OrkaCloud.saveGame(GAME_ID, dataParaSalvar, dateRef);
     
+    // 2. Colore o Calendário
+    OrkaStorage.updateCalendarStatus(gameState.currentDate, win ? 'win' : 'lose');
+
+    // 3. UI: Confetti e Modal
+    if (win) OrkaFX.confetti();
+    fillEndModal(win); 
+    setTimeout(() => { Utils.toggleModal('modal-end', true); }, 500);
+
+    // 4. Seção End-Summary (Preenchimento sem vazamento)
+    await fillEndSummary(win);
+
+    // 5. Ganhar o Bolo (Apenas no dia real)
     const isToday = gameState.currentDate.toDateString() === new Date().toDateString();
-    
-    if (win) { 
-        OrkaFX.confetti(); 
-        if (isToday) {
-            Game.endGame('win', { attempts: gameState.attemptsCount });
-            OrkaFX.toast(OrkaI18n.t('toastWin') + " (+1 🎂)", "success");
-        } else {
-            Game.endGame('win', { note: 'past_date' });
-            OrkaFX.toast(OrkaI18n.t('toastWin'), "success");
-        }
-    } else { 
-        Game.endGame('lose', { attempts: gameState.attemptsCount });
-        OrkaFX.toast(OrkaI18n.t('toastLose'), "error"); 
+    if (isToday) {
+        Game.endGame(win ? 'win' : 'lose', { attempts: gameState.attemptsCount });
+        if (win) OrkaFX.toast(OrkaI18n.t('toastWin') + " (+1 🎂)", "success");
     }
+}
+
+async function fillEndSummary(win) {
+    const summaryBox = document.getElementById("page-end-summary");
+    const animal = gameState.targetAnimal;
+    const animalName = currentLang === 'pt' ? animal.nome.pt : animal.nome.en;
     
-    setTimeout(() => { Utils.toggleModal('modal-end', true); }, 1500);
+    // Busca imagem via API do Orka
+    const imageData = await Utils.preloadImages([{ name: animal.nome.pt }]);
+    const imgUrl = imageData[0].imgUrl || "";
+
+    // Injeção de HTML com estrutura de contenção
+    summaryBox.innerHTML = `
+        <div class="summary-wrapper">
+            <h2 class="summary-title" style="color: ${win ? 'var(--status-correct)' : 'var(--status-wrong)'}">
+                ${win ? OrkaI18n.t('winTitle') : OrkaI18n.t('loseTitle')}
+            </h2>
+            
+            <div class="summary-image-container">
+                <img src="${imgUrl}" alt="${animalName}" class="summary-img">
+            </div>
+
+            <div class="summary-info">
+                <span class="summary-animal-name">${animalName}</span>
+                <p class="summary-stats">
+                    ${win 
+                        ? OrkaI18n.t('animalFound').replace('{animal}', animalName).replace('{attempts}', `<b>${gameState.attemptsCount}</b>`)
+                        : OrkaI18n.t('animalReveal').replace('{animal}', animalName)}
+                </p>
+                <button class="share-btn" onclick="shareResult()">
+                    <span class="material-icons">share</span> COMPARTILHAR
+                </button>
+            </div>
+        </div>
+    `;
+    summaryBox.style.display = "flex";
 }
 
 async function fillEndModal(win) {
@@ -499,5 +561,19 @@ window.shareResult = function() {
 
 window.closeModal = (id) => Utils.toggleModal(id, false);
 // REMOVIDO: window.onbeforeunload (O GameManager já cuida disso)
+
+// Seleciona todos os overlays de modal
+const overlays = document.querySelectorAll('.modal-overlay');
+
+overlays.forEach(overlay => {
+    overlay.addEventListener('click', (e) => {
+        // Se o clique foi exatamente no fundo (overlay) e não dentro do conteúdo (content)
+        if (e.target === overlay) {
+            // Assume que você tem uma função closeModal definida
+            const modalId = overlay.id;
+            closeModal(modalId);
+        }
+    });
+});
 
 initGame();

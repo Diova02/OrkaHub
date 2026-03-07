@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Dethrone - Game Test</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="player2-area" class="player-area">
+            <div id="p2-hand" class="hand-zone"></div>
+            <div class="field">
+                <div id="p2-royal" class="royal-line"></div>
+                <div id="p2-front" class="front-line"></div>
+            </div>
+            <div class="player-stats" id="p2-stats"></div>
+        </div>
+
+        <hr>
+
+        <div id="game-controls">
+            <h2 id="current-phase">FASE: ---</h2>
+            <h3 id="game-status">STATUS: ---</h3>
+            <button id="btn-next-phase">Próxima Fase</button>
+        </div>
+
+        <hr>
+
+        <div id="player1-area" class="player-area active">
+            <div class="player-stats" id="p1-stats"></div>
+            <div class="field">
+                <div id="p1-front" class="front-line"></div>
+                <div id="p1-royal" class="royal-line"></div>
+            </div>
+            <div id="p1-hand" class="hand-zone"></div>
+        </div>
+    </div>
+
+    <script type="module" src="ui-controller.js"></script>
+</body>
+</html>

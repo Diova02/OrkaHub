@@ -200,7 +200,7 @@
 
 main{
     width: 100%;            /* Força a ocupar a largura da tela */
-    max-width: 900px;       /* Impede que fique largo demais em monitores grandes */
+    max-width: 1200px;       /* Impede que fique largo demais em monitores grandes */
     flex: 1;                /* Garante que o main empurre o footer para baixo */
     display: flex;          /* Mantém a organização interna */
     flex-direction: column;
