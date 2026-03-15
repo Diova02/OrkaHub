@@ -34,6 +34,7 @@ let state = {
     timeLimit: 90,
     roundStartTime: null,
     timerInterval: null,
+    freeMode: false,
 };
 
 const screens = {
@@ -112,10 +113,13 @@ function setInternalLang(fullLang) {
 
 // --- LÓGICA DE SALA ---
 
-document.getElementById('btn-create').addEventListener('click', async () => {
+// --- NOVA FUNÇÃO DE CRIAR SALA ---
+async function createRoom(isPublic = false) {
     if(!state.playerId) return OrkaFX.toast("Conectando...", "info");
 
     const code = Math.random().toString(36).substring(2, 6).toUpperCase();
+    
+    // Adicionamos a flag is_public no insert
     const { data, error } = await supabase.from('jinx_rooms')
         .insert({ 
             code, 
@@ -124,15 +128,54 @@ document.getElementById('btn-create').addEventListener('click', async () => {
             used_words: [], 
             current_round: 1, 
             time_limit: 90, 
-            round_start_time: new Date() 
+            round_start_time: new Date(),
+            is_public: isPublic 
         })
         .select().single();
     
     if (error) return OrkaFX.toast(OrkaI18n.t('errCreate'), 'error');
     
-    // Checkpoint: Criou sala
-    //Game.checkpoint({ action: 'create_room', room_code: code });
     enterRoom(data);
+}
+
+// O botão de criar sala privada (com código) chama a função passando false
+document.getElementById('btn-create').addEventListener('click', () => createRoom(false));
+
+// --- LÓGICA DE QUICK PLAY (PARTIDA PÚBLICA) ---
+async function quickPlay() {
+    if(!state.playerId) return OrkaFX.toast("Conectando...", "info");
+
+    OrkaFX.toast("Buscando partidas...", "info");
+
+    // 1. Tenta achar uma sala pública, esperando jogadores, no mesmo idioma
+    const { data, error } = await supabase.from('jinx_rooms')
+        .select('*')
+        .eq('status', 'waiting')
+        .eq('is_public', true)
+        .eq('language', state.language)
+        .limit(1)
+        .maybeSingle();
+
+    if (error) {
+        console.error("Erro no matchmaking:", error);
+        return OrkaFX.toast("Erro ao buscar partidas", "error");
+    }
+
+    if (data) {
+        // Achou sala, entra nela direto!
+        OrkaFX.toast("Sala encontrada!", "success");
+        enterRoom(data);
+    } else {
+        // Não achou sala pública disponível, cria uma nova
+        OrkaFX.toast("Criando nova sala pública...", "info");
+        await createRoom(true); 
+    }
+}
+
+// Já vamos deixar o listener preparado para o botão que criaremos no HTML depois
+document.addEventListener('DOMContentLoaded', () => {
+    const btnQuickPlay = document.getElementById('btn-quick-play');
+    if(btnQuickPlay) btnQuickPlay.addEventListener('click', quickPlay);
 });
 
 document.getElementById('btn-join').addEventListener('click', () => {
@@ -157,6 +200,7 @@ async function enterRoom(roomData) {
     state.roomId = roomData.id;
     state.roomCode = roomData.code;
     state.usedWords = roomData.used_words || [];
+    state.freeMode = roomData.free_mode || false;
     
     setInternalLang(roomData.language);
     const shortLang = roomData.language.startsWith('en') ? 'en' : 'pt';
@@ -357,20 +401,25 @@ async function resetGameRoom() {
 
 async function sendWord() {
     const rawInput = inputs.word.value.trim();
+    if (!rawInput) return; // Previne envio vazio
+
     let finalWord = Utils.normalize(rawInput).toUpperCase(); 
     const normalizedInput = Utils.normalize(rawInput);
-    const match = state.dictionary.find(w => Utils.normalize(w) === normalizedInput);
     
-    if (match) {
-        finalWord = match; 
-    } else {
-        OrkaFX.toast(OrkaI18n.t('unknownWord'), 'error');
-        OrkaFX.shake('word-input');
-        return;
+    // Verifica o dicionário APENAS se não estiver no Modo Livre
+    if (!state.freeMode) {
+        const match = state.dictionary.find(w => Utils.normalize(w) === normalizedInput);
+        if (match) {
+            finalWord = match; 
+        } else {
+            OrkaFX.toast(OrkaI18n.t('unknownWord') || 'Palavra desconhecida!', 'error');
+            OrkaFX.shake('word-input');
+            return;
+        }
     }
 
     if (state.usedWords.includes(finalWord)) { 
-        OrkaFX.toast(OrkaI18n.t('usedWord'), 'error'); 
+        OrkaFX.toast(OrkaI18n.t('usedWord') || 'Palavra já usada!', 'error'); 
         OrkaFX.shake('word-input');
         return; 
     }
@@ -381,9 +430,6 @@ async function sendWord() {
     await supabase.from('jinx_room_players')
         .update({ is_ready: true, current_word: finalWord })
         .eq('player_id', state.playerId).eq('room_id', state.roomId);
-        
-    // Checkpoint pessoal: Palavra enviada
-    //Game.checkpoint({ action: 'word_sent', word_length: finalWord.length });
 }
 
 async function finishGame(winningWord) {

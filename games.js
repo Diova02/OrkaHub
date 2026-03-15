@@ -2,7 +2,35 @@
 export const gamesList = [
     { id: 'zoo', type: 'daily', title: 'ORKA ZOO', allowPortrait: true, releaseDate: '2026-01-05', lastUpdate: '2026-01-31', active: true,
         
-        // description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc a justo congue, tristique tortor non, ullamcorper metus. Praesent pharetra dui est, faucibus pharetra enim tristique quis. Nunc tempor lobortis magna. Donec ut venenatis mauris, a ultricies nulla. In convallis lacinia luctus. Pellentesque fringilla est quis molestie commodo. Morbi tempus, sapien vitae lacinia fringilla, neque orci fringilla nulla, ut rhoncus ligula augue et odio. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. In pharetra arcu nisi, eu aliquet ipsum dictum quis. Etiam sed dictum velit, at pretium nisi. Curabitur porttitor vulputate elementum. Ut vulputate lorem eget leo vestibulum, efficitur suscipit lectus scelerisque. Integer quis mi in mauris tristique hendrerit eu vitae justo. Phasellus vulputate orci elit, at fringilla elit vehicula nec.<br>Proin elit nisl, aliquam sed diam ac, tincidunt egestas dui. Ut nec lacus vel leo laoreet porttitor. Nam aliquet finibus erat, non luctus elit maximus id. Pellentesque porta lobortis est, consectetur gravida orci fermentum congue. Nulla non tellus est. Aenean eu sapien quis purus vehicula auctor. Interdum et malesuada fames ac ante ipsum primis in faucibus. Sed feugiat ut ligula volutpat semper. Sed malesuada bibendum sem id vehicula. Etiam ex ex, porttitor non aliquet sit amet, egestas id turpis. Donec malesuada est non eros convallis, nec convallis tortor tincidunt. Proin in est porttitor, elementum velit ac, ullamcorper leo. Quisque nisi nisi, fringilla non vestibulum at, fermentum eget sapien. Nulla ornare, neque scelerisque ornare commodo, nisl est mollis dolor, nec tincidunt est libero sed velit. Pellentesque rutrum, nulla et lacinia bibendum, nunc ante sodales urna, nec dictum neque erat ac odio.<br>Suspendisse potenti. Morbi at nibh facilisis, vestibulum purus quis, suscipit dui. Curabitur a augue semper, cursus justo sit amet, tristique metus. Cras vel sem euismod, eleifend odio at, imperdiet mi. Aliquam sollicitudin odio et rhoncus luctus. Pellentesque dictum vitae libero at volutpat. Curabitur ac tempus est. Cras a felis ut elit mattis suscipit nec ac augue. Integer semper tincidunt egestas.<br>Nunc nec tortor id mauris malesuada venenatis sit amet eget leo. Vestibulum tempus lectus et ornare gravida. Maecenas iaculis, diam vel dignissim consectetur, elit lectus pellentesque sem, vel sodales felis ante eget leo. Nunc a lacus in nibh pellentesque ultrices quis vel sapien. Ut lacus mi, tincidunt eu faucibus eget, rhoncus et risus. Phasellus pharetra congue tortor vel consectetur. Pellentesque volutpat dignissim diam sit amet mollis. Fusce ut dolor quis nisi posuere sagittis. Nullam accumsan turpis augue, eu imperdiet orci efficitur eu. In mollis, odio porta ullamcorper ultricies, orci lacus luctus mi, quis pharetra leo turpis ac sapien. Praesent bibendum sollicitudin porta. Proin vulputate egestas nulla ac porttitor. Proin venenatis enim eget porttitor consequat.',
+        description: `
+        <span style="font-size:16px;"><b>🦁 Bem-vindo(a) ao <span style="color:#2f9e44;">Orka Zoo</span> 🐾</b></span><br><br>
+
+        Todos os dias, um novo animal misterioso aguarda para ser descoberto. Sua missão é simples: usar lógica, conhecimento e um pouco de intuição para revelar qual criatura está escondida no zoológico da Orka.<br><br>
+
+        Digite o nome de um animal na caixa de busca e faça seu palpite. A cada tentativa, o jogo revelará pistas comparando o animal que você escolheu com o animal secreto do dia. Observe atentamente as informações — elas são a chave para chegar à resposta correta.<br><br>
+
+        <b>As pistas são baseadas nas seguintes categorias:</b><br>
+        • <b>Peso</b><br>
+        • <b>Dieta</b> (Herbívoro, Carnívoro, Onívoro...)<br>
+        • <b>Habitat</b> (Aquático, Aéreo, Terrestre...)<br>
+        • <b>Continente</b> onde a espécie é encontrada<br>
+        • <b>Classe / Subclasse</b> biológica<br>
+        • <b>População média</b> estimada (milhares, milhões ou bilhões)<br>
+        • <b>Ciclo circadiano</b> — para os verdadeiros exploradores da natureza 🌙☀️<br><br>
+
+        <b>Interprete as cores das células para se aproximar da resposta:</b><br>
+        🟩 <b>Verde</b> — Característica correta.<br>
+        🟥 <b>Vermelho</b> — Característica incorreta.<br>
+        🟨 <b>Amarelo</b> — Existe semelhança, mas não corresponde exatamente ao animal secreto.<br><br>
+
+        Cada palpite revela novas pistas. Compare as características, refine sua estratégia e veja quantas tentativas você precisa para descobrir o animal do dia.<br><br>
+
+        Boa sorte, explorador — o zoológico está cheio de segredos esperando para serem revelados. 🐘🦉🐢<br><br>
+
+        <span style="opacity:0.8;">Desenvolvido por <b>Diova</b> • <a href="https://orka-hub.vercel.app" target="_blank">Orka Studio</a> • 2026</span>
+        `,
+
+
         influencers: [
         //     { id: 'player_1', channel: 'https://youtube.com/c/gameplayrj' },
              { id: '611e833c-0a72-4fd8-b712-6ad5dbdce7c8', channel: 'https://youtube.com/@Orka.Studio' }

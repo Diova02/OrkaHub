@@ -356,7 +356,7 @@ export const palavrasPT = [
   "Renúncia", "Ribeirão", "Roldana", "Roteador", "Roteirista", "Sarcasmo", "Seringa", "Serralheiro", "Sertão", "Silicato", 
   "Sino", "Soberba", "Soldado", "Sondador", "Sossego", "Suporte", "Tecelão", "Topógrafo", "Torpor", "Tradutor", 
   "Trinco", "Triturador", "Tubo", "Turfa", "Ufania", "Utopia", "Velejador", "Vigor", "Vingança", "Volante", "Zelo",
-  "Ninho", "Cigarro", "Charuto", "Cadeado"
+  "Ninho", "Cigarro", "Charuto", "Cadeado", "Castor", "Abacate", "Caroço", "Axolote", "Crista", 
 ];
 
 export const palavrasEN = [

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Orka Lab</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/monokai.min.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <aside class="lab-sidebar" id="lab-sidebar">
+        <div class="sidebar-header">
+            <h2>Meus Projetos</h2>
+            <button id="btn-new-project" class="btn-icon" title="Novo Projeto">
+                <span class="material-icons">add</span>
+            </button>
+        </div>
+        <div class="project-list" id="project-list"></div>
+    </aside>
+
+    <header class="lab-header">
+        <div class="header-left">
+            <button id="btn-menu" class="btn-icon" style="margin-right: 10px;"><span class="material-icons">menu</span></button>
+            <div style="display: flex; flex-direction: column;">
+                <a href="./../index.html" class="btn-icon" style="text-decoration: none; margin-right: 10px;" title="Voltar ao Hub">
+                    <span class="material-icons">arrow_back</span>
+                </a>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                    <span class="material-icons" style="font-size: 1rem; color: var(--orka-accent);">code</span>
+                    <h1 style="font-size: 0.9rem; margin: 0;">ORKA LAB</h1>
+                </div>
+                <span id="active-project-name" style="font-size: 0.75rem; color: #aaa; cursor: pointer;" title="Renomear Projeto">
+                    Meu Projeto <span class="material-icons" style="font-size: 0.7rem;">edit</span>
+                </span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button id="btn-export" class="btn-icon" title="Exportar .zip"><span class="material-icons">folder_zip</span></button>
+            <button id="btn-clear" class="btn-icon" title="Limpar Código"><span class="material-icons">delete_outline</span></button>
+            <button id="btn-run" class="btn-primary"><span class="material-icons">refresh</span> RODAR</button>
+        </div>
+    </header>
+
+    <div class="mobile-toolbar" id="mobile-toolbar">
+        <button class="shortcut-key">&lt;</button>
+        <button class="shortcut-key">&gt;</button>
+        <button class="shortcut-key">/</button>
+        <button class="shortcut-key">{</button>
+        <button class="shortcut-key">}</button>
+        <button class="shortcut-key">(</button>
+        <button class="shortcut-key">)</button>
+        <button class="shortcut-key">;</button>
+        <button class="shortcut-key">"</button>
+        <button class="shortcut-key">=</button>
+    </div>
+
+    <main class="lab-container">
+        <div id="view-editor" class="view-section active">
+            <div id="editor-html" class="editor-pane active"></div>
+            <div id="editor-css" class="editor-pane"></div>
+            <div id="editor-js" class="editor-pane"></div>
+        </div>
+
+        <div id="view-preview" class="view-section">
+            <iframe id="preview-frame" sandbox="allow-scripts allow-forms allow-modals"></iframe>
+            
+            <div class="lab-console-panel" id="lab-console-panel">
+                <div class="console-header-bar" onclick="this.parentElement.classList.toggle('expanded')">
+                    <span><span class="material-icons" style="font-size: 1rem; vertical-align: bottom;">terminal</span> Console</span>
+                    <span class="material-icons expand-icon">expand_less</span>
+                </div>
+                <div class="console-output" id="console-output"></div>
+            </div>
+        </div>
+    </main>
+
+    <nav class="bottom-nav">
+        <button class="nav-btn active" data-target="html" data-view="editor">
+            <span class="material-icons">html</span><small>HTML</small>
+        </button>
+        <button class="nav-btn" data-target="css" data-view="editor">
+            <span class="material-icons">css</span><small>CSS</small>
+        </button>
+        <button class="nav-btn" data-target="js" data-view="editor">
+            <span class="material-icons">javascript</span><small>JS</small>
+        </button>
+        <div class="nav-divider"></div>
+        <button class="nav-btn run-btn" data-view="preview">
+            <span class="material-icons">visibility</span><small>Ver</small>
+        </button>
+    </nav>
+
+    <div id="orka-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h3 id="modal-title">Título</h3>
+            <p id="modal-message">Mensagem</p>
+            <input type="text" id="modal-input" autocomplete="off">
+            <div class="modal-actions">
+                <button id="modal-btn-cancel" class="btn-text">Cancelar</button>
+                <button id="modal-btn-confirm" class="btn-primary">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

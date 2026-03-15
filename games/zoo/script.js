@@ -215,16 +215,22 @@ async function renderRow(guess, isReveal = false) {
     };
     
     const imgCell = document.createElement("div");
-    imgCell.className = "cell img-cell";
-    
-    // Tenta buscar a imagem usando o Utils do Orka
-    const imageData = await Utils.preloadImages([{ name: guess.nome.pt }]);
-    if (imageData[0].imgUrl) {
-        imgCell.innerHTML = `<img src="${imageData[0].imgUrl}" class="animal-thumb">`;
-    } else {
-        imgCell.innerHTML = `<span class="material-icons" style="font-size:1.2rem; color:#444">help_outline</span>`;
-    }
-    row.appendChild(imgCell);
+imgCell.className = "cell img-cell skeleton"; // Começa com skeleton
+
+const tempImg = new Image();
+const imageData = await Utils.preloadImages([{ name: guess.nome.pt }]);
+
+if (imageData[0]?.imgUrl) {
+    tempImg.src = imageData[0].imgUrl;
+    tempImg.onload = () => {
+        imgCell.classList.remove("skeleton"); // Remove o efeito
+        imgCell.innerHTML = `<img src="${tempImg.src}" class="animal-thumb">`;
+    };
+} else {
+    imgCell.classList.remove("skeleton");
+    imgCell.innerHTML = `<span class="material-icons">help_outline</span>`;
+}
+row.appendChild(imgCell);
 
     // 1. Nome
     const dName = currentLang === 'pt' ? guess.nome.pt : guess.nome.en;
@@ -320,30 +326,19 @@ async function saveProgress() {
 async function loadProgress() {
     const dateRef = getCurrentDateRef();
     
-    // 1. Tenta carregar da Nuvem usando a nova assinatura (ID, DataRef)
+    // 1. Tenta carregar da Nuvem (ID do jogo, Referência de Data)
     let data = await OrkaCloud.loadSave(GAME_ID, dateRef);
 
-    // Fallback: Se não tem na nuvem, tenta local e migra
+    // Fallback para Local se a nuvem falhar/estiver vazia
     if (!data) {
         data = OrkaStorage.load(getStorageKey());
-        
-        // Se achou localmente e o jogo já acabou, salva na nuvem para persistir
-        if (data && data.over) {
-            console.log(`☁️ Migrando save local de ${dateRef} para nuvem...`);
-            OrkaCloud.saveGame(GAME_ID, data, dateRef);
-        }
     }
 
-    // ... Resto da lógica de renderização (mantém igual) ...
     if (data) {
         startTime = data.startT;
         endTime = data.endT;
-        // (O resto do seu código de loadProgress continua aqui...)
-        if (data.guessed && data.guessed.length > 0) {
-             const emptyState = document.getElementById("empty-state");
-             if(emptyState) emptyState.style.display = "none";
-        }
 
+        // Limpa e reconstrói a grade de chutes
         gridBody.innerHTML = "";
         gameState.guessedNames.clear();
         gameState.attemptsCount = 0;
@@ -360,15 +355,18 @@ async function loadProgress() {
         }
         attemptDisplay.textContent = gameState.attemptsCount;
         
+        // --- PONTO CRÍTICO: Restaurar estado de finalização ---
         if(data.over) {
             gameState.isGameOver = true;
             document.getElementById("guess-input").disabled = true;
             document.getElementById("submit-btn").disabled = true;
+            
+            // Se perdeu, revela o animal alvo no final
             if (!data.win) renderRow(gameState.targetAnimal, true);
             
-            const isToday = gameState.currentDate.toDateString() === new Date().toDateString();
-            fillEndModal(data.win); 
-            if (isToday) Utils.toggleModal('modal-end', true);
+            // Preenche o resumo e o modal
+            fillEndModal(data.win);
+            fillEndSummary(data.win); // Sua nova função de resumo fixo
         }
     }
 }
@@ -378,11 +376,13 @@ async function endGame(win) {
     gameState.isGameOver = true;
     endTime = Date.now();
     
-    // Bloqueia interações
     document.getElementById("guess-input").disabled = true;
     document.getElementById("submit-btn").disabled = true;
     
-    const dateRef = getCurrentDateRef(); // Pega YYYY-MM-DD
+    if (win) OrkaFX.confetti();
+    if (!win) renderRow(gameState.targetAnimal, true);
+
+    const dateRef = getCurrentDateRef(); // Retorna string YYYY-MM-DD
     const dataParaSalvar = {
         guessed: Array.from(gameState.guessedNames),
         over: true,
@@ -392,26 +392,26 @@ async function endGame(win) {
         attempts: gameState.attemptsCount
     };
 
-    // 1. Salva na Nuvem (Prioridade)
+    // 1. Salva na Nuvem e no LocalStorage
     await OrkaCloud.saveGame(GAME_ID, dataParaSalvar, dateRef);
-    
-    // 2. Colore o Calendário
-    OrkaStorage.updateCalendarStatus(gameState.currentDate, win ? 'win' : 'lose');
+    OrkaStorage.save(getStorageKey(), dataParaSalvar);
 
-    // 3. UI: Confetti e Modal
-    if (win) OrkaFX.confetti();
-    fillEndModal(win); 
-    setTimeout(() => { Utils.toggleModal('modal-end', true); }, 500);
+    // 2. CORREÇÃO DO ERRO: Ordem correta (Date, Status, GameID)
+    // Garantimos que passamos o objeto Date, não a string
+    OrkaStorage.updateCalendarStatus(gameState.currentDate, win ? 'win' : 'lose', GAME_ID);
 
-    // 4. Seção End-Summary (Preenchimento sem vazamento)
+    // 3. UI e Recompensas
     await fillEndSummary(win);
-
-    // 5. Ganhar o Bolo (Apenas no dia real)
+    fillEndModal(win);
+    
     const isToday = gameState.currentDate.toDateString() === new Date().toDateString();
     if (isToday) {
+        // MANAGER: Computa o bolo 🎂
         Game.endGame(win ? 'win' : 'lose', { attempts: gameState.attemptsCount });
         if (win) OrkaFX.toast(OrkaI18n.t('toastWin') + " (+1 🎂)", "success");
     }
+
+    setTimeout(() => { Utils.toggleModal('modal-end', true); }, 1500);
 }
 
 async function fillEndSummary(win) {
@@ -522,7 +522,7 @@ function tryLoadImage(img, name, formats, idx) {
 }
 
 window.shareResult = function() {
-    OrkaCloud.trackEvent('share_result', { win: gameState.isGameOver });
+    //OrkaCloud.trackEvent('share_result', { win: gameState.isGameOver });
     const dateStr = gameState.currentDate.toLocaleDateString('pt-BR');
     const attemptStr = gameState.isGameOver ? gameState.attemptsCount : "X";
     let text = `🦁 Orka Zoo ${dateStr}\n${OrkaI18n.t('attempts')}: ${attemptStr}/10\n\n`;
