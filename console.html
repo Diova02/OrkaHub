@@ -190,6 +190,7 @@
             }
             .action-text { display: none; }
             .btn-console { padding: 10px; border-radius: 50%; }
+            .main { margin: 2px; padding: 0px;}
         }
 
         .console-header {
@@ -270,6 +271,7 @@
             max-width: 100% !important;
             width: 100vw !important; /* Força a largura total da tela */
             justify-content: flex-start; 
+            margin: 0;
         }
 
         .game-wrapper {
@@ -296,6 +298,13 @@
                 width: 90vw !important;
                 max-width: none !important;
                 margin: 0;
+            }
+        }
+
+        @media (max-width: 500px) {
+            .game-wrapper {
+                max-width: 95vw !important; /* Quebra qualquer limite do orka-base */
+                width: 100% !important;
             }
         }
 
@@ -373,66 +382,66 @@
         }
 
         /* Container Padrão para manter alinhamento e margens */
-.console-section {
-    width: 100%;
-    max-width: 940px;
-    margin: auto; /* Centralizado, respeitando o limite */
-    padding: 0 20px;
-    box-sizing: border-box;
-}
+        .console-section {
+            width: 100%;
+            max-width: 940px;
+            margin: auto; /* Centralizado, respeitando o limite */
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
 
-/* Seção de Influenciadores */
-.influencers-tray {
-    display: flex;
-    gap: 15px;
-    overflow-x: auto;
-    padding-bottom: 10px;
-    scrollbar-width: none;
-}
-.influencers-tray::-webkit-scrollbar { display: none; }
+        /* Seção de Influenciadores */
+        .influencers-tray {
+            display: flex;
+            gap: 15px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            scrollbar-width: none;
+        }
+        .influencers-tray::-webkit-scrollbar { display: none; }
 
-.influencer-card {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: rgba(255,255,255,0.04);
-    padding: 8px 16px;
-    border-radius: 20px;
-    border: 1px solid rgba(255,255,255,0.1);
-    white-space: nowrap;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.influencer-card:hover { border-color: var(--orka-accent); background: rgba(0,85,255,0.1); }
-.influencer-card img { width: 28px; height: 28px; border-radius: 50%; }
+        .influencer-card {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255,255,255,0.04);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .influencer-card:hover { border-color: var(--orka-accent); background: rgba(0,85,255,0.1); }
+        .influencer-card img { width: 28px; height: 28px; border-radius: 50%; }
 
-/* Seção de Descrição (Expansível) */
-.dev-info-box {
-    background: rgba(0, 0, 0, 0.02);
-    border: 1px solid rgba(139, 139, 139, 0.05);
-    border-radius: 12px;
-    padding: 20px;
-    color: #ccc;
-    font-size: 0.95rem;
-    line-height: 1.6;
-    max-height: 120px; /* Altura inicial */
-    overflow: hidden;
-    position: relative;
-    cursor: pointer;
-    transition: max-height 0.5s ease, background 0.3s;
-}
-.dev-info-box:hover { background: rgba(255,255,255,0.04); }
-.dev-info-box.expanded { max-height: 1000px; } /* Altura máxima expansiva */
-.dev-info-box::after {
-    content: "LER MAIS...";
-    position: absolute;
-    bottom: 0; right: 0;
-    padding: 20px 20px 10px 50px;
-    background: linear-gradient(to right, transparent, #050505 40%);
-    font-size: 0.7rem; color: var(--orka-accent);
-    font-weight: bold;
-}
-.dev-info-box.expanded::after { content: "OCULTAR"; }
+        /* Seção de Descrição (Expansível) */
+        .dev-info-box {
+            background: rgba(0, 0, 0, 0.02);
+            border: 1px solid rgba(139, 139, 139, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            color: #ccc;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            max-height: 120px; /* Altura inicial */
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+            transition: max-height 0.5s ease, background 0.3s;
+        }
+        .dev-info-box:hover { background: rgba(255,255,255,0.04); }
+        .dev-info-box.expanded { max-height: 1000px; } /* Altura máxima expansiva */
+        .dev-info-box::after {
+            content: "LER MAIS...";
+            position: absolute;
+            bottom: 0; right: 0;
+            padding: 20px 20px 10px 50px;
+            background: linear-gradient(to right, transparent, #050505 40%);
+            font-size: 0.7rem; color: var(--orka-accent);
+            font-weight: bold;
+        }
+        .dev-info-box.expanded::after { content: "OCULTAR"; }
     </style>
 </head>
 <body>

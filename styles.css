@@ -58,10 +58,9 @@
 
 /* O Card em si */
 .game-card-horizontal {
-    min-width: 240px; /* Desktop */
-    width: 240px;
-    height: 180px;
-    /* ... resto das props ... */
+    min-width: 220px; /* Desktop */
+    width: 220px;
+    height: 175px;
     display: flex;
     flex-direction: column;
     background: #0f0f0f;
@@ -79,14 +78,14 @@
 /* Regra para Mobile */
 @media (max-width: 480px) {
     .game-card-horizontal {
-        min-width: 75vw; /* Ocupa 75% da tela no mobile */
-        width: 75vw;
+        min-width: 75dvw; /* Ocupa 75% da tela no mobile */
+        width: 75dvw;
     }
 }
 
 .card-print {
     width: 100%;
-    height: 110px; /* <--- AJUSTADO: Deixa 70px para o texto, antes era 200px */
+    height: 130px; /* <--- AJUSTADO: Deixa 70px para o texto, antes era 200px */
     background-color: #1a1a1a;
     object-fit: cover;
     border-bottom: 1px solid #222;
@@ -103,7 +102,7 @@
 }
 
 .game-card-horizontal:hover .card-print {
-    filter: brightness(1.1);
+    filter: brightness(1.4);
 }
 
 /* Barra Inferior (Footer do Card) */
@@ -111,7 +110,8 @@
     display: flex;
     flex-direction: column; /* Organiza ícone e texto verticalmente para caber melhor */
     justify-content: space-between;
-    padding: 15px;
+    padding: 0px;
+    padding-left: 5px;
     height: 50%; /* Ocupa o resto do card */
     background: linear-gradient(to bottom, #111, #0a0a0a);
 }
@@ -1084,4 +1084,31 @@ main{
 
 .modal-birthday-active {
     animation: orka-bday-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* Filtro cinza e bloqueio visual para manutenção */
+.game-card-horizontal.in-maintenance {
+    filter: grayscale(0.8);
+    opacity: 0.7;
+    cursor: not-allowed;
+    pointer-events: none; /* Bloqueia cliques em tudo */
+}
+
+/* Se for admin, o pointer-events deve ser reativado via JS ou classe extra */
+.game-card-horizontal.in-maintenance:has(a), 
+a.game-card-horizontal.in-maintenance {
+    pointer-events: auto; 
+    cursor: pointer;
+}
+
+.tag-maintenance {
+    background: #f03e3e; /* Vermelho alerta */
+    color: white;
+    font-size: 0.7rem;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 4px;
+    position: absolute;
+    top: 10px;
+    left: 10px;
 }

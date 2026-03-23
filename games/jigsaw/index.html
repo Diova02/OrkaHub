@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Engine Jigsaw - V3 Debug</title>
+  <style>
+    body { margin: 0; background: #1a1a1a; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: monospace; }
+    #gameContainer { position: relative; box-shadow: 0 0 30px rgba(0,0,0,0.8); }
+    canvas { background: #2c3e50; display: block; }
+    #ui { position: absolute; top: 10px; right: 10px; display: flex; gap: 5px; }
+    button { background: #fff; border: none; padding: 10px 15px; font-size: 18px; cursor: pointer; border-radius: 5px; font-weight: bold;}
+    #winMsg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #0f0; font-size: 50px; font-weight: bold; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px; display: none; pointer-events: none; z-index: 100;}
+    /* Efeito de brilho laminado passando por cima do container */
+    @keyframes shine {
+    0% { left: -100%; }
+    100% { left: 200%; }
+    }
+    #gameContainer.win-mode::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%; width: 50%; height: 100%;
+    background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+    transform: skewX(-25deg);
+    animation: shine 2s infinite;
+    pointer-events: none; /* Para não bugar o mouse */
+    }
+  </style>
+</head>
+<body>
+
+<div id="gameContainer">
+  <div id="ui">
+    <button id="btnZoomIn">+</button>
+    <button id="btnZoomOut">-</button>
+  </div>
+  <div id="winMsg">VITÓRIA CONFIRMADA! 🏆</div>
+  <canvas id="gameCanvas" width="900" height="700"></canvas>
+</div>
+
+<script type="module">
+  import { OrkaAudio } from '../../orkaAudio/dist/orka-audio.js';
+  OrkaAudio.loadAll ({
+        'victory' : './sounds/victory.mp3',
+        'erro_encaixe' : './sounds/erro.mp3',
+        'sucesso_encaixe' : './sounds/snap.mp3',
+        'swoosh' : './sounds/swoosh.mp3',
+  });
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+
+  const CORE_SIZE = 80;
+  const SNAP_RADIUS = 25;
+  const BOX_SIZE = 120; 
+  const FLAP = 20; //(120 - 80) / 2 = 20
+
+  // Carregamento dos Assets (Ajuste os caminhos para as suas imagens)
+    const maskSprite = new Image(); maskSprite.src = 'mask_8x8.png';
+    const baseSprite = new Image(); baseSprite.src = 'base_8x8.png'; // A madeira/fundo escuro
+    const lightSprite = new Image(); lightSprite.src = 'light_8x8.png'; // O bisel/brilho
+    const puzzle = 'coelho_10x8'; //Nome do quebra cabeça
+    const puzzleImage = new Image(); puzzleImage.src = `puzzles/${puzzle}.png`; // A foto que será montada
+
+    const match = puzzle.match(/(\d+)x(\d+)/);
+
+    const COLS = parseInt(match[1]);
+    const ROWS = parseInt(match[2]);
+
+    console.log("ROWS =", ROWS);
+    console.log("COLS =", COLS);
+
+    // Cria o Canvas Invisível na memória
+    const bufferCanvas = document.createElement('canvas');
+    bufferCanvas.width = BOX_SIZE;  // 120
+    bufferCanvas.height = BOX_SIZE; // 120
+    const bufferCtx = bufferCanvas.getContext('2d');
+
+    let isWon = false; // Controla o fim do jogo
+    let shakeData = { active: false, endTime: 0, group: null }; // Controla a tremedeira
+
+    // Dicionário de Tradução: Assinatura da Peça -> Posição na Sprite Sheet (Coluna, Linha)
+    // O formato da chave é "Cima,Direita,Baixo,Esquerda"
+    const SPRITE_MAP = {
+    // --- QUINAS (16 combinações) ---
+    // Quina Superior Esquerda (C=0, E=0)
+    "1,-1,1,1": { c: 0, l: 0 },
+    "1,1,1,-1": { c: 1, l: 0 },
+    "-1,1,1,1": { c: 2, l: 0 },
+    "-1,1,1,-1": { c: 3, l: 0 },
+    "1,-1,1,-1": { c: 4, l: 0 },
+    "1,1,-1,-1": { c: 5, l: 0 },
+    "0,1,1,1": { c: 6, l: 0 },
+    "1,1,-1,1": { c: 7, l: 0 },
+
+    "0,1,1,-1": { c: 0, l: 1 },
+    "0,-1,1,1": { c: 1, l: 1 },
+    "0,-1,1,-1": { c: 2, l: 1 },
+    "-1,-1,-1,-1": { c: 3, l: 1 },
+    "0,1,-1,-1": { c: 4, l: 1 },
+    "0,1,-1,1": { c: 5, l: 1 },
+    "1,0,-1,1": { c: 6, l: 1 },
+    "0,-1,-1,-1": { c: 7, l: 1 },
+    
+    "1,0,-1,-1": { c: 0, l: 2 },
+    "-1,0,-1,1": { c: 1, l: 2 },
+    "-1,0,1,1": { c: 2, l: 2 },
+    "-1,0,1,-1": { c: 3, l: 2 },
+    "-1,0,-1,-1": { c: 4, l: 2 },
+    "-1,-1,1,1": { c: 5, l: 2 },
+    "1,-1,-1,1": { c: 6, l: 2 },
+    "-1,-1,1,-1": { c: 7, l: 2 },
+
+    "-1,1,-1,1": { c: 0, l: 3 },
+    "-1,-1,-1,1": { c: 1, l: 3 },
+    "-1,1,-1,-1": { c: 2, l: 3 },
+    "1,0,1,-1": { c: 3, l: 3 },
+    "1,-1,-1,-1": { c: 4, l: 3 },
+    "1,0,1,1": { c: 5, l: 3 },
+    "0,-1,-1,1": { c: 6, l: 3 },
+    "1,1,1,1": { c: 7, l: 3 },
+
+    "1,1,0,1": { c: 0, l: 4 },
+    "1,-1,0,1": { c: 1, l: 4 },
+    "-1,1,0,1": { c: 2, l: 4 },
+    "1,1,0,-1": { c: 3, l: 4 },
+    "-1,1,0,-1": { c: 4, l: 4 },
+    "1,1,1,0": { c: 5, l: 4 },
+    "1,1,-1,0": { c: 6, l: 4 },
+    "1,-1,0,-1": { c: 7, l: 4 },
+
+    "-1,-1,1,0": { c: 0, l: 5 },
+    "-1,1,-1,0": { c: 1, l: 5 },
+    "1,-1,-1,0": { c: 2, l: 5 },
+    "1,-1,1,0": { c: 3, l: 5 },
+    "0,0,1,-1": { c: 4, l: 5 },
+    "0,0,-1,1": { c: 5, l: 5 },
+    "0,0,-1,-1": { c: 6, l: 5 },
+    "-1,-1,-1,0": { c: 7, l: 5 },
+
+    "0,1,1,0": { c: 0, l: 6 },
+    "0,0,1,1": { c: 1, l: 6 },
+    "-1,1,1,0": { c: 2, l: 6 },
+    "-1,-1,0,-1": { c: 3, l: 6 },
+    "0,1,-1,0": { c: 4, l: 6 },
+    "0,-1,1,0": { c: 5, l: 6 },
+    "0,-1,-1,0": { c: 6, l: 6 },
+    "-1,1,0,0": { c: 7, l: 6 },
+
+    "1,1,0,0": { c: 0, l: 7 },
+    "-1,0,0,1": { c: 1, l: 7 },
+    "1,0,0,-1": { c: 2, l: 7 },
+    "-1,0,0,-1": { c: 3, l: 7 },
+    "-1,-1,0,1": { c: 4, l: 7 },
+    "1,0,0,1": { c: 5, l: 7 },
+    "1,-1,0,0": { c: 6, l: 7 },
+    "-1,-1,0,0": { c: 7, l: 7 }
+
+    // (Você precisará preencher as outras 60 combinações baseadas na ordem da sua arte)
+    // Exemplo de uma peça central com 4 machos: "1,1,1,1": { c: 5, l: 4 }
+    // Exemplo de uma borda direita lisa: "1,0,-1,1": { c: 7, l: 2 }
+    };
+
+    // Função auxiliar para buscar a posição X e Y na Sprite Sheet (cada célula tem 120x120)
+    function getSpriteCoords(edges) {
+    const key = edges.join(',');
+    const pos = SPRITE_MAP[key];
+    if (!pos) return { sx: 0, sy: 0 }; // Fallback de segurança
+    return { sx: pos.c * BOX_SIZE, sy: pos.l * BOX_SIZE };
+    }
+
+  let pieces = {};
+  let movingGroups = [];
+  let activeGroup = null;
+  let dragOffset = { x: 0, y: 0 };
+  
+  let camera = { x: 0, y: 0, zoom: .8 };
+  let isPanning = false;
+
+  function initPuzzle() {
+    let idCounter = 0;
+    const matrix = [];
+    console.log("⚙️ INICIANDO MATRIZ DE PEÇAS...");
+    for (let y = 0; y < ROWS; y++) {
+      matrix[y] = [];
+      for (let x = 0; x < COLS; x++) {
+        const id = idCounter++;
+        const piece = {
+          id: id, col: x, row: y,
+          x: Math.random() * 600 + 100,
+          y: Math.random() * 400 + 100,
+          edges: [0, 0, 0, 0], 
+          connectedTo: [null, null, null, null],
+          color: `hsl(${(id * 40) % 360}, 60%, 50%)`
+        };
+
+        if (y === 0) piece.edges[0] = 0; else piece.edges[0] = -matrix[y - 1][x].edges[2];
+        if (x === 0) piece.edges[3] = 0; else piece.edges[3] = -matrix[y][x - 1].edges[1];
+        piece.edges[1] = (x === COLS - 1) ? 0 : (Math.random() > 0.5 ? 1 : -1);
+        piece.edges[2] = (y === ROWS - 1) ? 0 : (Math.random() > 0.5 ? 1 : -1);
+
+        matrix[y][x] = piece;
+        pieces[id] = piece;
+        movingGroups.push([id]);
+      }
+    }
+  }
+
+  function getEdgePos(piece, edgeIndex) {
+    const cx = piece.x + CORE_SIZE / 2;
+    const cy = piece.y + CORE_SIZE / 2;
+    if (edgeIndex === 0) return { x: cx, y: piece.y };
+    if (edgeIndex === 1) return { x: piece.x + CORE_SIZE, y: cy };
+    if (edgeIndex === 2) return { x: cx, y: piece.y + CORE_SIZE };
+    if (edgeIndex === 3) return { x: piece.x, y: cy };
+  }
+
+  function screenToWorld(sx, sy) {
+    return { x: (sx - camera.x) / camera.zoom, y: (sy - camera.y) / camera.zoom };
+  }
+
+  function getPieceAt(worldX, worldY) {
+    for (let i = movingGroups.length - 1; i >= 0; i--) {
+      for (const id of movingGroups[i]) {
+        const p = pieces[id];
+        if (worldX >= p.x && worldX <= p.x + CORE_SIZE && worldY >= p.y && worldY <= p.y + CORE_SIZE) {
+          return { pieceId: id, groupIndex: i };
+        }
+      }
+    }
+    return null;
+  }
+
+  document.getElementById('btnZoomIn').addEventListener('click', () => { camera.zoom *= 1.2; });
+  document.getElementById('btnZoomOut').addEventListener('click', () => { camera.zoom /= 1.2; });
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const worldBeforeZoom = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+    camera.zoom *= e.deltaY < 0 ? 1.1 : 0.9;
+    camera.x = (e.clientX - rect.left) - worldBeforeZoom.x * camera.zoom;
+    camera.y = (e.clientY - rect.top) - worldBeforeZoom.y * camera.zoom;
+  });
+
+  canvas.addEventListener('pointermove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const worldPos = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+
+    if (!activeGroup && !isPanning) {
+      canvas.style.cursor = getPieceAt(worldPos.x, worldPos.y) ? 'pointer' : 'default';
+    }
+
+    if (isPanning) {
+      camera.x += e.movementX; camera.y += e.movementY;
+      canvas.style.cursor = 'grabbing'; return;
+    }
+
+    if (activeGroup) {
+      canvas.style.cursor = 'grabbing';
+      const anchor = pieces[activeGroup[0]];
+      const dx = (worldPos.x - dragOffset.x) - anchor.x;
+      const dy = (worldPos.y - dragOffset.y) - anchor.y;
+      for (const id of activeGroup) { pieces[id].x += dx; pieces[id].y += dy; }
+    }
+  });
+
+  canvas.addEventListener('dblclick', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const hit = getPieceAt(...Object.values(screenToWorld(e.clientX - rect.left, e.clientY - rect.top)));
+
+    if (hit) {
+      const targetId = hit.pieceId;
+      console.log(`\n✂️ SEPARANDO PEÇA: ${targetId}`);
+      const p = pieces[targetId];
+
+      for (let i = 0; i < 4; i++) { //DESCONECTA AS PEÇAS DOS CONNECTTO
+        let nId = p.connectedTo[i];
+        if (nId !== null) {
+          p.connectedTo[i] = null;
+          pieces[nId].connectedTo[(i + 2) % 4] = null; 
+          console.log(`   Desconectou Peça ${targetId} da Peça ${nId}`);
+        }
+      }
+
+      const oldGroupIndex = movingGroups.findIndex(g => g.includes(targetId));
+      const oldGroup = movingGroups[oldGroupIndex];
+      if (oldGroup.length > 1) { p.x -= 20; p.y -= 20; OrkaAudio.playSFX('swoosh', {volume : 0.1}); }
+      movingGroups.splice(oldGroupIndex, 1);
+
+      let visited = new Set();
+      for (const id of oldGroup) {
+        if (visited.has(id)) continue;
+        let newGroup = [], queue = [id];
+        visited.add(id);
+        while (queue.length > 0) {
+          let currId = queue.shift();
+          newGroup.push(currId);
+          for (let i = 0; i < 4; i++) {
+            let nextId = pieces[currId].connectedTo[i];
+            if (nextId !== null && !visited.has(nextId)) {
+              visited.add(nextId); queue.push(nextId);
+            }
+          }
+        }
+        movingGroups.push(newGroup);
+      }
+    }
+  });
+
+  canvas.addEventListener('pointerdown', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const worldPos = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+    const hit = getPieceAt(worldPos.x, worldPos.y);
+
+    if (hit) {
+      activeGroup = movingGroups[hit.groupIndex];
+      movingGroups.splice(hit.groupIndex, 1);
+      const anchor = pieces[activeGroup[0]];
+      dragOffset.x = worldPos.x - anchor.x;
+      dragOffset.y = worldPos.y - anchor.y;
+      console.log(`\n🤏 PEGOU GRUPO: [${activeGroup}]`);
+    } else {
+      isPanning = true;
+    }
+  });
+
+  canvas.addEventListener('pointerup', () => {
+    isPanning = false;
+    if (!activeGroup) return;
+
+    let snapped = false;
+
+    // Procura o PRIMEIRO gatilho de snap válido
+    for (let p1_id of activeGroup) {
+      let p1 = pieces[p1_id];
+      for (let e1 = 0; e1 < 4; e1++) {
+        if (p1.edges[e1] === 0 || p1.connectedTo[e1] !== null) continue;
+        let pos1 = getEdgePos(p1, e1);
+
+        for (let gIndex = 0; gIndex < movingGroups.length; gIndex++) {
+          let targetGroup = movingGroups[gIndex];
+          
+          for (let p2_id of targetGroup) {
+            let p2 = pieces[p2_id];
+            let e2 = (e1 + 2) % 4;
+            if (p2.edges[e2] === 0 || p2.connectedTo[e2] !== null) continue;
+
+            if (p1.edges[e1] + p2.edges[e2] === 0) {
+              let pos2 = getEdgePos(p2, e2);
+              if (Math.hypot(pos1.x - pos2.x, pos1.y - pos2.y) < SNAP_RADIUS) {
+                
+                // --- INÍCIO DO SIMULADOR FANTASMA V3 ---
+                console.log(`\n👻 INICIANDO SIMULAÇÃO DE SNAP... (Tentativa de ${p1_id} em ${p2_id})`);
+                let dx = pos2.x - pos1.x;
+                let dy = pos2.y - pos1.y;
+                let isCollisionFree = true;
+                let newConnections = [];
+                let touchedGroupsIndices = new Set();
+                touchedGroupsIndices.add(gIndex); // O grupo principal que causou o snap
+
+                for (let simId of activeGroup) {
+                  let simP = pieces[simId];
+                  let fX = simP.x + dx;
+                  let fY = simP.y + dy;
+
+                  for (let tgIndex = 0; tgIndex < movingGroups.length; tgIndex++) {
+                    let otherGroup = movingGroups[tgIndex];
+                    for (let otherId of otherGroup) {
+                      let boardP = pieces[otherId];
+                      
+                      // Regra 1: Sobreposição (Nenhuma peça pode cair exatamente em cima da outra)
+                      if (Math.hypot(fX - boardP.x, fY - boardP.y) < 5) {
+                        console.log(`❌ BLOQUEADO: Sobreposição! Peça ${simId} cairia na Peça ${otherId}`);
+                        isCollisionFree = false; break;
+                      }
+
+                      // Regra 2: Adjacências Físicas (Quem está encostando em quem?)
+                      // CIMA (0) encosta no BAIXO (2)
+                      if (Math.hypot(fX - boardP.x, fY - (boardP.y + CORE_SIZE)) < 5) {
+                        if (simP.edges[0] + boardP.edges[2] !== 0 || simP.edges[0] === 0) {
+                          console.log(`❌ BLOQUEADO: Conflito de aresta Cima(${simId}) x Baixo(${otherId})`);
+                          isCollisionFree = false; break;
+                        }
+                        newConnections.push({ pA: simP, eA: 0, pB: boardP, eB: 2 });
+                        touchedGroupsIndices.add(tgIndex);
+                      }
+                      // DIREITA (1) encosta na ESQUERDA (3)
+                      if (Math.hypot(fX - (boardP.x - CORE_SIZE), fY - boardP.y) < 5) {
+                        if (simP.edges[1] + boardP.edges[3] !== 0 || simP.edges[1] === 0) {
+                          console.log(`❌ BLOQUEADO: Conflito de aresta Dir(${simId}) x Esq(${otherId})`);
+                          isCollisionFree = false; break;
+                        }
+                        newConnections.push({ pA: simP, eA: 1, pB: boardP, eB: 3 });
+                        touchedGroupsIndices.add(tgIndex);
+                      }
+                      // BAIXO (2) encosta em CIMA (0)
+                      if (Math.hypot(fX - boardP.x, fY - (boardP.y - CORE_SIZE)) < 5) {
+                        if (simP.edges[2] + boardP.edges[0] !== 0 || simP.edges[2] === 0) {
+                          console.log(`❌ BLOQUEADO: Conflito de aresta Baixo(${simId}) x Cima(${otherId})`);
+                          isCollisionFree = false; break;
+                        }
+                        newConnections.push({ pA: simP, eA: 2, pB: boardP, eB: 0 });
+                        touchedGroupsIndices.add(tgIndex);
+                      }
+                      // ESQUERDA (3) encosta na DIREITA (1)
+                      if (Math.hypot(fX - (boardP.x + CORE_SIZE), fY - boardP.y) < 5) {
+                        if (simP.edges[3] + boardP.edges[1] !== 0 || simP.edges[3] === 0) {
+                          console.log(`❌ BLOQUEADO: Conflito de aresta Esq(${simId}) x Dir(${otherId})`);
+                          isCollisionFree = false; break;
+                        }
+                        newConnections.push({ pA: simP, eA: 3, pB: boardP, eB: 1 });
+                        touchedGroupsIndices.add(tgIndex);
+                      }
+                      // ... dentro da varredura de colisão ...
+                    if (!isCollisionFree) {
+                    // ATIVA O SHAKE E O SOM DE ERRO
+                    shakeData = { active: true, endTime: Date.now() + 300, group: activeGroup };
+                    OrkaAudio.playSFX('erro_encaixe'); // 🎵 SOM DE ERRO AQUI
+                    break;
+                    }
+                    }
+                    if (!isCollisionFree) break;
+                  }
+                  if (!isCollisionFree) break;
+                }
+
+                // Se a simulação passou em todos os testes, APLICA!
+                if (isCollisionFree) {
+                  console.log(`✅ SNAP ACEITO! Fazendo conexões...`);
+                  OrkaAudio.playSFX('sucesso_encaixe'); // 🎵 SOM DE SUCESSO AQUI
+                  for (let id of activeGroup) { pieces[id].x += dx; pieces[id].y += dy; }
+                  
+                  for (let conn of newConnections) {
+                    conn.pA.connectedTo[conn.eA] = conn.pB.id;
+                    conn.pB.connectedTo[conn.eB] = conn.pA.id;
+                    console.log(`   🔗 Conectou Peça ${conn.pA.id} com Peça ${conn.pB.id}`);
+                  }
+
+                  // Funde todos os grupos tocados em um Mega Grupo
+                  let megaGroup = [...activeGroup];
+                  let indicesToDelete = Array.from(touchedGroupsIndices).sort((a,b) => b-a);
+                  for (let idx of indicesToDelete) {
+                    megaGroup.push(...movingGroups[idx]);
+                    movingGroups.splice(idx, 1);
+                  }
+                  
+                  movingGroups.push(megaGroup);
+                  console.log(`   📦 Novo Grupo Formado: [${megaGroup}]`);
+                  snapped = true;
+                }
+                break;
+              }
+            }
+          }
+          if (snapped) break;
+        }
+        if (snapped) break;
+      }
+      if (snapped) break;
+    }
+
+    if (!snapped) {
+      movingGroups.push(activeGroup); // Devolve pro tabuleiro se não conectou
+    }
+
+    activeGroup = null;
+
+    // --- WIN CONDITION BLINDADA ---
+    if (movingGroups.length === 1 && movingGroups[0].length === COLS * ROWS) {
+      console.log("\n🔍 INICIANDO CHECAGEM DE VITÓRIA...");
+      let win = true;
+      for(let id in pieces) {
+        let p = pieces[id];
+        if (p.col < COLS - 1 && p.connectedTo[1] !== p.id + 1) { win = false; console.log(`   ❌ Erro de matriz: Peça ${p.id} não conectada na direita com ${p.id + 1}`); }
+        if (p.row < ROWS - 1 && p.connectedTo[2] !== p.id + COLS) { win = false; console.log(`   ❌ Erro de matriz: Peça ${p.id} não conectada em baixo com ${p.id + COLS}`); }
+      }
+      if (win && !isWon) {
+        isWon = true; // Desliga a camada 3 no render
+        OrkaAudio.playSFX('victory'); // 🎵 SOM DE VITÓRIA AQUI
+        document.getElementById('winMsg').style.display = 'block';
+        document.getElementById('gameContainer').classList.add('win-mode'); // Brilho laminado
+        console.log("🏆 VITÓRIA CONFIRMADA PELO SISTEMA!");
+        document.getElementById('winMsg').style.display = 'block';
+      } else {
+        console.log("⚠️ As peças estão todas no mesmo grupo, mas a ordem não é a original da imagem!");
+      }
+    }
+  });
+// ==========================================
+  // OTIMIZAÇÃO EXTREMA: O SANDUÍCHE DE CACHE
+  // ==========================================
+  function preRenderPieces() {
+    console.log("📸 PRÉ-RENDERIZANDO PEÇAS COMPLETAS...");
+    const puzzleLogicalWidth = COLS * CORE_SIZE;
+    const puzzleLogicalHeight = ROWS * CORE_SIZE;
+    const scaleX = puzzleImage.width / puzzleLogicalWidth;
+    const scaleY = puzzleImage.height / puzzleLogicalHeight;
+
+    for (let id in pieces) {
+      let p = pieces[id];
+      const coords = getSpriteCoords(p.edges);
+
+      // --- 1. PREPARAÇÃO DA PEÇA COMPLETA (Sanduíche 3D) ---
+      const pieceCanvas = document.createElement('canvas');
+      pieceCanvas.width = BOX_SIZE; pieceCanvas.height = BOX_SIZE;
+      const pCtx = pieceCanvas.getContext('2d');
+
+      // Camada 1: Madeira/Sólido (Efeito 3D)
+      pCtx.drawImage(baseSprite, coords.sx, coords.sy, BOX_SIZE, BOX_SIZE, -1, -1, BOX_SIZE, BOX_SIZE);
+      pCtx.drawImage(baseSprite, coords.sx, coords.sy, BOX_SIZE, BOX_SIZE, 1, 1, BOX_SIZE, BOX_SIZE);
+
+      // Camada 2: A Foto Recortada Dinamicamente
+      bufferCtx.clearRect(0, 0, BOX_SIZE, BOX_SIZE);
+      bufferCtx.drawImage(maskSprite, coords.sx, coords.sy, BOX_SIZE, BOX_SIZE, 0, 0, BOX_SIZE, BOX_SIZE);
+      bufferCtx.globalCompositeOperation = 'source-in';
+      const sourceX = ((p.col * CORE_SIZE) - FLAP) * scaleX;
+      const sourceY = ((p.row * CORE_SIZE) - FLAP) * scaleY;
+      bufferCtx.drawImage(puzzleImage, sourceX, sourceY, BOX_SIZE * scaleX, BOX_SIZE * scaleY, 0, 0, BOX_SIZE, BOX_SIZE);
+      bufferCtx.globalCompositeOperation = 'source-over';
+      
+      // Cola a foto no sanduíche
+      pCtx.drawImage(bufferCanvas, 0, 0);
+
+      // Camada 3: Luz/Bisel
+      pCtx.drawImage(lightSprite, coords.sx, coords.sy, BOX_SIZE, BOX_SIZE, 0, 0, BOX_SIZE, BOX_SIZE);
+
+      // Salva a peça mestre finalizada!
+      p.cachedFullPiece = pieceCanvas; 
+
+      // --- 2. PREPARAÇÃO DA SOMBRA ESTÁTICA ---
+      const shadowCanvas = document.createElement('canvas');
+      shadowCanvas.width = BOX_SIZE; shadowCanvas.height = BOX_SIZE;
+      const sCtx = shadowCanvas.getContext('2d');
+      
+      // Desenhamos a máscara escura e translúcida uma SÓ vez, matando o grayscale pesado!
+      sCtx.globalAlpha = 0.5;
+      sCtx.drawImage(baseSprite, coords.sx, coords.sy, BOX_SIZE, BOX_SIZE, 0, 0, BOX_SIZE, BOX_SIZE);
+      sCtx.globalCompositeOperation = 'source-in';
+      sCtx.fillStyle = '#000'; // Preenche de preto
+      sCtx.fillRect(0, 0, BOX_SIZE, BOX_SIZE);
+      
+      p.cachedShadow = shadowCanvas;
+    }
+  }
+
+  // Não esqueça de chamar preRenderPieces() dentro do window.onload, logo após initPuzzle()!
+
+  // ==========================================
+  // O LOOP DE RENDERIZAÇÃO ULTRA LEVE
+  // ==========================================
+  function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.translate(camera.x, camera.y);
+    ctx.scale(camera.zoom, camera.zoom);
+
+    // 1. GRADE OTIMIZADA (Viewport Culling)
+    // Calcula as bordas visíveis da tela para desenhar SÓ o que a câmera vê
+    const startX = Math.floor(-camera.x / camera.zoom / 100) * 100 - 100;
+    const endX = startX + (canvas.width / camera.zoom) + 200;
+    const startY = Math.floor(-camera.y / camera.zoom / 100) * 100 - 100;
+    const endY = startY + (canvas.height / camera.zoom) + 200;
+
+    ctx.strokeStyle = '#34495e'; 
+    ctx.lineWidth = 1;
+    ctx.beginPath(); // Abre o caminho UMA vez
+    for(let x = startX; x < endX; x += 100) { ctx.moveTo(x, startY); ctx.lineTo(x, endY); }
+    for(let y = startY; y < endY; y += 100) { ctx.moveTo(startX, y); ctx.lineTo(endX, y); }
+    ctx.stroke(); // Desenha todas as linhas de uma SÓ vez!
+
+    let renderOrder = [...movingGroups];
+    if (activeGroup) renderOrder.push(activeGroup);
+
+    // 2. DESENHO DOS GRUPOS
+    for (const group of renderOrder) {
+      const isLifting = (group === activeGroup);
+      
+      let shakeOffsetX = 0;
+      if (shakeData.active && shakeData.group === group) {
+        shakeOffsetX = Date.now() > shakeData.endTime ? (shakeData.active = false, 0) : Math.sin(Date.now() / 15) * 5;
+      }
+
+      // Sombra Dinâmica: Só desenha se a peça estiver sendo segurada
+      if (isLifting) {
+        for (const id of group) {
+          const p = pieces[id];
+          ctx.drawImage(p.cachedShadow, Math.round(p.x - FLAP + 15 + shakeOffsetX), Math.round(p.y - FLAP + 15));
+        }
+      }
+
+      // Peça Completa: Desenha todos os visuais do sanduíche com 1 única chamada!
+      for (const id of group) {
+        const p = pieces[id];
+        const liftY = isLifting ? -5 : 0;
+        
+        ctx.drawImage(
+          p.cachedFullPiece, 
+          Math.round(p.x - FLAP + shakeOffsetX), 
+          Math.round(p.y - FLAP + liftY)
+        );
+      }
+    }
+
+    ctx.restore();
+    requestAnimationFrame(render);
+  }
+
+  window.onload = () => {
+     initPuzzle();
+     preRenderPieces(); // <--- CHAMA O CACHE AQUI!
+     render();
+};
+
+</script>
+</body>
+</html>

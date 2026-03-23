@@ -2,7 +2,7 @@ import { OrkaCloud } from './core/orka-cloud.js';
 import { OrkaFX, OrkaMath } from './core/orka-lib.js'; 
 import { translations } from './translate.js'; 
 import { OrkaPet } from './core/orka-pet.js'; // PET bro
-import { gamesList, shelves, gamesTags } from './games.js'
+import { gamesList, shelves, gamesTags, GAME_STATUS } from './games.js'
 
 // NOTA: jsPDF agora é carregado via <script> no HTML, não via import, para evitar erros de módulo.
 
@@ -51,10 +51,9 @@ function getGameData(game) {
         descKey: `game_${id}_desc`,
         icon: `assets/icons/${id}-logo.png`,
         print: `assets/prints/print-${id}.png`,
-        dev: game.dev || "Orka Studio",
-        // A mágica da URL centralizada no Console Mestre:
-        //playUrl: `console.html?id=${id}&url=games/${id}/&portrait=${game.allowPortrait}&title=${game.title}`
-        playUrl: `console.html?id=${id}&url=games/${id}/&portrait=true&title=${game.title}`
+        dev: game.creator || "Orka Studio", // Agora usa o campo 'creator' refatorado
+        // A URL agora pode usar a info de port se necessário, mas mantemos a base
+        playUrl: `console.html?id=${id}&url=games/${id}/&port=${game.port}&title=${game.title}`
     };
 }
 
@@ -372,14 +371,24 @@ async function renderDynamicHub(langSimple) {
 
     const profile = OrkaCloud.getProfile();
     const isAdmin = profile?.role === 'admin';
+    
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const userPlatform = isMobile ? 'MOBILE' : 'DESKTOP';
 
-    // Filtra a lista global para esta renderização específica
     const authorizedGames = gamesList.filter(game => {
-        // Se tem data de lançamento, qualquer um vê. Se não tem, só admin.
+        // 1. Filtro de Status (Aqui era onde dava o erro)
+        if (game.status === GAME_STATUS.HIDDEN && !isAdmin) return false;
+        if (game.status === GAME_STATUS.SPOILER && !isAdmin) return false;
+
+        // 2. Filtro de Plataforma (Port)
+        if (!isAdmin && game.port !== 'BOTH' && game.port !== userPlatform) return false;
+
+        // 3. Futuro Filtro de Linguagem (Exemplo)
+        // if (!game.languages.includes(langSimple) && !showAllLanguages) return false;
+
         return game.releaseDate || isAdmin;
     });
 
-    // 1. Lógica de Seleção de Categorias
     const thematicKeys = Object.keys(shelves).filter(key => shelves[key].priority === 2);
     const selectedThematics = OrkaMath.shuffle([...thematicKeys]).slice(0, 3);
 
@@ -390,7 +399,6 @@ async function renderDynamicHub(langSimple) {
         shelves.SOON
     ];
 
-    // 2. Renderização das Prateleiras (passando a lista autorizada)
     shelfPlan.forEach(shelf => {
         const gamesForThisShelf = filterGamesByShelf(shelf, authorizedGames);
         if (gamesForThisShelf.length > 0 || shelf.id === 'soon') {
@@ -443,27 +451,38 @@ function renderShelf(shelf, games, container, lang) {
 // 3. Correção da Tag de Atualização
 function createGameCard(game, lang) {
     const data = getGameData(game); 
-    const isNew = checkIsNew(data.releaseDate);
-    // CORREÇÃO: lastUpdate em vez de last_update
-    const isUpdated = checkIsUpdated(data.lastUpdate); 
+    const profile = OrkaCloud.getProfile();
+    const isAdmin = profile?.role === 'admin';
 
-    const card = document.createElement(data.active ? 'a' : 'div');
-    card.className = 'game-card-horizontal';
+    const isNew = checkIsNew(data.releaseDate);
+    const isUpdated = checkIsUpdated(data.lastUpdate); 
     
-    if (data.active) {
+    // NOVO: Lógica de Manutenção
+    const inMaintenance = data.status === GAME_STATUS.MAINTENANCE;
+    
+    // O card só é um link (<a>) se estiver ativo ou se for admin em manutenção
+    const canAccess = data.status === GAME_STATUS.ACTIVE || (inMaintenance && isAdmin);
+    const card = document.createElement(canAccess ? 'a' : 'div');
+    
+    // Adiciona classe de manutenção se necessário
+    card.className = `game-card-horizontal ${inMaintenance ? 'in-maintenance' : ''}`;
+    
+    if (canAccess) {
         card.href = data.playUrl;
     }
 
     let tagHTML = '';
-    if (isNew) {
+    if (inMaintenance) {
+        tagHTML = `<span class="tag-maintenance">MANUTENÇÃO</span>`;
+    } else if (isNew) {
         tagHTML = `<span class="tag-new">NOVO</span>`;
     } else if (isUpdated) {
         tagHTML = `<span class="tag-updated">ATUALIZADO</span>`;
     }
 
-    // Adicionando o rewardHTML (Bolo) se necessário
     let rewardHTML = '';
-    if (data.type === 'daily' && data.active && !dailyStatus[data.id]) {
+    // Só mostra o bolo se estiver ativo e não estiver em manutenção
+    if (data.type === 'daily' && !inMaintenance && !dailyStatus[data.id]) {
         rewardHTML = `<div class="tag-reward"><span class="material-icons" style="font-size:0.9rem;">cake</span></div>`;
     }
 
@@ -478,9 +497,10 @@ function createGameCard(game, lang) {
                 <img src="${data.icon}" class="card-icon">
                 <div class="card-text">
                     <h3>${data.title}</h3>
+                    <small style="opacity:0.7;">${data.dev}</small> 
                 </div>
             </div>
-            ${data.active ? '<div class="card-action"><span class="material-icons">play_arrow</span></div>' : ''}
+            ${canAccess ? '<div class="card-action"><span class="material-icons">play_arrow</span></div>' : ''}
         </div>
     `;
     return card;
