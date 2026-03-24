@@ -24,6 +24,12 @@
     animation: shine 2s infinite;
     pointer-events: none; /* Para não bugar o mouse */
     }
+    canvas {
+      touch-action: none; /* A mágica acontece aqui */
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
   </style>
 </head>
 <body>
@@ -240,87 +246,212 @@
     camera.y = (e.clientY - rect.top) - worldBeforeZoom.y * camera.zoom;
   });
 
-  canvas.addEventListener('pointermove', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const worldPos = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+  // canvas.addEventListener('pointermove', (e) => {
+  //   const rect = canvas.getBoundingClientRect();
+  //   const worldPos = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
 
-    if (!activeGroup && !isPanning) {
-      canvas.style.cursor = getPieceAt(worldPos.x, worldPos.y) ? 'pointer' : 'default';
-    }
+  //   if (!activeGroup && !isPanning) {
+  //     canvas.style.cursor = getPieceAt(worldPos.x, worldPos.y) ? 'pointer' : 'default';
+  //   }
 
-    if (isPanning) {
-      camera.x += e.movementX; camera.y += e.movementY;
-      canvas.style.cursor = 'grabbing'; return;
-    }
+  //   if (isPanning) {
+  //     camera.x += e.movementX; camera.y += e.movementY;
+  //     canvas.style.cursor = 'grabbing'; return;
+  //   }
 
-    if (activeGroup) {
-      canvas.style.cursor = 'grabbing';
-      const anchor = pieces[activeGroup[0]];
-      const dx = (worldPos.x - dragOffset.x) - anchor.x;
-      const dy = (worldPos.y - dragOffset.y) - anchor.y;
-      for (const id of activeGroup) { pieces[id].x += dx; pieces[id].y += dy; }
-    }
-  });
+  //   if (activeGroup) {
+  //     canvas.style.cursor = 'grabbing';
+  //     const anchor = pieces[activeGroup[0]];
+  //     const dx = (worldPos.x - dragOffset.x) - anchor.x;
+  //     const dy = (worldPos.y - dragOffset.y) - anchor.y;
+  //     for (const id of activeGroup) { pieces[id].x += dx; pieces[id].y += dy; }
+  //   }
+  // });
 
-  canvas.addEventListener('dblclick', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const hit = getPieceAt(...Object.values(screenToWorld(e.clientX - rect.left, e.clientY - rect.top)));
+  // canvas.addEventListener('dblclick', (e) => {
+  //   const rect = canvas.getBoundingClientRect();
+  //   const hit = getPieceAt(...Object.values(screenToWorld(e.clientX - rect.left, e.clientY - rect.top)));
 
-    if (hit) {
-      const targetId = hit.pieceId;
-      console.log(`\n✂️ SEPARANDO PEÇA: ${targetId}`);
-      const p = pieces[targetId];
+  //   if (hit) {
+  //     const targetId = hit.pieceId;
+  //     console.log(`\n✂️ SEPARANDO PEÇA: ${targetId}`);
+  //     const p = pieces[targetId];
 
-      for (let i = 0; i < 4; i++) { //DESCONECTA AS PEÇAS DOS CONNECTTO
-        let nId = p.connectedTo[i];
-        if (nId !== null) {
-          p.connectedTo[i] = null;
-          pieces[nId].connectedTo[(i + 2) % 4] = null; 
-          console.log(`   Desconectou Peça ${targetId} da Peça ${nId}`);
-        }
-      }
+  //     for (let i = 0; i < 4; i++) { //DESCONECTA AS PEÇAS DOS CONNECTTO
+  //       let nId = p.connectedTo[i];
+  //       if (nId !== null) {
+  //         p.connectedTo[i] = null;
+  //         pieces[nId].connectedTo[(i + 2) % 4] = null; 
+  //         console.log(`   Desconectou Peça ${targetId} da Peça ${nId}`);
+  //       }
+  //     }
 
-      const oldGroupIndex = movingGroups.findIndex(g => g.includes(targetId));
-      const oldGroup = movingGroups[oldGroupIndex];
-      if (oldGroup.length > 1) { p.x -= 20; p.y -= 20; OrkaAudio.playSFX('swoosh', {volume : 0.1}); }
-      movingGroups.splice(oldGroupIndex, 1);
+  //     const oldGroupIndex = movingGroups.findIndex(g => g.includes(targetId));
+  //     const oldGroup = movingGroups[oldGroupIndex];
+  //     if (oldGroup.length > 1) { p.x -= 20; p.y -= 20; OrkaAudio.playSFX('swoosh', {volume : 0.1}); }
+  //     movingGroups.splice(oldGroupIndex, 1);
 
-      let visited = new Set();
-      for (const id of oldGroup) {
-        if (visited.has(id)) continue;
-        let newGroup = [], queue = [id];
-        visited.add(id);
-        while (queue.length > 0) {
-          let currId = queue.shift();
-          newGroup.push(currId);
-          for (let i = 0; i < 4; i++) {
-            let nextId = pieces[currId].connectedTo[i];
-            if (nextId !== null && !visited.has(nextId)) {
-              visited.add(nextId); queue.push(nextId);
-            }
-          }
-        }
-        movingGroups.push(newGroup);
-      }
-    }
-  });
+  //     let visited = new Set();
+  //     for (const id of oldGroup) {
+  //       if (visited.has(id)) continue;
+  //       let newGroup = [], queue = [id];
+  //       visited.add(id);
+  //       while (queue.length > 0) {
+  //         let currId = queue.shift();
+  //         newGroup.push(currId);
+  //         for (let i = 0; i < 4; i++) {
+  //           let nextId = pieces[currId].connectedTo[i];
+  //           if (nextId !== null && !visited.has(nextId)) {
+  //             visited.add(nextId); queue.push(nextId);
+  //           }
+  //         }
+  //       }
+  //       movingGroups.push(newGroup);
+  //     }
+  //   }
+  // });
+
+  // canvas.addEventListener('pointerdown', (e) => {
+  //   const rect = canvas.getBoundingClientRect();
+  //   const worldPos = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+  //   const hit = getPieceAt(worldPos.x, worldPos.y);
+
+  //   if (hit) {
+  //     activeGroup = movingGroups[hit.groupIndex];
+  //     movingGroups.splice(hit.groupIndex, 1);
+  //     const anchor = pieces[activeGroup[0]];
+  //     dragOffset.x = worldPos.x - anchor.x;
+  //     dragOffset.y = worldPos.y - anchor.y;
+  //     console.log(`\n🤏 PEGOU GRUPO: [${activeGroup}]`);
+  //   } else {
+  //     isPanning = true;
+  //   }
+  // });
+
+  // ==========================================
+  // MÓDULO DE INTERAÇÃO (PC + MOBILE)
+  // ==========================================
+  
+  let lastPointer = { x: 0, y: 0 };
+  let lastTapTime = 0;
 
   canvas.addEventListener('pointerdown', (e) => {
+    // e.preventDefault() aqui ajuda a travar comportamentos nativos extras
+    e.preventDefault(); 
+    
     const rect = canvas.getBoundingClientRect();
-    const worldPos = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+    const clientX = e.clientX;
+    const clientY = e.clientY;
+    const worldPos = screenToWorld(clientX - rect.left, clientY - rect.top);
+
+    // Salva a coordenada exata para calcularmos o Pan da câmera manualmente
+    lastPointer = { x: clientX, y: clientY };
+
+    // --- LÓGICA DO DUPLO CLIQUE UNIVERSAL (Mobile & PC) ---
+    const now = Date.now();
     const hit = getPieceAt(worldPos.x, worldPos.y);
 
+    if (now - lastTapTime < 300 && hit) {
+      // Dispara a desconexão
+      desconectarPeca(hit.pieceId);
+      lastTapTime = 0; // Reseta o timer
+      return;
+    }
+    lastTapTime = now;
+
+    // --- LÓGICA DE PEGAR A PEÇA ---
     if (hit) {
       activeGroup = movingGroups[hit.groupIndex];
       movingGroups.splice(hit.groupIndex, 1);
       const anchor = pieces[activeGroup[0]];
       dragOffset.x = worldPos.x - anchor.x;
       dragOffset.y = worldPos.y - anchor.y;
-      console.log(`\n🤏 PEGOU GRUPO: [${activeGroup}]`);
     } else {
       isPanning = true;
     }
   });
+
+  canvas.addEventListener('pointermove', (e) => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.clientX;
+    const clientY = e.clientY;
+    const worldPos = screenToWorld(clientX - rect.left, clientY - rect.top);
+
+    // Cursor dinâmico
+    if (!activeGroup && !isPanning) {
+      canvas.style.cursor = getPieceAt(worldPos.x, worldPos.y) ? 'pointer' : 'default';
+    }
+
+    // --- CÂMERA (PAN) CORRIGIDA ---
+    if (isPanning) {
+      // Calculamos o delta manualmente, adeus e.movementX!
+      const dx = clientX - lastPointer.x;
+      const dy = clientY - lastPointer.y;
+      camera.x += dx;
+      camera.y += dy;
+      lastPointer = { x: clientX, y: clientY };
+      canvas.style.cursor = 'grabbing'; 
+      return;
+    }
+
+    // --- MOVIMENTO DAS PEÇAS ---
+    if (activeGroup) {
+      canvas.style.cursor = 'grabbing';
+      const anchor = pieces[activeGroup[0]];
+      const dx = (worldPos.x - dragOffset.x) - anchor.x;
+      const dy = (worldPos.y - dragOffset.y) - anchor.y;
+      for (const id of activeGroup) { 
+        pieces[id].x += dx; 
+        pieces[id].y += dy; 
+      }
+    }
+  });
+
+  // Função extraída do seu antigo dblclick para deixar o código limpo
+  function desconectarPeca(targetId) {
+    console.log(`\n✂️ SEPARANDO PEÇA: ${targetId}`);
+    const p = pieces[targetId];
+
+    for (let i = 0; i < 4; i++) { 
+      let nId = p.connectedTo[i];
+      if (nId !== null) {
+        p.connectedTo[i] = null;
+        pieces[nId].connectedTo[(i + 2) % 4] = null; 
+        console.log(`   Desconectou Peça ${targetId} da Peça ${nId}`);
+      }
+    }
+
+    const oldGroupIndex = movingGroups.findIndex(g => g.includes(targetId));
+    if (oldGroupIndex === -1) return;
+
+    const oldGroup = movingGroups[oldGroupIndex];
+    if (oldGroup.length > 1) { 
+      p.x -= 20; 
+      p.y -= 20; 
+      if (typeof OrkaAudio !== 'undefined') OrkaAudio.playSFX('swoosh', {volume : 0.1}); 
+    }
+    
+    movingGroups.splice(oldGroupIndex, 1);
+
+    let visited = new Set();
+    for (const id of oldGroup) {
+      if (visited.has(id)) continue;
+      let newGroup = [], queue = [id];
+      visited.add(id);
+      while (queue.length > 0) {
+        let currId = queue.shift();
+        newGroup.push(currId);
+        for (let i = 0; i < 4; i++) {
+          let nextId = pieces[currId].connectedTo[i];
+          if (nextId !== null && !visited.has(nextId)) {
+            visited.add(nextId); queue.push(nextId);
+          }
+        }
+      }
+      movingGroups.push(newGroup);
+    }
+  }
 
   canvas.addEventListener('pointerup', () => {
     isPanning = false;
